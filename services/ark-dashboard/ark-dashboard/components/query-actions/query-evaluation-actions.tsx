@@ -111,6 +111,12 @@ export function QueryEvaluationActions({ queryName, queryNamespace = "default", 
     }
   }
 
+  // Extract target info from baseline query
+  const query = baselineQuery as { targets?: Array<{ name: string; type: string }> } | undefined
+  const firstTarget = query?.targets?.[0]
+  const initialTargetRef = firstTarget?.name
+  const initialTargetType = firstTarget?.type as "agent" | "model" | undefined
+
   if (loading) {
     return (
       <div className="flex items-center gap-2">
@@ -234,19 +240,21 @@ export function QueryEvaluationActions({ queryName, queryNamespace = "default", 
         onSave={handleSaveEvaluation}
         initialEvaluator={selectedEvaluator}
         initialQueryRef={queryName}
+        initialTargetRef={initialTargetRef}
+        initialTargetType={initialTargetType}
       />
-
-      {/* A/B Test Wizard */}
     </div>
-      {baselineQuery && (
-        <ABTestWizard
-          open={abTestOpen}
-          onOpenChange={setAbTestOpen}
-          queryNamespace={queryNamespace}
-          queryName={queryName}
-          baselineQuery={baselineQuery}
-        />
-      )}
+
+    {/* A/B Test Wizard */}
+    {baselineQuery && (
+      <ABTestWizard
+        open={abTestOpen}
+        onOpenChange={setAbTestOpen}
+        queryNamespace={queryNamespace}
+        queryName={queryName}
+        baselineQuery={baselineQuery}
+      />
+    )}
     </>
   )
 }

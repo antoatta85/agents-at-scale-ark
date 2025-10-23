@@ -25,14 +25,18 @@ import { useGetAllAgents, useGetAgent } from "@/lib/services/agents-hooks";
 
 interface ABConfigureStepProps {
   baselineQuery: unknown;
+  initialModifications?: ABExperimentModifications;
   onComplete: (modifications: ABExperimentModifications) => void;
   onCancel: () => void;
+  readOnly?: boolean;
 }
 
 export function ABConfigureStep({
   baselineQuery,
+  initialModifications: _initialModifications,
   onComplete,
-  onCancel
+  onCancel,
+  readOnly: _readOnly = false
 }: ABConfigureStepProps) {
   const [selectedComponent, setSelectedComponent] = useState<"query" | "agents" | "teams">("query");
   const [experimentInput, setExperimentInput] = useState("");

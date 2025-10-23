@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Send, X, AlertCircle, Expand, Shrink, MessageCircle } from "lucide-react"
+import { Send, X, AlertCircle, Expand, Shrink, MessageCircle, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -33,6 +33,7 @@ export default function FloatingChat({ name, type, position, onClose }: Floating
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMaximized, setIsMaximized] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
   const [viewMode, setViewMode] = useState<'text' | 'markdown'>('markdown')
   const [sessionId] = useState(() => `session-${Date.now()}`)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -169,7 +170,9 @@ export default function FloatingChat({ name, type, position, onClose }: Floating
   const rightPosition = 16 + (position * 420)
 
   // Handle maximize/minimize styling
-  const cardStyles = isMaximized 
+  const cardStyles = isMinimized
+    ? "fixed bottom-4 shadow-2xl z-50 w-[400px] h-[52px] transition-all duration-300"
+    : isMaximized
     ? "fixed inset-4 shadow-2xl z-50 transition-all duration-300"
     : "fixed bottom-4 shadow-2xl z-50 w-[400px] h-[500px] transition-all duration-300"
 
@@ -203,9 +206,24 @@ export default function FloatingChat({ name, type, position, onClose }: Floating
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsMaximized(!isMaximized)}
+                onClick={() => {
+                  setIsMinimized(!isMinimized)
+                  if (isMaximized) setIsMaximized(false)
+                }}
                 className="h-6 w-6 p-0"
-                title={isMaximized ? 'Minimize chat' : 'Maximize chat'}
+                title={isMinimized ? 'Restore chat' : 'Minimize chat'}
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsMaximized(!isMaximized)
+                  if (isMinimized) setIsMinimized(false)
+                }}
+                className="h-6 w-6 p-0"
+                title={isMaximized ? 'Restore chat' : 'Maximize chat'}
               >
                 {isMaximized ? <Shrink className="h-3 w-3" /> : <Expand className="h-3 w-3" />}
               </Button>
@@ -221,36 +239,41 @@ export default function FloatingChat({ name, type, position, onClose }: Floating
             </div>
           </div>
           
-          <Separator />
-          
-          {/* Controls Row */}
-          <div className="flex justify-end px-3 py-1.5">
-            <div className="flex items-center gap-1 text-xs">
-              <button 
-                className={`px-2 py-1 rounded transition-colors ${
-                  viewMode === 'text' 
-                    ? 'bg-secondary text-secondary-foreground font-medium' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-                onClick={() => setViewMode('text')}
-              >
-                Text
-              </button>
-              <button 
-                className={`px-2 py-1 rounded transition-colors ${
-                  viewMode === 'markdown' 
-                    ? 'bg-secondary text-secondary-foreground font-medium' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-                onClick={() => setViewMode('markdown')}
-              >
-                Markdown
-              </button>
-            </div>
-          </div>
+          {!isMinimized && (
+            <>
+              <Separator />
+
+              {/* Controls Row */}
+              <div className="flex justify-end px-3 py-1.5">
+                <div className="flex items-center gap-1 text-xs">
+                  <button
+                    className={`px-2 py-1 rounded transition-colors ${
+                      viewMode === 'text'
+                        ? 'bg-secondary text-secondary-foreground font-medium'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                    onClick={() => setViewMode('text')}
+                  >
+                    Text
+                  </button>
+                  <button
+                    className={`px-2 py-1 rounded transition-colors ${
+                      viewMode === 'markdown'
+                        ? 'bg-secondary text-secondary-foreground font-medium'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                    onClick={() => setViewMode('markdown')}
+                  >
+                    Markdown
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
+        {!isMinimized && (
+          <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
           <div className="space-y-4">
             {error && (
               <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
@@ -308,9 +331,11 @@ export default function FloatingChat({ name, type, position, onClose }: Floating
             )}
             <div ref={messagesEndRef} />
           </div>
-        </div>
+          </div>
+        )}
 
-        <div className="flex gap-2 p-4 border-t flex-shrink-0">
+        {!isMinimized && (
+          <div className="flex gap-2 p-4 border-t flex-shrink-0">
           <div className="flex-1 relative">
             <Input
               ref={inputRef}
@@ -321,15 +346,16 @@ export default function FloatingChat({ name, type, position, onClose }: Floating
               disabled={isProcessing}
             />
           </div>
-          <Button 
-            onClick={handleSendMessage} 
-            disabled={!currentMessage.trim() || isProcessing} 
-            size="sm" 
+          <Button
+            onClick={handleSendMessage}
+            disabled={!currentMessage.trim() || isProcessing}
+            size="sm"
             variant="default"
           >
             <Send className="h-4 w-4" />
           </Button>
-        </div>
+          </div>
+        )}
       </div>
     </Card>
   )

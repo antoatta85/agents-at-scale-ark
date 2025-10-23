@@ -1130,7 +1130,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Ab Experiment
-         * @description Delete AB experiment and its variant query.
+         * @description Delete AB experiment, variant query, variant agent, and related evaluations.
          */
         delete: operations["delete_ab_experiment_v1_namespaces__namespace__queries__query_name__ab_experiment__experiment_id__delete"];
         options?: never;
@@ -1174,6 +1174,26 @@ export interface paths {
          * @description Get AB experiment history for a query.
          */
         get: operations["get_experiment_history_v1_namespaces__namespace__queries__query_name__ab_experiment_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/namespaces/{namespace}/ab-experiments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List All Experiments
+         * @description List all AB experiments in a namespace by querying queries with ab-experiment annotations.
+         */
+        get: operations["list_all_experiments_v1_namespaces__namespace__ab_experiments_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6456,6 +6476,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ABExperiment"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_all_experiments_v1_namespaces__namespace__ab_experiments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Namespace */
+                namespace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
                 };
             };
             /** @description Validation Error */

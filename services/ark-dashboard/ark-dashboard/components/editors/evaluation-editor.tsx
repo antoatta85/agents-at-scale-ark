@@ -50,6 +50,8 @@ interface EvaluationEditorProps {
   ) => void
   initialEvaluator?: string
   initialQueryRef?: string
+  initialTargetRef?: string
+  initialTargetType?: "agent" | "model"
 }
 
 export function EvaluationEditor({
@@ -58,7 +60,9 @@ export function EvaluationEditor({
   evaluation,
   onSave,
   initialEvaluator,
-  initialQueryRef
+  initialQueryRef,
+  initialTargetRef,
+  initialTargetType
 }: EvaluationEditorProps) {
   const [name, setName] = useState("")
   const [mode, setMode] = useState<EvaluationType>("direct")
@@ -163,15 +167,15 @@ export function EvaluationEditor({
         setQueryRef(initialQueryRef || "")
         setInput("")
         setOutput("")
-        setTargetType("agent")
-        setTargetRef("")
+        setTargetType(initialTargetType || "agent")
+        setTargetRef(initialTargetRef || "")
       }
     }
 
     if (open) {
       loadEvaluationDetails()
     }
-  }, [evaluation, isEditing, open, initialEvaluator, initialQueryRef])
+  }, [evaluation, isEditing, open, initialEvaluator, initialQueryRef, initialTargetRef, initialTargetType])
 
   const handleSubmit = async () => {
     if (!evaluatorRef) {

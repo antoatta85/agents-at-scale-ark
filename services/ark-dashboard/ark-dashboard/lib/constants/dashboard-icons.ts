@@ -12,6 +12,7 @@ import {
   Calendar,
   Database,
   Key,
+  FlaskConical,
   type LucideIcon
 } from "lucide-react";
 
@@ -78,6 +79,12 @@ export const DASHBOARD_SECTIONS = {
     key: "memory",
     title: "Memory",
     icon: Database,
+    group: "operations"
+  },
+  "ab-experiments": {
+    key: "ab-experiments",
+    title: "AB Experiments",
+    icon: FlaskConical,
     group: "operations"
   },
 

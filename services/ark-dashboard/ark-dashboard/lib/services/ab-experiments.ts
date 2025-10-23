@@ -19,6 +19,11 @@ export interface ApplyWinnerRequest {
   winner: 'baseline' | 'experiment'
 }
 
+export interface ABExperimentListItem extends ABExperiment {
+  queryName: string
+  queryNamespace: string
+}
+
 export const abExperimentsService = {
   async create(
     namespace: string,
@@ -119,6 +124,25 @@ export const abExperimentsService = {
   ): Promise<AgentDetailResponse> {
     const response = await apiClient.get<AgentDetailResponse>(
       `/api/v1/namespaces/${namespace}/agents/${agentName}`
+    );
+    return response;
+  },
+
+  async getHistory(
+    namespace: string,
+    queryName: string
+  ): Promise<ABExperiment[]> {
+    const response = await apiClient.get<ABExperiment[]>(
+      `/api/v1/namespaces/${namespace}/queries/${queryName}/ab-experiment/history`
+    );
+    return response;
+  },
+
+  async listAllExperiments(
+    namespace: string
+  ): Promise<ABExperimentListItem[]> {
+    const response = await apiClient.get<ABExperimentListItem[]>(
+      `/api/v1/namespaces/${namespace}/ab-experiments`
     );
     return response;
   }

@@ -6,16 +6,19 @@ NGINX Gateway Fabric uses static IP addresses in upstream configurations instead
 
 ### Root Cause
 
-NGINX Gateway Fabric **does** watch EndpointSlice changes automatically and should reload nginx configuration when endpoints change. However, there are two scenarios where this fails:
+NGINX Gateway Fabric **does** watch EndpointSlice changes automatically and should reload nginx configuration when endpoints change. However, there are scenarios where this fails:
 
 1. **Gateway controller not running**: If the gateway controller is down or restarting when an endpoint changes, it misses the update event
 2. **Missed reconciliation**: The controller only processes live Kubernetes events - it doesn't always reconcile full state on startup
+3. **Expired service account tokens**: The controller's service account token can expire, preventing it from communicating with the NGINX agent to update configuration
 
 ### Symptoms
 
 - HTTP 502 Bad Gateway errors when accessing services through the gateway
 - Nginx logs show `connect() failed (113: Host is unreachable) while connecting to upstream`
 - The upstream IP in nginx config (`/etc/nginx/conf.d/http.conf`) doesn't match the current pod IP
+- Gateway fabric controller logs show `invalid authorization: [invalid bearer token, service account token has expired]`
+- NGINX is running but only listening on unix socket for status monitoring, not on port 80
 
 ## Solutions
 
@@ -28,9 +31,10 @@ make localhost-gateway-reload
 ```
 
 This command:
-1. Deletes the nginx gateway pod
-2. Waits for it to restart
-3. On startup, the gateway regenerates config with current endpoint IPs
+1. Restarts the nginx-gateway-fabric controller pod (fixes expired token issues)
+2. Restarts the nginx proxy pod (forces endpoint refresh)
+3. Waits for both to be ready
+4. On startup, the gateway regenerates config with current endpoint IPs
 
 ### Long-term: Monitoring and Auto-healing
 
@@ -65,6 +69,7 @@ According to the [NGINX Gateway Fabric architecture](https://docs.nginx.com/ngin
 - If the controller pod is restarting during an endpoint change, it may miss the event
 - Controller-runtime doesn't always reconcile full state on startup for performance reasons
 - No reconciliation loop ensures upstreams match current EndpointSlice state
+- Service account tokens can expire, breaking the gRPC connection between controller and NGINX agent
 
 ## Future Improvements
 

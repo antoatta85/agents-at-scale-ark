@@ -19,6 +19,7 @@ import {
   BarChart3,
   CheckCircle,
   Clock,
+  ExternalLink,
   FileText,
   Play,
   Settings,
@@ -27,6 +28,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { EnhancedEvaluationDetailView } from "./enhanced-evaluation-detail-view";
 import { EventMetricsDisplay } from "./event-metrics-display";
 import { MetricsEvaluationDisplay } from "./metrics-evaluation-display";
@@ -110,6 +112,7 @@ export function EvaluationDetailView({
   namespace,
   enhanced = false
 }: EvaluationDetailViewProps) {
+  const router = useRouter();
   const [evaluation, setEvaluation] = useState<EvaluationDetailResponse | null>(
     null
   );
@@ -618,7 +621,13 @@ export function EvaluationDetailView({
                 <p className="text-sm font-medium text-muted-foreground">
                   Query Reference
                 </p>
-                <p className="font-medium">{queryRef.name}</p>
+                <button
+                  onClick={() => router.push(`/query/${queryRef.name}?namespace=${namespace}`)}
+                  className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 hover:underline"
+                >
+                  {queryRef.name}
+                  <ExternalLink className="w-3 h-3" />
+                </button>
               </div>
             )}
 

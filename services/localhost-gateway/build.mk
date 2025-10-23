@@ -47,11 +47,15 @@ $(LOCALHOST_GATEWAY_SERVICE_NAME)-uninstall: # HELP: Remove localhost-gateway fr
 	rm -f $(LOCALHOST_GATEWAY_STAMP_INSTALL)
 
 # Reload target - forces nginx gateway to refresh endpoint configuration
-$(LOCALHOST_GATEWAY_SERVICE_NAME)-reload: # HELP: Reload nginx gateway to pick up endpoint changes
-	@echo "Reloading nginx gateway to refresh endpoint configuration..."
-	@kubectl delete pod -n $(LOCALHOST_GATEWAY_NAMESPACE) -l app.kubernetes.io/name=nginx-gateway 2>/dev/null || true
-	@echo "Waiting for nginx gateway pod to restart..."
-	@kubectl wait --for=condition=ready pod -n $(LOCALHOST_GATEWAY_NAMESPACE) -l app.kubernetes.io/instance=$(LOCALHOST_GATEWAY_SERVICE_NAME) --timeout=60s
+$(LOCALHOST_GATEWAY_SERVICE_NAME)-reload: # HELP: Restart nginx gateway controller and proxy to fix 502 errors
+	@echo "Reloading nginx gateway fabric controller..."
+	@kubectl delete pod -n $(LOCALHOST_GATEWAY_NAMESPACE) -l app.kubernetes.io/name=nginx-gateway-fabric 2>/dev/null || true
+	@echo "Waiting for nginx gateway fabric controller to restart..."
+	@kubectl wait --for=condition=ready pod -n $(LOCALHOST_GATEWAY_NAMESPACE) -l app.kubernetes.io/name=nginx-gateway-fabric --timeout=60s 2>/dev/null || true
+	@echo "Reloading nginx proxy pod..."
+	@kubectl delete pod -n $(LOCALHOST_GATEWAY_NAMESPACE) -l app.kubernetes.io/name=$(LOCALHOST_GATEWAY_SERVICE_NAME)-nginx 2>/dev/null || true
+	@echo "Waiting for nginx proxy pod to restart..."
+	@kubectl wait --for=condition=ready pod -n $(LOCALHOST_GATEWAY_NAMESPACE) -l app.kubernetes.io/name=$(LOCALHOST_GATEWAY_SERVICE_NAME)-nginx --timeout=60s 2>/dev/null || true
 	@echo "Nginx gateway reloaded successfully"
 
 # Test target

@@ -30,6 +30,11 @@ router = APIRouter(
     tags=["ab-experiments"]
 )
 
+namespace_router = APIRouter(
+    prefix="/namespaces/{namespace}/ab-experiments",
+    tags=["ab-experiments"]
+)
+
 VERSION = "v1alpha1"
 AB_EXPERIMENT_ANNOTATION = "ab-experiment"
 AB_EXPERIMENT_HISTORY_PREFIX = "ab-experiment-history-"
@@ -541,16 +546,52 @@ async def delete_ab_experiment(
     query_name: str = Path(..., description="Base query name"),
     experiment_id: str = Path(..., description="Experiment ID")
 ) -> None:
-    """Delete AB experiment and its variant query."""
+    """Delete AB experiment, variant query, variant agent, and related evaluations."""
     async with with_ark_client(namespace, VERSION) as ark_client:
         base_query = await ark_client.queries.a_get(query_name)
         base_dict = base_query.to_dict()
 
         annotations = base_dict.get("metadata", {}).get("annotations", {})
-        experiment = parse_ab_experiment_annotation(annotations)
 
-        if not experiment or experiment.id != experiment_id:
-            raise ValueError(f"Experiment {experiment_id} not found")
+        experiment = parse_ab_experiment_annotation(annotations)
+        if experiment and experiment.id == experiment_id:
+            pass
+        else:
+            history_key = f"{AB_EXPERIMENT_HISTORY_PREFIX}{experiment_id}"
+            if history_key in annotations:
+                try:
+                    experiment_data = json.loads(annotations[history_key])
+                    experiment = ABExperiment(**experiment_data)
+                except (json.JSONDecodeError, TypeError, ValueError) as e:
+                    raise ValueError(f"Failed to parse experiment {experiment_id}: {e}")
+            else:
+                raise ValueError(f"Experiment {experiment_id} not found")
+
+        if experiment.evaluations:
+            for eval_name in experiment.evaluations.baseline:
+                try:
+                    await ark_client.evaluations.a_delete(eval_name, namespace=namespace)
+                except Exception as e:
+                    print(f"Failed to delete baseline evaluation {eval_name}: {e}")
+
+            for eval_name in experiment.evaluations.experiment:
+                try:
+                    await ark_client.evaluations.a_delete(eval_name, namespace=namespace)
+                except Exception as e:
+                    print(f"Failed to delete experiment evaluation {eval_name}: {e}")
+
+        all_evaluations = await ark_client.evaluations.a_list(namespace=namespace)
+        for evaluation in all_evaluations:
+            eval_dict = evaluation.to_dict()
+            query_ref = eval_dict.get("spec", {}).get("config", {}).get("queryRef", {}).get("name")
+            if query_ref == experiment.variantQuery:
+                eval_name = eval_dict.get("metadata", {}).get("name")
+                if eval_name:
+                    try:
+                        await ark_client.evaluations.a_delete(eval_name, namespace=namespace)
+                        print(f"Deleted orphaned evaluation {eval_name} for variant query")
+                    except Exception as e:
+                        print(f"Failed to delete orphaned evaluation {eval_name}: {e}")
 
         try:
             await ark_client.queries.a_delete(experiment.variantQuery)
@@ -563,7 +604,12 @@ async def delete_ab_experiment(
             except Exception as e:
                 print(f"Failed to delete variant agent {experiment.variantAgent}: {e}")
 
-        del annotations[AB_EXPERIMENT_ANNOTATION]
+        if AB_EXPERIMENT_ANNOTATION in annotations:
+            del annotations[AB_EXPERIMENT_ANNOTATION]
+
+        history_key = f"{AB_EXPERIMENT_HISTORY_PREFIX}{experiment_id}"
+        if history_key in annotations:
+            del annotations[history_key]
 
         patch = {
             "metadata": {
@@ -572,3 +618,49 @@ async def delete_ab_experiment(
         }
 
         await ark_client.queries.a_patch(query_name, patch)
+
+
+@namespace_router.get("", response_model=list[dict])
+@handle_k8s_errors(operation="list", resource_type="ab-experiments")
+async def list_all_experiments(
+    namespace: str = Path(..., description="Namespace")
+) -> list[dict]:
+    """List all AB experiments in a namespace by querying queries with ab-experiment annotations."""
+    async with with_ark_client(namespace, VERSION) as ark_client:
+        queries = await ark_client.queries.a_list(namespace=namespace)
+        queries_list = [q.to_dict() for q in queries]
+
+        all_experiments = []
+
+        for query_dict in queries_list:
+            query_name = query_dict.get("metadata", {}).get("name")
+            annotations = query_dict.get("metadata", {}).get("annotations", {})
+
+            if not query_name:
+                continue
+
+            for key, value in annotations.items():
+                if key == AB_EXPERIMENT_ANNOTATION:
+                    try:
+                        experiment_data = json.loads(value)
+                        all_experiments.append({
+                            **experiment_data,
+                            "queryName": query_name,
+                            "queryNamespace": namespace
+                        })
+                    except (json.JSONDecodeError, TypeError, ValueError) as e:
+                        print(f"Failed to parse active experiment for query {query_name}: {e}")
+
+                elif key.startswith(AB_EXPERIMENT_HISTORY_PREFIX):
+                    try:
+                        experiment_data = json.loads(value)
+                        all_experiments.append({
+                            **experiment_data,
+                            "queryName": query_name,
+                            "queryNamespace": namespace
+                        })
+                    except (json.JSONDecodeError, TypeError, ValueError) as e:
+                        print(f"Failed to parse history experiment for query {query_name}: {e}")
+
+        all_experiments.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
+        return all_experiments
