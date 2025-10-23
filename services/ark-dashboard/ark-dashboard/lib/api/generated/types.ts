@@ -3463,8 +3463,8 @@ export interface components {
          * @description Team selector configuration.
          */
         Selector: {
-            /** Model */
-            model?: string | null;
+            /** Agent */
+            agent?: string | null;
             /** Selectorprompt */
             selectorPrompt?: string | null;
         };
