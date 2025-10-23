@@ -186,11 +186,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-<<<<<<< HEAD
-    { name = "ark-sdk", path = "../../../out/ark-sdk/py-sdk/dist/ark_sdk-0.1.37-py3-none-any.whl" },
-=======
     { name = "ark-sdk", path = "out/ark_sdk-0.1.39-py3-none-any.whl" },
->>>>>>> origin
     { name = "fastmcp", specifier = ">=0.5.0" },
     { name = "kubernetes-asyncio", specifier = ">=24.0.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
