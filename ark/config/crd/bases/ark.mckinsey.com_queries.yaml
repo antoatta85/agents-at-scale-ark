@@ -57,12 +57,6 @@ spec:
                 description: Input can be a string (type=user) or []openai.ChatCompletionMessageParamUnion
                   (type=messages)
                 x-kubernetes-preserve-unknown-fields: true
-              type:
-                default: user
-                enum:
-                - user
-                - messages
-                type: string
               memory:
                 properties:
                   name:

@@ -77,18 +77,8 @@ func DiscoverA2AAgentsWithRecorder(ctx context.Context, k8sClient client.Client,
 		AgentCardPathVersion3, AgentCardPathVersion2, lastErr)
 }
 
-// ExecuteA2AAgent executes a task on an A2A agent using the official library client
-func ExecuteA2AAgent(ctx context.Context, k8sClient client.Client, address string, headers []arkv1prealpha1.Header, namespace, input, agentName string) (string, error) {
-	return ExecuteA2AAgentWithRecorder(ctx, k8sClient, address, headers, namespace, input, agentName, nil, nil)
-}
-
-// ExecuteA2AAgentWithRecorder executes a task on an A2A agent with optional K8s event recording
-func ExecuteA2AAgentWithRecorder(ctx context.Context, k8sClient client.Client, address string, headers []arkv1prealpha1.Header, namespace, input, agentName string, recorder record.EventRecorder, obj client.Object) (string, error) {
-	return ExecuteA2AAgentWithRecorderAndQuery(ctx, k8sClient, address, headers, namespace, input, agentName, "", recorder, obj)
-}
-
-// ExecuteA2AAgentWithRecorderAndQuery executes a task on an A2A agent with optional K8s event recording and query context
-func ExecuteA2AAgentWithRecorderAndQuery(ctx context.Context, k8sClient client.Client, address string, headers []arkv1prealpha1.Header, namespace, input, agentName, queryName string, recorder record.EventRecorder, obj client.Object) (string, error) {
+// ExecuteA2AAgent executes a task on an A2A agent with optional K8s event recording, query context, and token collection
+func ExecuteA2AAgent(ctx context.Context, k8sClient client.Client, address string, headers []arkv1prealpha1.Header, namespace, input, agentName, queryName string, recorder record.EventRecorder, obj client.Object, tokenCollector *TokenUsageCollector) (string, error) {
 	rpcURL := strings.TrimSuffix(address, "/")
 	logf.FromContext(ctx).Info("calling A2A server", "url", rpcURL)
 
@@ -99,7 +89,7 @@ func ExecuteA2AAgentWithRecorderAndQuery(ctx context.Context, k8sClient client.C
 	}
 
 	// Execute agent and get response
-	return executeA2AAgentMessage(ctx, k8sClient, a2aClient, input, agentName, rpcURL, namespace, queryName, recorder, obj)
+	return executeA2AAgentMessage(ctx, k8sClient, a2aClient, input, agentName, rpcURL, namespace, queryName, recorder, obj, tokenCollector)
 }
 
 // createA2AClientForExecution creates and configures A2A client for agent execution
@@ -132,7 +122,7 @@ func createA2AClientForExecution(ctx context.Context, k8sClient client.Client, r
 }
 
 // executeA2AAgentMessage sends message to A2A agent and processes response
-func executeA2AAgentMessage(ctx context.Context, k8sClient client.Client, a2aClient *a2aclient.A2AClient, input, agentName, rpcURL, namespace, queryName string, recorder record.EventRecorder, obj client.Object) (string, error) {
+func executeA2AAgentMessage(ctx context.Context, k8sClient client.Client, a2aClient *a2aclient.A2AClient, input, agentName, rpcURL, namespace, queryName string, recorder record.EventRecorder, obj client.Object, tokenCollector *TokenUsageCollector) (string, error) {
 	message := protocol.NewMessage(protocol.MessageRoleUser, []protocol.Part{
 		protocol.NewTextPart(input),
 	})
@@ -158,7 +148,7 @@ func executeA2AAgentMessage(ctx context.Context, k8sClient client.Client, a2aCli
 		return "", fmt.Errorf("A2A server call failed: %w", err)
 	}
 
-	response, err := extractResponseFromMessageResult(ctx, k8sClient, result, agentName, namespace, queryName, recorder, obj)
+	response, err := extractResponseFromMessageResult(ctx, k8sClient, result, agentName, namespace, queryName, recorder, obj, tokenCollector)
 	if err != nil {
 		if recorder != nil && obj != nil {
 			recorder.Event(obj, corev1.EventTypeWarning, "A2AResponseParseError", fmt.Sprintf("Failed to parse response from agent %s: %v", agentName, err))
@@ -197,21 +187,23 @@ func (h *customA2ARequestHandler) Handle(ctx context.Context, httpClient *http.C
 }
 
 // extractResponseFromMessageResult extracts response from MessageResult and handles both messages and tasks
-func extractResponseFromMessageResult(ctx context.Context, k8sClient client.Client, result *protocol.MessageResult, agentName, namespace, queryName string, recorder record.EventRecorder, obj client.Object) (string, error) {
+func extractResponseFromMessageResult(ctx context.Context, k8sClient client.Client, result *protocol.MessageResult, agentName, namespace, queryName string, recorder record.EventRecorder, obj client.Object, tokenCollector *TokenUsageCollector) (string, error) {
 	log := logf.FromContext(ctx)
 	if result == nil {
 		return "", fmt.Errorf("result is nil")
 	}
 
-	log.Info("A2A response received", "result_type", fmt.Sprintf("%T", result.Result), "agent", agentName)
-
 	switch r := result.Result.(type) {
 	case *protocol.Message:
+		if tokenCollector != nil && r.ContextID != nil && *r.ContextID != "" {
+			tokenCollector.SetA2AContextID(*r.ContextID)
+		}
 		text := extractTextFromParts(r.Parts)
-		log.Info("A2A message extracted", "text", text, "parts_count", len(r.Parts))
 		return text, nil
 	case *protocol.Task:
-		log.Info("A2A task response detected", "taskId", r.ID, "state", r.Status.State, "agent", agentName)
+		if tokenCollector != nil && r.ContextID != "" {
+			tokenCollector.SetA2AContextID(r.ContextID)
+		}
 
 		text, err := extractTextFromTask(r)
 		if err != nil {
@@ -224,8 +216,6 @@ func extractResponseFromMessageResult(ctx context.Context, k8sClient client.Clie
 			log.Error(err, "failed to create A2ATask resource", "taskId", r.ID, "agent", agentName)
 			return "", fmt.Errorf("failed to handle A2A task response: %w", err)
 		}
-
-		log.Info("A2A task completed and tracked", "taskId", r.ID, "agent", agentName, "responseLength", len(text))
 		return text, nil
 	default:
 		log.Error(nil, "unexpected A2A result type", "type", fmt.Sprintf("%T", result.Result), "agent", agentName)
@@ -397,44 +387,27 @@ func resolveA2AHeaders(ctx context.Context, k8sClient client.Client, headers []a
 // handleA2ATaskResponse handles A2A task responses by creating A2ATask resources
 func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *protocol.Task, agentName, namespace, queryName string, recorder record.EventRecorder, obj client.Object) error {
 	log := logf.FromContext(ctx)
-	log.Info("handling A2A task response", "taskId", task.ID, "agent", agentName, "namespace", namespace, "queryName", queryName)
 
-	// Get A2A server information from context or object (if available)
 	var a2aServerAddress, a2aServerName string
-
-	// Try to extract A2A server info from the source object if it's an A2AServer
 	if a2aServer, ok := obj.(*arkv1prealpha1.A2AServer); ok {
 		a2aServerName = a2aServer.Name
 		a2aServerAddress = a2aServer.Status.LastResolvedAddress
-		log.Info("extracted A2A server info from A2AServer object", "serverName", a2aServerName, "serverAddress", a2aServerAddress)
-	} else {
-		log.Info("source object is not A2AServer", "object_type", fmt.Sprintf("%T", obj))
-		// Fallback: try to derive server info from context (we could enhance this later)
-		log.Info("will create A2ATask without server polling info - manual intervention needed")
 	}
 
-	// Convert protocol task to K8s resource
 	a2aTaskTask := arkv1alpha1.ConvertTaskFromProtocol(task)
 
-	// Create A2ATask resource
 	labels := map[string]string{
 		"ark.mckinsey.com/task-id": task.ID,
 		"ark.mckinsey.com/agent":   agentName,
 	}
 
 	annotations := make(map[string]string)
-
-	// Add server info to annotations if available for polling (URLs can't be in labels)
 	if a2aServerAddress != "" {
 		annotations["ark.mckinsey.com/a2a-server-address"] = a2aServerAddress
-		log.Info("added A2A server address to annotations", "address", a2aServerAddress)
 	}
 	if a2aServerName != "" {
 		annotations["ark.mckinsey.com/a2a-server-name"] = a2aServerName
-		log.Info("added A2A server name to annotations", "name", a2aServerName)
 	}
-
-	log.Info("creating A2ATask with labels and annotations", "labels", labels, "annotations", annotations)
 
 	a2aTask := &arkv1alpha1.A2ATask{
 		ObjectMeta: metav1.ObjectMeta{
@@ -478,54 +451,8 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 		return fmt.Errorf("failed to create A2ATask resource: %w", err)
 	}
 
-	log.Info("created A2ATask resource", "taskId", task.ID, "name", a2aTask.Name)
 	if recorder != nil && obj != nil {
 		recorder.Event(obj, corev1.EventTypeNormal, "A2ATaskCreated", fmt.Sprintf("Created A2ATask resource %s for task %s", a2aTask.Name, task.ID))
-	}
-
-	// Update the Query to add this A2ATask reference if it's associated with a specific query
-	if err := updateQueryWithA2ATaskReference(ctx, k8sClient, a2aTask, task); err != nil {
-		log.Error(err, "failed to update Query with A2ATask reference", "taskId", task.ID, "a2aTaskName", a2aTask.Name)
-		// Don't fail the whole operation if we can't update the query
-	}
-
-	// Task is being tracked
-	return nil
-}
-
-// updateQueryWithA2ATaskReference updates a Query's status to include reference to the created A2ATask
-func updateQueryWithA2ATaskReference(ctx context.Context, k8sClient client.Client, a2aTask *arkv1alpha1.A2ATask, task *protocol.Task) error {
-	log := logf.FromContext(ctx)
-
-	// Get the query reference from the A2ATask
-	queryRef := a2aTask.Spec.QueryRef
-	if queryRef.Name == "" {
-		log.Info("A2ATask has no query reference, skipping query update", "taskId", task.ID)
-		return nil
-	}
-
-	// Fetch the Query
-	var query arkv1alpha1.Query
-	queryKey := client.ObjectKey{Name: queryRef.Name, Namespace: queryRef.Namespace}
-	if err := k8sClient.Get(ctx, queryKey, &query); err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			log.Info("Referenced query not found, skipping update", "queryName", queryRef.Name, "queryNamespace", queryRef.Namespace)
-			return nil
-		}
-		return fmt.Errorf("failed to get query %s/%s: %w", queryRef.Namespace, queryRef.Name, err)
-	}
-
-	// Create A2ATask reference
-	a2aTaskRef := arkv1alpha1.A2ATaskReference{
-		TaskID: a2aTask.Spec.TaskID,
-	}
-	query.Status.AssociatedTask = a2aTaskRef
-	query.Status.Phase = "done"
-	log.Info("Added A2ATask reference to Query", "queryName", queryRef.Name, "taskId", task.ID)
-
-	// Update the Query status
-	if err := k8sClient.Status().Update(ctx, &query); err != nil {
-		return fmt.Errorf("failed to update query status: %w", err)
 	}
 
 	return nil

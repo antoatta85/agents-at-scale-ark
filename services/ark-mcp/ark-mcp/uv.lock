@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -218,7 +218,7 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"] },
 ]
 wheels = [
-    { filename = "ark_sdk-0.1.39-py3-none-any.whl", hash = "sha256:e338bebae772f1e610c97e20399e4a44ae6c8b976655427c3bdac33088133b79" },
+    { filename = "ark_sdk-0.1.39-py3-none-any.whl", hash = "sha256:0e51bfc670f03b86e0ea67aa481a4dc435e831bf34848595789db82a03897991" },
 ]
 
 [package.metadata]
