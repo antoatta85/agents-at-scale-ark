@@ -1,0 +1,16 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: query-2-ask-name-with-hydration
+  annotations:
+    # This annotation tells ARK to include the system message from memory
+    ark.mckinsey.com/memory-include-hydrate-system-message: "true"
+spec:
+  input: "What is my name?"
+  memory:
+    name: default
+  sessionId: test-session-123
+  targets:
+    - type: agent
+      name: test-agent
+

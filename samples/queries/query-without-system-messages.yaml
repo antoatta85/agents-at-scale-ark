@@ -1,0 +1,15 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: query-without-system-messages
+  # No annotation means system messages will NOT be hydrated from memory
+  # This is the default behavior
+spec:
+  input: "What is 2+2?"
+  memory:
+    name: default
+  sessionId: system-messages-demo
+  targets:
+    - type: agent
+      name: sample-agent
+

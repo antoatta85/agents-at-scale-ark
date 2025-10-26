@@ -23,6 +23,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
+	"mckinsey.com/ark/internal/annotations"
 	"mckinsey.com/ark/internal/genai"
 	"mckinsey.com/ark/internal/telemetry"
 )
@@ -657,7 +658,7 @@ func (r *QueryReconciler) executeAgent(ctx context.Context, query arkv1alpha1.Qu
 	}
 
 	// Load existing messages from memory
-	memoryMessages, err := r.loadInitialMessages(ctx, memory)
+	memoryMessages, err := r.loadInitialMessages(ctx, memory, query)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load initial messages: %w", err)
 	}
@@ -696,7 +697,7 @@ func (r *QueryReconciler) executeTeam(ctx context.Context, query arkv1alpha1.Que
 		return nil, fmt.Errorf("unable to make team %v, error:%w", teamKey, err)
 	}
 
-	historyMessages, err := r.loadInitialMessages(ctx, memory)
+	historyMessages, err := r.loadInitialMessages(ctx, memory, query)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load initial messages: %w", err)
 	}
@@ -735,7 +736,7 @@ func (r *QueryReconciler) executeModel(ctx context.Context, query arkv1alpha1.Qu
 		return nil, fmt.Errorf("unable to load model %v, error:%w", modelKey, err)
 	}
 
-	historyMessages, err := r.loadInitialMessages(ctx, memory)
+	historyMessages, err := r.loadInitialMessages(ctx, memory, query)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load initial messages: %w", err)
 	}
@@ -879,10 +880,28 @@ func mustMarshalJSON(v any) string {
 	return string(data)
 }
 
-func (r *QueryReconciler) loadInitialMessages(ctx context.Context, memory genai.MemoryInterface) ([]genai.Message, error) {
+func (r *QueryReconciler) loadInitialMessages(ctx context.Context, memory genai.MemoryInterface, query arkv1alpha1.Query) ([]genai.Message, error) {
 	messages, err := memory.GetMessages(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get messages from memory: %w", err)
+	}
+
+	// Check if query has annotation to hydrate system messages
+	shouldIncludeSystemMessages := false
+	if query.Annotations != nil && query.Annotations[annotations.MemoryIncludeHydrateSystemMessage] == genai.TrueString {
+		shouldIncludeSystemMessages = true
+	}
+
+	// If system messages should not be included, filter them out
+	if !shouldIncludeSystemMessages {
+		filteredMessages := make([]genai.Message, 0, len(messages))
+		for _, msg := range messages {
+			// Exclude system messages
+			if msg.OfSystem == nil {
+				filteredMessages = append(filteredMessages, msg)
+			}
+		}
+		return filteredMessages, nil
 	}
 
 	return messages, nil

@@ -2,10 +2,6 @@
 
 package genai
 
-import (
-	"mckinsey.com/ark/internal/annotations"
-)
-
 // PrepareExecutionMessages separates the current message from context messages
 // and combines with memory history for agent/team execution.
 // This pattern is used when the last message in inputMessages should be treated
@@ -39,24 +35,21 @@ func PrepareNewMessagesForMemory(inputMessages, responseMessages []Message) []Me
 	return newMessages
 }
 
-// PrepareAgentMessagesForMemory prepares messages for memory storage, including system message if agent has annotation.
-// This checks if the agent has the MemoryIncludeHydrateSystemMessage annotation and includes the system message
-// at the start of a new conversation (when existingMessages is empty).
+// PrepareAgentMessagesForMemory prepares messages for memory storage, always including system message.
+// System messages are always stored in memory. Hydration (whether to include them when loading from memory)
+// is controlled by query-level annotation.
 func PrepareAgentMessagesForMemory(agent *Agent, existingMessages, inputMessages, responseMessages []Message) []Message {
-	// Check if agent has annotation to include system message in memory
-	if agent.Annotations != nil && agent.Annotations[annotations.MemoryIncludeHydrateSystemMessage] == TrueString {
-		// Only include system message if this is the start of conversation (no existing messages)
-		if len(existingMessages) == 0 {
-			// Get the resolved prompt for the system message
-			systemMessage := NewSystemMessage(agent.Prompt)
-			// Only store the current input (last message) and response, not all inputMessages
-			currentInput := inputMessages[len(inputMessages)-1]
-			messagesToLog := make([]Message, 0, 2+len(responseMessages))
-			messagesToLog = append(messagesToLog, systemMessage)
-			messagesToLog = append(messagesToLog, currentInput)
-			messagesToLog = append(messagesToLog, responseMessages...)
-			return messagesToLog
-		}
+	// Only include system message if this is the start of conversation (no existing messages)
+	if len(existingMessages) == 0 {
+		// Get the resolved prompt for the system message
+		systemMessage := NewSystemMessage(agent.Prompt)
+		// Only store the current input (last message) and response, not all inputMessages
+		currentInput := inputMessages[len(inputMessages)-1]
+		messagesToLog := make([]Message, 0, 2+len(responseMessages))
+		messagesToLog = append(messagesToLog, systemMessage)
+		messagesToLog = append(messagesToLog, currentInput)
+		messagesToLog = append(messagesToLog, responseMessages...)
+		return messagesToLog
 	}
 
 	// Standard memory storage: only current input + response messages (not all inputMessages)
@@ -67,8 +60,9 @@ func PrepareAgentMessagesForMemory(agent *Agent, existingMessages, inputMessages
 	return newMessages
 }
 
-// PrepareTeamMessagesForMemory prepares messages for memory storage when executing a team,
-// checking team members for the system message annotation.
+// PrepareTeamMessagesForMemory prepares messages for memory storage, always including system messages.
+// System messages are always stored in memory. Hydration (whether to include them when loading from memory)
+// is controlled by query-level annotation.
 func PrepareTeamMessagesForMemory(team *Team, existingMessages, inputMessages, responseMessages []Message) []Message {
 	// Check if system messages from this team's agents are already in existing messages
 	hasTeamSystemMessages := false
@@ -78,16 +72,11 @@ func PrepareTeamMessagesForMemory(team *Team, existingMessages, inputMessages, r
 			continue
 		}
 
-		if agent.Annotations == nil {
-			continue
-		}
-
-		if agent.Annotations[annotations.MemoryIncludeHydrateSystemMessage] == TrueString {
-			agentSystemMessage := NewSystemMessage(agent.Prompt)
-			if containsSystemMessage(existingMessages, agentSystemMessage) {
-				hasTeamSystemMessages = true
-				break
-			}
+		// Check if agent system message is already in existing messages
+		agentSystemMessage := NewSystemMessage(agent.Prompt)
+		if containsSystemMessage(existingMessages, agentSystemMessage) {
+			hasTeamSystemMessages = true
+			break
 		}
 	}
 
@@ -100,7 +89,7 @@ func PrepareTeamMessagesForMemory(team *Team, existingMessages, inputMessages, r
 		return newMessages
 	}
 
-	// First time storing for this team - include system messages
+	// First time storing for this team - include system messages from all agents
 	var systemMessages []Message
 	for _, member := range team.Members {
 		agent, ok := member.(*Agent)
@@ -108,14 +97,8 @@ func PrepareTeamMessagesForMemory(team *Team, existingMessages, inputMessages, r
 			continue
 		}
 
-		if agent.Annotations == nil {
-			continue
-		}
-
-		if agent.Annotations[annotations.MemoryIncludeHydrateSystemMessage] == TrueString {
-			systemMessage := NewSystemMessage(agent.Prompt)
-			systemMessages = append(systemMessages, systemMessage)
-		}
+		systemMessage := NewSystemMessage(agent.Prompt)
+		systemMessages = append(systemMessages, systemMessage)
 	}
 
 	// Include system messages + current input + response
