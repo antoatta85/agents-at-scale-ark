@@ -90,7 +90,7 @@ func PrepareTeamMessagesForMemory(team *Team, existingMessages, inputMessages, r
 	}
 
 	// First time storing for this team - include system messages from all agents
-	var systemMessages []Message
+	systemMessages := make([]Message, 0, len(team.Members))
 	for _, member := range team.Members {
 		agent, ok := member.(*Agent)
 		if !ok {
