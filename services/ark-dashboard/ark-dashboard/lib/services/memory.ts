@@ -1,6 +1,6 @@
-import { apiClient } from "@/lib/api/client";
+import { apiClient } from '@/lib/api/client';
 
-// Memory message interface - represents individual query messages  
+// Memory message interface - represents individual query messages
 export interface MemoryMessage {
   queryName: string;
   queryNamespace: string;
@@ -29,7 +29,7 @@ export interface SessionConversation {
   lastUpdated?: string;
 }
 
-// Memory resource interface 
+// Memory resource interface
 export interface MemoryResource {
   name: string;
   namespace: string;
@@ -52,11 +52,6 @@ interface MemoryListResponse {
   total?: number;
 }
 
-
-
-
-
-
 export const memoryService = {
   // Get all memory resources in a namespace
   async getMemoryResources(): Promise<MemoryResource[]> {
@@ -66,7 +61,7 @@ export const memoryService = {
 
       return response?.items || [];
     } catch (error) {
-      console.error("Failed to fetch memory resources:", error);
+      console.error('Failed to fetch memory resources:', error);
       return [];
     }
   },
@@ -75,11 +70,13 @@ export const memoryService = {
   async getSessions(): Promise<{ sessionId: string; memoryName: string }[]> {
     try {
       const url = `/api/v1/sessions`;
-      const response = await apiClient.get<{ items: { sessionId: string; memoryName: string }[] }>(url);
+      const response = await apiClient.get<{
+        items: { sessionId: string; memoryName: string }[];
+      }>(url);
 
       return response?.items || [];
     } catch (error) {
-      console.error("Failed to fetch sessions:", error);
+      console.error('Failed to fetch sessions:', error);
       return [];
     }
   },
@@ -87,37 +84,46 @@ export const memoryService = {
   // Get stored conversation messages for a specific session
   async getSessionConversation(
     memoryName: string,
-    sessionId: string
+    sessionId: string,
   ): Promise<SessionConversation | null> {
     try {
       // Use the new ARK API endpoint for memory messages
       const apiUrl = `/api/v1/memories/${memoryName}/sessions/${sessionId}/messages`;
-      const response = await apiClient.get<{ messages: StoredMessage[] }>(apiUrl);
+      const response = await apiClient.get<{ messages: StoredMessage[] }>(
+        apiUrl,
+      );
 
       return {
         sessionId,
         memoryName,
         messages: response?.messages || [],
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(`Failed to fetch conversation for session ${sessionId}:`, error);
+      console.error(
+        `Failed to fetch conversation for session ${sessionId}:`,
+        error,
+      );
       return null;
     }
   },
 
   // Get all memory messages using the new consolidated endpoint
-  async getAllMemoryMessages(
-    filters?: { memory?: string; session?: string; query?: string }
-  ): Promise<{
-    timestamp: string;
-    memoryName: string;
-    sessionId: string;
-    queryId: string;
-    message: { role: string; content: string; name?: string };
-    sequence?: number;
-    agent_name?: string;
-  }[]> {
+  async getAllMemoryMessages(filters?: {
+    memory?: string;
+    session?: string;
+    query?: string;
+  }): Promise<
+    {
+      timestamp: string;
+      memoryName: string;
+      sessionId: string;
+      queryId: string;
+      message: { role: string; content: string; name?: string };
+      sequence?: number;
+      agent_name?: string;
+    }[]
+  > {
     try {
       let url = `/api/v1/memory-messages`;
       const params = new URLSearchParams();
@@ -142,8 +148,8 @@ export const memoryService = {
       }>(url);
       return response?.items || [];
     } catch (error) {
-      console.error("Failed to fetch memory messages:", error);
+      console.error('Failed to fetch memory messages:', error);
       return [];
     }
-  }
+  },
 };
