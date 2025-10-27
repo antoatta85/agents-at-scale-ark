@@ -132,7 +132,6 @@ func (q *QuerySpec) GetInputString() (string, error) {
 }
 
 // GetInputMessages returns the input as []openai.ChatCompletionMessageParamUnion when type="messages"
-
 func (q *QuerySpec) GetInputMessages() ([]openai.ChatCompletionMessageParamUnion, error) {
 	if q.Type != QueryTypeMessages {
 		return nil, fmt.Errorf("cannot get message input for type=%s, expected type=%s", q.Type, QueryTypeMessages)
