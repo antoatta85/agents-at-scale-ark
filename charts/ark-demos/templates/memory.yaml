@@ -1,0 +1,13 @@
+{{- if .Values.memory.enabled }}
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Memory
+metadata:
+  name: {{ .Values.memory.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: memory
+spec:
+  type: {{ .Values.memory.type }}
+  address: {{ .Values.memory.url | quote }}
+{{- end }}

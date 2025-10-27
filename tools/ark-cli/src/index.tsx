@@ -15,6 +15,7 @@ import {createChatCommand} from './commands/chat/index.js';
 import {createClusterCommand} from './commands/cluster/index.js';
 import {createCompletionCommand} from './commands/completion/index.js';
 import {createDashboardCommand} from './commands/dashboard/index.js';
+import {createDemosCommand} from './commands/demos/index.js';
 import {createDocsCommand} from './commands/docs/index.js';
 import {createGenerateCommand} from './commands/generate/index.js';
 import {createInstallCommand} from './commands/install/index.js';
@@ -53,6 +54,7 @@ async function main() {
   program.addCommand(createClusterCommand(config));
   program.addCommand(createCompletionCommand(config));
   program.addCommand(createDashboardCommand(config));
+  program.addCommand(createDemosCommand(config));
   program.addCommand(createDocsCommand(config));
   program.addCommand(createGenerateCommand(config));
   program.addCommand(createInstallCommand(config));

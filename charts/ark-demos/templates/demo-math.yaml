@@ -1,0 +1,38 @@
+{{- if .Values.demos.math.enabled }}
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: math-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    {{- include "ark-demos.demoLabels" .Values.demos.math | nindent 4 }}
+    demo.ark.mckinsey.com/component: agent
+spec:
+  description: "Simple math agent demonstrating basic ARK concepts"
+  prompt: |
+    You are a helpful math assistant. You can perform calculations, solve equations, 
+    and help with mathematical problems. Always show your work step by step and 
+    provide clear explanations.
+    
+    Be concise, accurate, and educational in your responses.
+  modelRef:
+    name: {{ .Values.model.name }}
+
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: math-query
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    {{- include "ark-demos.demoLabels" .Values.demos.math | nindent 4 }}
+    demo.ark.mckinsey.com/component: query
+spec:
+  input: "Calculate 2 + 2 and explain the steps"
+  targets:
+    - type: agent
+      name: math-agent
+{{- end }}

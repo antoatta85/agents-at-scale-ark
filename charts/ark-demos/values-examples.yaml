@@ -1,0 +1,317 @@
+# Example values for different deployment scenarios
+# Copy and modify these examples based on your needs
+
+# =============================================================================
+# EXAMPLE 1: Basic Installation (All Demos)
+# =============================================================================
+# Use this for a complete demo installation with all features enabled
+
+demos:
+  math:
+    enabled: true
+    name: "math-demo"
+    description: "Simple math agent demonstrating basic ARK concepts"
+    complexity: "beginner"
+    category: "basic"
+    
+  weather:
+    enabled: true
+    name: "weather-demo"
+    description: "Weather workflow with file system operations via MCP"
+    complexity: "intermediate"
+    category: "workflow"
+    
+  research:
+    enabled: true
+    name: "research-demo"
+    description: "Multi-agent research team with web search and file operations"
+    complexity: "advanced"
+    category: "team"
+
+model:
+  create: true
+  name: "demo-model"
+  type: "azure"
+  model:
+    value: "gpt-4o-mini"
+  config:
+    azure:
+      baseUrl:
+        value: "https://your-openai-instance.openai.azure.com/"
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: "azure-openai-secret"
+            key: "token"
+      apiVersion:
+        value: "2024-02-15-preview"
+
+mcp:
+  filesys:
+    enabled: true
+    name: "demo-filesys-mcp"
+    image: "ghcr.io/mckinsey/agents-at-scale-ark/mcp-filesys:latest"
+    port: 8080
+    
+  websearch:
+    enabled: true
+    name: "demo-websearch-mcp"
+    image: "ghcr.io/mckinsey/agents-at-scale-ark/mcp-websearch:latest"
+    port: 8081
+
+# =============================================================================
+# EXAMPLE 2: Math Demo Only (Beginner)
+# =============================================================================
+# Use this for a simple installation with just the math demo
+
+demos:
+  math:
+    enabled: true
+    name: "math-demo"
+    description: "Simple math agent demonstrating basic ARK concepts"
+    complexity: "beginner"
+    category: "basic"
+    
+  weather:
+    enabled: false
+    
+  research:
+    enabled: false
+
+# Disable MCP servers for simple demo
+mcp:
+  filesys:
+    enabled: false
+  websearch:
+    enabled: false
+
+# =============================================================================
+# EXAMPLE 3: OpenAI Configuration
+# =============================================================================
+# Use this when using OpenAI instead of Azure OpenAI
+
+model:
+  create: true
+  name: "demo-model"
+  type: "openai"
+  model:
+    value: "gpt-4"
+  config:
+    openai:
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: "openai-secret"
+            key: "api-key"
+      baseUrl:
+        value: "https://api.openai.com/v1"
+
+# =============================================================================
+# EXAMPLE 4: Claude Configuration
+# =============================================================================
+# Use this when using Anthropic Claude
+
+model:
+  create: true
+  name: "demo-model"
+  type: "claude"
+  model:
+    value: "claude-3-sonnet-20240229"
+  config:
+    claude:
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: "claude-secret"
+            key: "api-key"
+      baseUrl:
+        value: "https://api.anthropic.com"
+
+# =============================================================================
+# EXAMPLE 5: Production Configuration
+# =============================================================================
+# Use this for production deployments with enhanced security and monitoring
+
+# Enhanced security
+security:
+  serviceAccount:
+    create: true
+    name: "ark-demos-sa"
+    annotations:
+      "rbac.authorization.kubernetes.io/autoupdate": "false"
+      
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 2000
+    seccompProfile:
+      type: RuntimeDefault
+    
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+# Enhanced monitoring
+monitoring:
+  enabled: true
+  metrics:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+    
+  logging:
+    level: "info"
+    format: "json"
+
+# Resource limits for production
+resources:
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+
+# =============================================================================
+# EXAMPLE 6: Development Configuration
+# =============================================================================
+# Use this for development environments with relaxed security
+
+security:
+  serviceAccount:
+    create: true
+    name: "ark-demos-sa"
+    
+  podSecurityContext:
+    runAsNonRoot: false
+    
+  securityContext:
+    allowPrivilegeEscalation: true
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+
+# Minimal resource requirements for development
+resources:
+  limits:
+    memory: "256Mi"
+    cpu: "250m"
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+
+# =============================================================================
+# EXAMPLE 7: Enterprise Extensions (Future)
+# =============================================================================
+# Use this when enterprise demos are ready
+
+extensions:
+  enterprise:
+    enabled: true
+    demos:
+      jira:
+        enabled: true
+        name: "jira-demo"
+        description: "Jira integration demo"
+        complexity: "enterprise"
+        category: "integration"
+        
+      figma:
+        enabled: true
+        name: "figma-demo"
+        description: "Figma integration demo"
+        complexity: "enterprise"
+        category: "integration"
+        
+      n8n:
+        enabled: true
+        name: "n8n-demo"
+        description: "N8N workflow automation demo"
+        complexity: "enterprise"
+        category: "automation"
+
+# =============================================================================
+# EXAMPLE 8: Custom Namespace and Labels
+# =============================================================================
+# Use this for custom deployments with specific requirements
+
+global:
+  namespace: "my-ark-demos"
+  labels:
+    app.kubernetes.io/name: ark-demos
+    app.kubernetes.io/instance: "my-instance"
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: "Helm"
+    environment: "production"
+    team: "ai-platform"
+    project: "ark-demos"
+
+# =============================================================================
+# EXAMPLE 9: Multi-Model Configuration
+# =============================================================================
+# Use this when you want different models for different demos
+
+# Note: This would require template modifications to support per-demo models
+# For now, all demos use the same model configuration
+
+model:
+  create: true
+  name: "demo-model"
+  type: "azure"
+  model:
+    value: "gpt-4o-mini"
+  config:
+    azure:
+      baseUrl:
+        value: "https://your-openai-instance.openai.azure.com/"
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: "azure-openai-secret"
+            key: "token"
+      apiVersion:
+        value: "2024-02-15-preview"
+
+# =============================================================================
+# EXAMPLE 10: Minimal Installation
+# =============================================================================
+# Use this for the smallest possible installation
+
+demos:
+  math:
+    enabled: true
+    name: "math-demo"
+    description: "Simple math agent"
+    complexity: "beginner"
+    category: "basic"
+    
+  weather:
+    enabled: false
+    
+  research:
+    enabled: false
+
+# Disable all optional components
+mcp:
+  filesys:
+    enabled: false
+  websearch:
+    enabled: false
+
+tools:
+  weather:
+    enabled: false
+  websearch:
+    enabled: false
+  filesys:
+    enabled: false
+
+memory:
+  enabled: false
+
+monitoring:
+  enabled: false

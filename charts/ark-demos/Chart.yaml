@@ -1,0 +1,23 @@
+apiVersion: v2
+name: ark-demos
+description: >-
+  Helm chart for ARK demo agents and tools - showcasing different complexity levels
+  and ARK capabilities for new user onboarding
+type: application
+version: 0.1.0
+appVersion: 0.1.0
+keywords:
+  - ark
+  - demos
+  - agents
+  - onboarding
+  - examples
+maintainers:
+  - name: ARK Team
+    email: ark-team@mckinsey.com
+home: https://github.com/mckinsey/agents-at-scale-ark
+sources:
+  - https://github.com/mckinsey/agents-at-scale-ark
+annotations:
+  category: Demo
+  licenses: Apache-2.0

@@ -1,0 +1,314 @@
+---
+title: Pre-Built Demos & Workflows
+description: Get started quickly with pre-built demos showcasing ARK capabilities
+sidebar_position: 2
+---
+
+# ARK Pre-Built Demos
+
+Get started with ARK quickly by installing pre-built demos that showcase different complexity levels and platform capabilities.
+
+## Overview
+
+ARK provides three demo scenarios designed to help new users understand how the platform works:
+
+1. **Math Demo** - Beginner level, demonstrates basic agent concepts
+2. **Weather Demo** - Intermediate level, shows workflow with tools and file operations
+3. **Research Demo** - Advanced level, showcases multi-agent teams and complex workflows
+
+## Quick Start
+
+### Install All Demos
+
+Install all three demos at once to explore the full range of ARK capabilities:
+
+```bash
+ark demos --all
+```
+
+This will create 6 agents in the `default` namespace, visible in your ARK dashboard.
+
+### Install Specific Demos
+
+Install only the demos you want to explore:
+
+```bash
+# Beginner demo - Simple math agent
+ark demos --math
+
+# Intermediate demo - Weather workflow
+ark demos --weather
+
+# Advanced demo - Research team
+ark demos --research
+```
+
+### Interactive Installation
+
+Let ARK guide you through the selection:
+
+```bash
+ark demos
+```
+
+You'll see a checkbox interface to select which demos to install.
+
+## Demo Details
+
+### 1. Math Demo (Beginner)
+
+**Purpose**: Learn basic ARK agent concepts  
+**Complexity**: Beginner  
+**Components**: 1 Agent, 1 Query
+
+**What you'll learn**:
+- How to create a simple AI agent
+- Basic prompt engineering
+- Executing queries against agents
+
+**Agent**: `math-agent`  
+- **Capabilities**: Performs calculations and explains mathematical concepts
+- **Use Case**: Understanding ARK's core agent functionality
+
+```bash
+# Install math demo
+ark demos --math
+
+# Check the agent
+kubectl get agents -n default -l demo.ark.mckinsey.com/name=math-demo
+
+# View the query
+kubectl get query math-query -n default -o yaml
+```
+
+### 2. Weather Demo (Intermediate)
+
+**Purpose**: Learn workflow orchestration and tool integration  
+**Complexity**: Intermediate  
+**Components**: 2 Agents, 1 Team, 1 Query
+
+**What you'll learn**:
+- Multi-agent workflows
+- Team coordination
+- Tool integration
+- File operations via MCP
+
+**Agents**:
+- `weather-fetcher` - Retrieves weather data from API
+- `weather-storage` - Stores weather reports to files
+
+**Team**: `weather-workflow-team`  
+- **Strategy**: Sequential workflow
+- **Members**: weather-fetcher → weather-storage
+
+```bash
+# Install weather demo
+ark demos --weather
+
+# Check all components
+kubectl get agents,teams,queries -n default -l demo.ark.mckinsey.com/name=weather-demo
+
+# View the workflow team
+kubectl get team weather-workflow-team -n default -o yaml
+```
+
+### 3. Research Demo (Advanced)
+
+**Purpose**: Learn enterprise-level multi-agent systems  
+**Complexity**: Advanced  
+**Components**: 3 Agents, 1 Team, 1 Query
+
+**What you'll learn**:
+- Complex multi-agent teams
+- Role-based agent specialization
+- Sequential workflow strategies
+- Research and analysis workflows
+
+**Agents**:
+- `researcher` - Web search and information gathering
+- `analyst` - Data validation and insight generation
+- `creator` - Document creation and file management
+
+**Team**: `research-analysis-team`  
+- **Strategy**: Sequential 3-agent workflow
+- **Members**: researcher → analyst → creator
+
+```bash
+# Install research demo
+ark demos --research
+
+# Check the research team
+kubectl get agents,teams,queries -n default -l demo.ark.mckinsey.com/name=research-demo
+
+# View team configuration
+kubectl get team research-analysis-team -n default -o yaml
+```
+
+## Installation Options
+
+### Default Namespace (Dashboard Visible)
+
+By default, demos are installed in the `default` namespace, making them visible in your ARK dashboard:
+
+```bash
+# Install in default namespace (visible in dashboard)
+ark demos --all
+```
+
+### Custom Namespace
+
+Deploy demos to a custom namespace:
+
+```bash
+# Install in custom namespace
+ark demos --all -n my-project-demos
+
+# Install specific demo in custom namespace
+ark demos --math -n production
+```
+
+### Verbose Output
+
+See detailed installation output:
+
+```bash
+# Verbose mode
+ark demos --all -v
+```
+
+## Verification
+
+### Check Installation
+
+After installing, verify the demos are deployed:
+
+```bash
+# List all demos
+kubectl get agents -n default
+
+# List demo teams
+kubectl get teams -n default
+
+# List demo queries
+kubectl get queries -n default
+```
+
+### View in Dashboard
+
+1. Open the ARK dashboard: `http://localhost:3000`
+2. Navigate to the Agents page
+3. Filter by `default` namespace
+4. You should see all installed demos
+
+## Uninstallation
+
+### Remove All Demos
+
+```bash
+# Remove all demo resources
+helm uninstall ark-demos -n default
+
+# Verify removal
+kubectl get agents -n default
+```
+
+### Remove from Custom Namespace
+
+```bash
+# Remove from custom namespace
+helm uninstall ark-demos -n my-project-demos
+```
+
+## Advanced Usage
+
+### Combining Demos
+
+Install multiple specific demos:
+
+```bash
+# Install math and weather demos
+ark demos --math --weather
+
+# Install weather and research demos
+ark demos --weather --research
+```
+
+### Custom Model
+
+Demos use the `default` model by default. To use a different model:
+
+```bash
+# Edit the helm values before installation
+helm install ark-demos ./charts/ark-demos \
+  --set model.name=my-custom-model \
+  -n default
+```
+
+## Troubleshooting
+
+### Agents Not Visible in Dashboard
+
+**Issue**: Installed agents don't appear in the dashboard.
+
+**Solution**: Check the namespace
+
+```bash
+# Verify demos are in the correct namespace
+kubectl get agents -n default
+
+# If installed in wrong namespace, uninstall and reinstall
+helm uninstall ark-demos -n wrong-namespace
+ark demos --all
+```
+
+### Model Not Available
+
+**Issue**: Agents show `AVAILABLE: False`
+
+**Solution**: Ensure a model is deployed
+
+```bash
+# Check for existing models
+kubectl get models -A
+
+# Deploy a default model if needed
+# (Follow model setup documentation)
+```
+
+### Query Execution Errors
+
+**Issue**: Queries fail with team not found errors.
+
+**Solution**: This is usually resolved with Helm post-install hooks. Try:
+
+```bash
+# Reinstall the demos
+helm uninstall ark-demos -n default
+ark demos --all
+```
+
+## Best Practices
+
+1. **Start with Math Demo**: Begin with the simplest demo to understand basic concepts
+2. **Progress Gradually**: Move through the complexity levels (math → weather → research)
+3. **Use Dashboard**: Always have the dashboard open to see real-time agent status
+4. **Check Logs**: Monitor controller logs for detailed execution information
+5. **Clean Up**: Uninstall demos when done to free resources
+
+## Next Steps
+
+After exploring the demos:
+
+1. **Modify Prompts**: Edit agent prompts to change their behavior
+2. **Create Your Own**: Use the regulation tools to create custom agents
+3. **Build Workflows**: Design workflows tailored to your use case
+4. **Integrate Tools**: Connect external services and APIs
+5. **Deploy to Production**: Scale your agents for real workloads
+
+## Learn More
+
+- [Agent Configuration](/reference/resources/agent)
+- [Team Workflows](/reference/resources/team)
+- [Query Execution](/reference/query-execution)
+- [Tool Integration](/reference/resources/tool)
+

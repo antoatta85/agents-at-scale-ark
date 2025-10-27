@@ -1,0 +1,125 @@
+{{- if .Values.mcp.filesys.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.mcp.filesys.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: mcp-deployment
+    demo.ark.mckinsey.com/type: filesys
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.mcp.filesys.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.mcp.filesys.name }}
+        {{- include "ark-demos.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "ark-demos.serviceAccountName" . }}
+      containers:
+        - name: filesys-mcp
+          image: {{ .Values.mcp.filesys.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.mcp.filesys.port }}
+              name: http
+          env:
+            - name: MCP_SERVER_PORT
+              value: {{ .Values.mcp.filesys.port | quote }}
+            - name: MCP_SERVER_NAME
+              value: {{ .Values.mcp.filesys.name }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.security.securityContext | nindent 12 }}
+      securityContext:
+        {{- toYaml .Values.security.podSecurityContext | nindent 8 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mcp.filesys.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: mcp-service
+    demo.ark.mckinsey.com/type: filesys
+spec:
+  selector:
+    app: {{ .Values.mcp.filesys.name }}
+  ports:
+    - port: {{ .Values.mcp.filesys.port }}
+      targetPort: {{ .Values.mcp.filesys.port }}
+      protocol: TCP
+      name: http
+  type: ClusterIP
+{{- end }}
+
+{{- if .Values.mcp.websearch.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.mcp.websearch.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: mcp-deployment
+    demo.ark.mckinsey.com/type: websearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.mcp.websearch.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.mcp.websearch.name }}
+        {{- include "ark-demos.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "ark-demos.serviceAccountName" . }}
+      containers:
+        - name: websearch-mcp
+          image: {{ .Values.mcp.websearch.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.mcp.websearch.port }}
+              name: http
+          env:
+            - name: MCP_SERVER_PORT
+              value: {{ .Values.mcp.websearch.port | quote }}
+            - name: MCP_SERVER_NAME
+              value: {{ .Values.mcp.websearch.name }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.security.securityContext | nindent 12 }}
+      securityContext:
+        {{- toYaml .Values.security.podSecurityContext | nindent 8 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mcp.websearch.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: mcp-service
+    demo.ark.mckinsey.com/type: websearch
+spec:
+  selector:
+    app: {{ .Values.mcp.websearch.name }}
+  ports:
+    - port: {{ .Values.mcp.websearch.port }}
+      targetPort: {{ .Values.mcp.websearch.port }}
+      protocol: TCP
+      name: http
+  type: ClusterIP
+{{- end }}

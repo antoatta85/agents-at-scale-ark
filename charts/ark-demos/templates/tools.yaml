@@ -1,0 +1,88 @@
+{{- if .Values.tools.weather.enabled }}
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Tool
+metadata:
+  name: {{ .Values.tools.weather.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: tool
+    demo.ark.mckinsey.com/type: weather
+spec:
+  type: http
+  description: "Get weather forecast for a specific location"
+  inputSchema:
+    type: object
+    properties:
+      office:
+        type: string
+        description: "Weather office identifier (e.g., TOP)"
+      gridX:
+        type: integer
+        description: "Grid X coordinate"
+      gridY:
+        type: integer
+        description: "Grid Y coordinate"
+    required: ["office", "gridX", "gridY"]
+  http:
+    url: {{ .Values.tools.weather.url | quote }}
+    method: GET
+    timeout: 30s
+{{- end }}
+
+{{- if .Values.tools.websearch.enabled }}
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Tool
+metadata:
+  name: {{ .Values.tools.websearch.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: tool
+    demo.ark.mckinsey.com/type: websearch
+spec:
+  type: http
+  description: "Search the web for information using DuckDuckGo"
+  inputSchema:
+    type: object
+    properties:
+      query:
+        type: string
+        description: "Search query to execute on the web"
+      num_results:
+        type: integer
+        description: "Number of search results to return"
+        default: 5
+        minimum: 1
+        maximum: 10
+    required: ["query"]
+  http:
+    url: {{ .Values.tools.websearch.url | quote }}
+    method: GET
+    timeout: 30s
+{{- end }}
+
+{{- if .Values.tools.filesys.enabled }}
+{{- range .Values.tools.filesys.tools }}
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Tool
+metadata:
+  name: {{ . }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" $ | nindent 4 }}
+    demo.ark.mckinsey.com/component: tool
+    demo.ark.mckinsey.com/type: filesys
+spec:
+  type: mcp
+  mcp:
+    mcpServerRef:
+      name: demo-filesys-mcp
+      namespace: {{ $.Release.Namespace }}
+    toolName: {{ . }}
+  description: "{{ . }} tool for file system operations"
+{{- end }}
+{{- end }}

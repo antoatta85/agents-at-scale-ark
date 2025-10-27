@@ -1,0 +1,42 @@
+{{- if .Values.model.create }}
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Model
+metadata:
+  name: {{ .Values.model.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: model
+spec:
+  type: {{ .Values.model.type }}
+  model:
+    value: {{ .Values.model.model.value | quote }}
+  config:
+    {{- if eq .Values.model.type "azure" }}
+    azure:
+      baseUrl:
+        value: {{ .Values.model.config.azure.baseUrl.value | quote }}
+      apiKey:
+        {{- toYaml .Values.model.config.azure.apiKey | nindent 8 }}
+      apiVersion:
+        value: {{ .Values.model.config.azure.apiVersion.value | quote }}
+    {{- else if eq .Values.model.type "openai" }}
+    openai:
+      apiKey:
+        {{- toYaml .Values.model.config.openai.apiKey | nindent 8 }}
+      baseUrl:
+        value: {{ .Values.model.config.openai.baseUrl.value | quote }}
+    {{- else if eq .Values.model.type "claude" }}
+    claude:
+      apiKey:
+        {{- toYaml .Values.model.config.claude.apiKey | nindent 8 }}
+      baseUrl:
+        value: {{ .Values.model.config.claude.baseUrl.value | quote }}
+    {{- else if eq .Values.model.type "gemini" }}
+    gemini:
+      apiKey:
+        {{- toYaml .Values.model.config.gemini.apiKey | nindent 8 }}
+      baseUrl:
+        value: {{ .Values.model.config.gemini.baseUrl.value | quote }}
+    {{- end }}
+{{- end }}

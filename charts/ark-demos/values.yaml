@@ -1,0 +1,171 @@
+# Default values for ark-demos
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration
+global:
+  # Namespace where demos will be deployed
+  namespace: "{{ .Release.Namespace }}"
+  
+  # Common labels applied to all resources
+  labels:
+    app.kubernetes.io/name: ark-demos
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/version: "{{ .Chart.AppVersion }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    demo.ark.mckinsey.com/component: demos
+
+# Demo configuration - enable/disable specific demos
+demos:
+  # Demo 1: Simple Math Agent (Beginner)
+  math:
+    enabled: true
+    name: "math-demo"
+    description: "Simple math agent demonstrating basic ARK concepts"
+    complexity: "beginner"
+    category: "basic"
+    
+  # Demo 2: Weather + File System Workflow (Intermediate)  
+  weather:
+    enabled: true
+    name: "weather-demo"
+    description: "Weather workflow with file system operations via MCP"
+    complexity: "intermediate"
+    category: "workflow"
+    
+  # Demo 3: Research Team Workflow (Advanced)
+  research:
+    enabled: true
+    name: "research-demo"
+    description: "Multi-agent research team with web search and file operations"
+    complexity: "advanced"
+    category: "team"
+
+# Model configuration
+model:
+  # Use existing model or create a new one (set to false if you want to use an existing model)
+  create: false
+  name: "default"
+  type: "azure"  # azure, openai, claude, gemini
+  model:
+    value: "gpt-4o-mini"
+  config:
+    azure:
+      baseUrl:
+        value: "https://your-openai-instance.openai.azure.com/"
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: "azure-openai-secret"
+            key: "token"
+      apiVersion:
+        value: "2024-02-15-preview"
+
+# MCP Server configuration
+mcp:
+  # File system MCP server for weather demo (disabled - MCP servers not deployed)
+  filesys:
+    enabled: false
+    name: "demo-filesys-mcp"
+    image: "ghcr.io/mckinsey/agents-at-scale-ark/mcp-filesys:latest"
+    port: 8080
+    
+  # Web search MCP server for research demo (disabled - MCP servers not deployed)
+  websearch:
+    enabled: false
+    name: "demo-websearch-mcp"
+    image: "ghcr.io/mckinsey/agents-at-scale-ark/mcp-websearch:latest"
+    port: 8081
+
+# Tool configuration
+tools:
+  # Weather API tool
+  weather:
+    enabled: false
+    name: "weather-api-tool"
+    url: "https://api.weather.gov/gridpoints/{office}/{gridX},{gridY}/forecast"
+    
+  # Web search tool
+  websearch:
+    enabled: false
+    name: "web-search-tool"
+    url: "https://api.duckduckgo.com/?q={query}&format=json&no_html=1&skip_disambig=1&limit={num_results}"
+    
+  # File system tools (via MCP)
+  filesys:
+    enabled: false
+    tools:
+      - "mcp-filesys-write-file"
+      - "mcp-filesys-read-file"
+      - "mcp-filesys-list-directory"
+      - "mcp-filesys-create-directory"
+      - "mcp-filesys-get-file-info"
+
+# Memory configuration
+memory:
+  enabled: false
+  name: "demo-memory"
+  type: "postgres"
+  url: "http://postgres-memory:8080"
+
+# Resource configuration
+resources:
+  # Default resource limits for demo agents
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+
+# Security configuration
+security:
+  # Service account for demo agents
+  serviceAccount:
+    create: true
+    name: "ark-demos-sa"
+    annotations: {}
+    
+  # Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 2000
+    
+  # Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+# Future extensibility configuration
+# This section allows easy addition of new demos
+extensions:
+  # Placeholder for future enterprise demos
+  enterprise:
+    enabled: false
+    demos:
+      jira:
+        enabled: false
+        name: "jira-demo"
+        description: "Jira integration demo"
+        complexity: "enterprise"
+        category: "integration"
+        
+      figma:
+        enabled: false
+        name: "figma-demo"
+        description: "Figma integration demo"
+        complexity: "enterprise"
+        category: "integration"
+        
+      n8n:
+        enabled: false
+        name: "n8n-demo"
+        description: "N8N workflow automation demo"
+        complexity: "enterprise"
+        category: "automation"

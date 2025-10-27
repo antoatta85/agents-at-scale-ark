@@ -1,0 +1,37 @@
+{{- if .Values.mcp.filesys.enabled }}
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: MCPServer
+metadata:
+  name: {{ .Values.mcp.filesys.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: mcp-server
+    demo.ark.mckinsey.com/type: filesys
+spec:
+  description: "File system MCP server for demo workflows"
+  transport: http
+  address:
+    value: "http://{{ .Values.mcp.filesys.name }}:{{ .Values.mcp.filesys.port }}"
+  timeout: "30s"
+{{- end }}
+
+{{- if .Values.mcp.websearch.enabled }}
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: MCPServer
+metadata:
+  name: {{ .Values.mcp.websearch.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    demo.ark.mckinsey.com/component: mcp-server
+    demo.ark.mckinsey.com/type: websearch
+spec:
+  description: "Web search MCP server for research workflows"
+  transport: http
+  address:
+    value: "http://{{ .Values.mcp.websearch.name }}:{{ .Values.mcp.websearch.port }}"
+  timeout: "30s"
+{{- end }}

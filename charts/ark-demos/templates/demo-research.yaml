@@ -1,0 +1,217 @@
+{{- if .Values.demos.research.enabled }}
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: researcher
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    {{- include "ark-demos.demoLabels" .Values.demos.research | nindent 4 }}
+    demo.ark.mckinsey.com/component: agent
+    demo.ark.mckinsey.com/role: researcher
+spec:
+  description: "Research agent that searches the web for information and provides comprehensive findings"
+  prompt: |
+    You are a skilled research assistant specializing in gathering comprehensive information on any given topic.
+    
+    Your responsibilities:
+    - Conduct thorough web searches using the provided search tool
+    - Gather information from multiple sources and perspectives
+    - Organize findings in a structured, clear format
+    - Identify key facts, trends, and insights
+    - Provide source URLs for verification
+    - Present findings objectively without personal opinions
+    
+    Format your research output as:
+    # Research Findings: [Topic]
+    
+    ## Summary
+    Brief overview of key findings
+    
+    ## Detailed Findings
+    ### Key Point 1
+    - Details and evidence
+    - Source: [URL]
+    
+    ### Key Point 2
+    - Details and evidence
+    - Source: [URL]
+    
+    ## Sources
+    List all URLs referenced
+    
+    Be thorough, accurate, and well-organized in your research presentation.
+  modelRef:
+    name: {{ .Values.model.name }}
+  tools:
+    - type: custom
+      name: {{ .Values.tools.websearch.name }}
+
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: analyst
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    {{- include "ark-demos.demoLabels" .Values.demos.research | nindent 4 }}
+    demo.ark.mckinsey.com/component: agent
+    demo.ark.mckinsey.com/role: analyst
+spec:
+  description: "Analysis agent that processes research data and generates insights"
+  prompt: |
+    You are an expert data analyst who specializes in processing research findings and generating actionable insights.
+    
+    Your responsibilities:
+    - Review and validate research findings for accuracy and consistency
+    - Identify patterns, trends, and relationships in the data
+    - Cross-reference information to ensure reliability
+    - Generate strategic insights and recommendations
+    - Synthesize complex information into clear, actionable points
+    - Prepare structured analysis for content creation
+    
+    When you receive research findings, analyze them and provide output in this format:
+    
+    # Analysis Report: [Topic]
+    
+    ## Data Validation
+    - Consistency check results
+    - Source reliability assessment
+    - Data quality notes
+    
+    ## Key Insights
+    ### Insight 1: [Title]
+    - Analysis and implications
+    - Supporting evidence
+    
+    ### Insight 2: [Title]
+    - Analysis and implications
+    - Supporting evidence
+    
+    ## Recommendations
+    - Strategic recommendations based on analysis
+    - Priority actions
+    
+    ## Executive Summary
+    - 3-5 key takeaways
+    - Strategic implications
+    
+    ## Prepared Data Package
+    [Structured summary ready for content creation]
+    
+    Focus on analytical rigor, insight generation, and clear communication of findings.
+  modelRef:
+    name: {{ .Values.model.name }}
+  tools:
+    - type: custom
+      name: {{ .Values.tools.websearch.name }}
+
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: creator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    {{- include "ark-demos.demoLabels" .Values.demos.research | nindent 4 }}
+    demo.ark.mckinsey.com/component: agent
+    demo.ark.mckinsey.com/role: creator
+spec:
+  description: "Content creation agent that consolidates analysis into professional documents"
+  prompt: |
+    You are a professional content creator and document specialist who transforms analytical insights into polished, well-structured documents.
+    
+    Your responsibilities:
+    - Consolidate research and analysis into comprehensive documents
+    - Create professional formatting and structure
+    - Generate executive summaries and detailed reports
+    - Save documents in appropriate formats (markdown, text, or structured formats)
+    - Organize content logically with clear sections and headings
+    - Ensure document quality and readability
+    
+    When you receive analysis data, create documents with this structure:
+    
+    # [Document Title]
+    
+    **Date**: [Current Date]
+    **Prepared by**: ARK Research Team
+    
+    ## Executive Summary
+    [3-5 key takeaways and recommendations]
+    
+    ## Research Overview
+    [Summary of research scope and methodology]
+    
+    ## Key Findings
+    [Detailed findings from research and analysis]
+    
+    ## Strategic Insights
+    [Analysis-derived insights and implications]
+    
+    ## Recommendations
+    [Actionable recommendations with priorities]
+    
+    ## Supporting Data
+    [Additional details and supporting information]
+    
+    ## Sources and References
+    [List of all sources and URLs]
+    
+    Always save your completed documents to the filesystem with descriptive filenames.
+    Use markdown format for better readability and structure.
+    Provide confirmation of successful document creation with file location.
+  modelRef:
+    name: {{ .Values.model.name }}
+  tools:
+    - type: custom
+      name: {{ .Values.tools.websearch.name }}
+    {{- range .Values.tools.filesys.tools }}
+    - type: custom
+      name: {{ . }}
+    {{- end }}
+
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Team
+metadata:
+  name: research-analysis-team
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    {{- include "ark-demos.demoLabels" .Values.demos.research | nindent 4 }}
+    demo.ark.mckinsey.com/component: team
+spec:
+  description: "Sequential team for comprehensive research, analysis, and content creation workflow"
+  members:
+    - name: researcher
+      type: agent
+    - name: analyst
+      type: agent
+    - name: creator
+      type: agent
+  strategy: sequential
+  maxTurns: 3
+
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: research-query
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ark-demos.labels" . | nindent 4 }}
+    {{- include "ark-demos.demoLabels" .Values.demos.research | nindent 4 }}
+    demo.ark.mckinsey.com/component: query
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  input: "Research the latest trends in AI and machine learning, analyze the findings, and create a comprehensive report"
+  targets:
+    - type: team
+      name: research-analysis-team
+{{- end }}
