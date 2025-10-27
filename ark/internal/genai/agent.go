@@ -14,6 +14,7 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
+	"mckinsey.com/ark/internal/telemetry"
 )
 
 type Agent struct {
@@ -38,11 +39,6 @@ func (a *Agent) FullName() string {
 
 // Execute executes the agent with optional event emission for tool calls
 func (a *Agent) Execute(ctx context.Context, userInput Message, history []Message, memory MemoryInterface, eventStream EventStreamInterface) ([]Message, error) {
-	// Only require model for local execution (non-execution-engine agents)
-	if a.ExecutionEngine == nil && a.Model == nil {
-		return nil, fmt.Errorf("agent %s has no model configured", a.FullName())
-	}
-
 	modelName := ""
 	if a.Model != nil {
 		modelName = a.Model.Model
@@ -59,10 +55,15 @@ func (a *Agent) Execute(ctx context.Context, userInput Message, history []Messag
 
 	if a.ExecutionEngine != nil {
 		// Check if this is the reserved 'a2a' execution engine
-		if a.ExecutionEngine.Name == "a2a" {
+		if a.ExecutionEngine.Name == ExecutionEngineA2A {
 			return a.executeWithA2AExecutionEngine(ctx, userInput, eventStream)
 		}
 		return a.executeWithExecutionEngine(ctx, userInput, history)
+	}
+
+	// Regular agents require a model
+	if a.Model == nil {
+		return nil, fmt.Errorf("agent %s has no model configured", a.FullName())
 	}
 
 	return a.executeLocally(ctx, userInput, history, memory, eventStream)
@@ -180,10 +181,15 @@ func (a *Agent) executeToolCall(ctx context.Context, toolCall openai.ChatComplet
 		"toolType":   a.Tools.GetToolType(toolCall.Function.Name),
 	})
 
+	toolType := a.Tools.GetToolType(toolCall.Function.Name)
+	ctx, toolSpan := telemetry.StartToolExecution(ctx, toolCall.Function.Name, toolType, toolCall.ID, toolCall.Function.Arguments)
+	defer toolSpan.End()
+
 	result, err := a.Tools.ExecuteTool(ctx, ToolCall(toolCall), a.Recorder)
 	toolMessage := ToolMessage(result.Content, result.ID)
 
 	if err != nil {
+		telemetry.RecordToolError(toolSpan, err)
 		if IsTerminateTeam(err) {
 			toolTracker.CompleteWithTermination(err.Error())
 		} else {
@@ -192,6 +198,7 @@ func (a *Agent) executeToolCall(ctx context.Context, toolCall openai.ChatComplet
 		return toolMessage, err
 	}
 
+	telemetry.RecordToolSuccess(toolSpan, result.Content)
 	toolTracker.CompleteWithMetadata(result.Content, map[string]string{
 		"resultLength": fmt.Sprintf("%d", len(result.Content)),
 		"hasError":     "false",
@@ -281,7 +288,7 @@ func ValidateExecutionEngine(ctx context.Context, k8sClient client.Client, execu
 	}
 
 	// Pass validation for reserved 'a2a' execution engine (internal)
-	if engineName == "a2a" {
+	if engineName == ExecutionEngineA2A {
 		return nil
 	}
 
@@ -297,11 +304,10 @@ func ValidateExecutionEngine(ctx context.Context, k8sClient client.Client, execu
 
 func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Agent, eventRecorder EventEmitter) (*Agent, error) {
 	var resolvedModel *Model
-	var err error
 
-	// Load model with automatic resolution
-	// If agent has an ExecutionEngine and no ModelRef, it will be handled by the execution engine
-	if crd.Spec.ModelRef != nil {
+	// A2A agents don't need models - they delegate to external A2A servers
+	if crd.Spec.ExecutionEngine == nil || crd.Spec.ExecutionEngine.Name != ExecutionEngineA2A {
+		var err error
 		resolvedModel, err = LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load model for agent %s/%s: %w", crd.Namespace, crd.Name, err)

@@ -1,3 +1,5 @@
+"use client"
+
 import { ComponentProps, Fragment, ReactNode } from "react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -75,11 +77,11 @@ function HeaderTooltip() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Link href="https://mckinsey.github.io/agents-at-scale-ark/">
-          <Button variant="ghost">
+        <Button variant="ghost" asChild>
+          <a href="https://mckinsey.github.io/agents-at-scale-ark/" target="_blank">
             <Info className="h-4 w-4" />
-          </Button>
-        </Link>
+          </a>
+        </Button>
       </TooltipTrigger>
       <TooltipContent>
         <span>Help</span>
@@ -98,6 +100,7 @@ export function PageHeader({ breadcrumbs, currentPage, actions }: PageHeaderProp
   const firstCrumb = (breadcrumbs?.length || 0) > 2 ? breadcrumbs?.[0] : undefined;
   const crumbsInDropdown = (breadcrumbs?.length || 0) > 2 ? breadcrumbs?.slice(1, -1) : undefined;
   const visibleCrumbs = (breadcrumbs?.length || 0) > 2 ? breadcrumbs?.slice(-1) : breadcrumbs;
+
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
