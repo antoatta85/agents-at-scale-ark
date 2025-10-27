@@ -38,7 +38,8 @@ func (a *Agent) FullName() string {
 
 // Execute executes the agent with optional event emission for tool calls
 func (a *Agent) Execute(ctx context.Context, userInput Message, history []Message, memory MemoryInterface, eventStream EventStreamInterface) ([]Message, error) {
-	if a.Model == nil {
+	// Only require model for local execution (non-execution-engine agents)
+	if a.ExecutionEngine == nil && a.Model == nil {
 		return nil, fmt.Errorf("agent %s has no model configured", a.FullName())
 	}
 
@@ -92,13 +93,30 @@ func (a *Agent) executeWithA2AExecutionEngine(ctx context.Context, userInput Mes
 }
 
 func (a *Agent) prepareMessages(ctx context.Context, userInput Message, history []Message) ([]Message, error) {
-	resolvedPrompt, err := a.ResolvePrompt(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("agent %s prompt resolution failed: %w", a.FullName(), err)
+	// Check if history already contains a system message (from hydrated memory)
+	hasSystemMessage := false
+	for _, msg := range history {
+		if msg.OfSystem != nil {
+			hasSystemMessage = true
+			break
+		}
 	}
 
-	systemMessage := NewSystemMessage(resolvedPrompt)
-	agentMessages := append([]Message{systemMessage}, history...)
+	if !hasSystemMessage {
+		// No system message in history, add the current agent's prompt
+		resolvedPrompt, err := a.ResolvePrompt(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("agent %s prompt resolution failed: %w", a.FullName(), err)
+		}
+		systemMessage := NewSystemMessage(resolvedPrompt)
+		agentMessages := append([]Message{systemMessage}, history...)
+		agentMessages = append(agentMessages, userInput)
+		return agentMessages, nil
+	}
+
+	// History already contains system message (from memory), use it as-is
+	agentMessages := make([]Message, 0, len(history)+1)
+	agentMessages = append(agentMessages, history...)
 	agentMessages = append(agentMessages, userInput)
 	return agentMessages, nil
 }
@@ -278,10 +296,16 @@ func ValidateExecutionEngine(ctx context.Context, k8sClient client.Client, execu
 }
 
 func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Agent, eventRecorder EventEmitter) (*Agent, error) {
+	var resolvedModel *Model
+	var err error
+
 	// Load model with automatic resolution
-	resolvedModel, err := LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load model for agent %s/%s: %w", crd.Namespace, crd.Name, err)
+	// If agent has an ExecutionEngine and no ModelRef, it will be handled by the execution engine
+	if crd.Spec.ModelRef != nil {
+		resolvedModel, err = LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load model for agent %s/%s: %w", crd.Namespace, crd.Name, err)
+		}
 	}
 
 	// Validate ExecutionEngine if specified

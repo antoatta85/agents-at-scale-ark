@@ -887,7 +887,7 @@ func (r *QueryReconciler) loadInitialMessages(ctx context.Context, memory genai.
 	}
 
 	// Check if query has annotation to hydrate system messages
-	shouldIncludeSystemMessages := query.Annotations != nil && query.Annotations[annotations.MemoryIncludeHydrateSystemMessage] == genai.TrueString
+	shouldIncludeSystemMessages := query.Annotations != nil && query.Annotations[annotations.MemoryHydrateSystemMessage] == genai.TrueString
 
 	// If system messages should not be included, filter them out
 	if !shouldIncludeSystemMessages {

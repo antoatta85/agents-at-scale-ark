@@ -1,0 +1,14 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: start-conversation
+  namespace: default
+spec:
+  input: "Hi, I'm learning quadratic equations. I'm struggling with factoring. Can you help?"
+  sessionId: hydration-test-session
+  memory:
+    name: default
+  targets:
+    - type: agent
+      name: test-hydration-agent
+

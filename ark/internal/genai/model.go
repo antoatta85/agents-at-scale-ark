@@ -19,6 +19,9 @@ func ResolveModelSpec(modelSpec any, defaultNamespace string) (string, string, e
 	}
 	switch spec := modelSpec.(type) {
 	case *arkv1alpha1.AgentModelRef:
+		if spec == nil {
+			return "", "", fmt.Errorf("model spec is nil")
+		}
 		modelName := spec.Name
 		namespace := spec.Namespace
 		if namespace == "" {

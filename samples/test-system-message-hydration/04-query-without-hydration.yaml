@@ -1,0 +1,15 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: query-without-hydration
+  namespace: default
+  # Note: NO annotation = will use CURRENT agent prompt
+spec:
+  input: "What subject are you teaching me? Can you help me with the factoring problem?"
+  sessionId: hydration-test-session
+  memory:
+    name: default
+  targets:
+    - type: agent
+      name: test-hydration-agent
+

@@ -54,5 +54,5 @@ const (
 
 // Memory logging annotations
 const (
-	MemoryIncludeHydrateSystemMessage = ARKPrefix + "memory-include-hydrate-system-message"
+	MemoryHydrateSystemMessage = ARKPrefix + "memory-hydrate-system-message"
 )

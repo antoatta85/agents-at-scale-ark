@@ -4,7 +4,7 @@ metadata:
   name: query-with-system-messages
   annotations:
     # This annotation tells ARK to include system messages when loading from memory
-    ark.mckinsey.com/memory-include-hydrate-system-message: "true"
+    ark.mckinsey.com/memory-hydrate-system-message: "true"
 spec:
   input: "What is 2+2?"
   memory:

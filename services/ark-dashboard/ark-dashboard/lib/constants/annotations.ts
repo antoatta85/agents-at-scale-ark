@@ -26,5 +26,8 @@ export const ARK_ANNOTATIONS = {
   QUERY_PHASE: `${ARK_PREFIX}query-phase`,
   
   // Streaming annotations
-  STREAMING_ENABLED: `${ARK_PREFIX}streaming-enabled`
+  STREAMING_ENABLED: `${ARK_PREFIX}streaming-enabled`,
+  
+  // Memory logging annotations
+  MEMORY_HYDRATE_SYSTEM_MESSAGE: `${ARK_PREFIX}memory-hydrate-system-message`
 } as const;

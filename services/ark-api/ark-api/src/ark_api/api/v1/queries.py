@@ -1,6 +1,5 @@
 """API routes for Query resources."""
 
-import json
 from datetime import datetime
 from fastapi import APIRouter, Query
 from typing import Optional
@@ -105,17 +104,9 @@ async def create_query(
     async with with_ark_client(namespace, VERSION) as ark_client:
         # Determine input type and build spec accordingly
         spec = {
-            "type": getattr(query, 'type', 'user')
+            "type": getattr(query, 'type', 'user'),
+            "input": ""  # Placeholder - will be set below
         }
-        
-        # Handle input based on type
-        # The Kubernetes API expects input to always be a string
-        # For messages type, we serialize to JSON string
-        if isinstance(query.input, str):
-            spec["input"] = query.input
-        else:
-            # Serialize list of messages to JSON string
-            spec["input"] = json.dumps(query.input)
         
         if query.memory:
             spec["memory"] = query.memory.model_dump()
@@ -150,6 +141,13 @@ async def create_query(
             spec=QueryV1alpha1Spec(**spec)
         )
         
+        # Set input after creating the resource to handle RawExtension correctly
+        if isinstance(query.input, str):
+            query_resource.spec.input = query.input
+        else:
+            # For arrays, pass as-is - the SDK will handle serialization
+            query_resource.spec.input = query.input
+        
         created = await ark_client.queries.a_create(query_resource)
         
         return query_to_detail_response(created.to_dict())
@@ -178,13 +176,7 @@ async def update_query(
         current = await ark_client.queries.a_get(query_name)
         spec = current.to_dict()["spec"]
         
-        # Update spec with non-None values
-        if query.input is not None:
-            # Handle input serialization (same as create)
-            if isinstance(query.input, str):
-                spec["input"] = query.input
-            else:
-                spec["input"] = json.dumps(query.input)
+        # Don't set input in spec dict - we'll set it on the updated resource
         if query.memory is not None:
             spec["memory"] = query.memory.model_dump()
         if query.parameters is not None:
@@ -210,6 +202,13 @@ async def update_query(
         
         # Create updated query object
         updated_query_obj = QueryV1alpha1(**current_dict)
+        
+        # Set input directly on the object if provided
+        if query.input is not None:
+            if isinstance(query.input, str):
+                updated_query_obj.spec.input = query.input
+            else:
+                updated_query_obj.spec.input = query.input
         
         updated = await ark_client.queries.a_update(updated_query_obj)
         

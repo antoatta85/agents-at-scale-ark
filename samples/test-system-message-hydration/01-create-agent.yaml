@@ -1,0 +1,10 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: test-hydration-agent
+  namespace: default
+spec:
+  prompt: "You are a math teacher helping students with algebra. You explain concepts clearly and help with homework problems."
+  modelRef:
+    name: default
+

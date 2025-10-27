@@ -14,7 +14,7 @@ ARK now **always stores system messages in memory** for debugging and audit purp
 ## Annotation
 
 ```yaml
-ark.mckinsey.com/memory-include-hydrate-system-message: "true"
+ark.mckinsey.com/memory-hydrate-system-message: "true"
 ```
 
 ### With Annotation (`query-with-system-messages.yaml`)
@@ -27,7 +27,7 @@ kind: Query
 metadata:
   name: query-with-system-messages
   annotations:
-    ark.mckinsey.com/memory-include-hydrate-system-message: "true"
+    ark.mckinsey.com/memory-hydrate-system-message: "true"
 spec:
   input: "What is 2+2?"
   memory:
@@ -96,7 +96,7 @@ kind: Query
 metadata:
   name: debug-query
   annotations:
-    ark.mckinsey.com/memory-include-hydrate-system-message: "true"
+    ark.mckinsey.com/memory-hydrate-system-message: "true"
 spec:
   input: "What was the original context?"
   memory:
