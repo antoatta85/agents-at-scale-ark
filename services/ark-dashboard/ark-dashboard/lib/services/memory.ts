@@ -15,7 +15,7 @@ export interface MemoryMessage {
 
 // Stored conversation message from memory service
 export interface StoredMessage {
-  role: "user" | "assistant" | "system";
+  role: 'user' | 'assistant' | 'system';
   content: string;
   name?: string;
   agent_name?: string;
