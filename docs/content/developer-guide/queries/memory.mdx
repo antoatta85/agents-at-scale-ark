@@ -78,14 +78,16 @@ With this annotation:
 
 ## Examples
 
-See the complete test suite demonstrating system message hydration with agent prompt changes:
-- **Location**: [`samples/test-system-message-hydration/`](../../../../samples/test-system-message-hydration/)
-- **Files**: 
-  - `01-create-agent.yaml` - Creates the test agent
-  - `02-start-conversation.yaml` - Stores system message in memory
-  - `04-query-without-hydration.yaml` - Uses current agent prompt (default behavior)
-  - `05-query-with-hydration.yaml` - Uses historical prompt from memory (with annotation)
-- **Documentation**: [`README.md`](../../../../samples/test-system-message-hydration/README.md)
+A complete test suite demonstrating system message hydration is available in the repository:
+
+**Location**: `samples/test-system-message-hydration/`
+
+This directory includes:
+- `01-create-agent.yaml` - Creates the test agent
+- `02-start-conversation.yaml` - Stores system message in memory
+- `04-query-without-hydration.yaml` - Uses current agent prompt (default behavior)
+- `05-query-with-hydration.yaml` - Uses historical prompt from memory (with annotation)
+- `README.md` - Complete usage instructions
 
 **Note**: The annotation works for both agent queries and team queries. Simply add it to the query metadata when needed.
 
