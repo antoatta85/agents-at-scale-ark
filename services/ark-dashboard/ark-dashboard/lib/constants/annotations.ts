@@ -27,7 +27,7 @@ export const ARK_ANNOTATIONS = {
 
   // Streaming annotations
   STREAMING_ENABLED: `${ARK_PREFIX}streaming-enabled`,
-  
+
   // Memory logging annotations
-  MEMORY_HYDRATE_SYSTEM_MESSAGE: `${ARK_PREFIX}memory-hydrate-system-message`
+  MEMORY_HYDRATE_SYSTEM_MESSAGE: `${ARK_PREFIX}memory-hydrate-system-message`,
 } as const;
