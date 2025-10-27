@@ -592,7 +592,7 @@ export function MemorySection({ initialFilters }: MemorySectionProps) {
                         {JSON.stringify(messageRecord.message, null, 2)}
                       </pre>
                       {messageRecord.agent_name && (
-                        <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-4 border-blue-400">
+                        <div className="mt-2 rounded border-l-4 border-blue-400 bg-blue-50 p-2 dark:bg-blue-900/20">
                           <div className="text-xs text-blue-600 dark:text-blue-400">
                             Agent: {messageRecord.agent_name}
                           </div>
