@@ -38,25 +38,66 @@ spec:
 
 ## System Message Behavior
 
-By default, ARK records user input and assistant responses in memory, but **not** the agent's system message (prompt). This means:
+ARK **always stores** system messages (agent prompts) in memory for debugging and audit purposes. However, whether system messages are **loaded back** into the conversation context is controlled by a query-level annotation.
 
-1. **Initial Query**: If you create a 'coder' agent with prompt "You translate code to JavaScript" and run a query, only the user input and assistant response are recorded in memory
+### Behavior Without Annotation (Default)
+
+By default, system messages are **stored** but **not hydrated** (not loaded back):
+
+1. **Initial Query**: If you create a 'coder' agent with prompt "You translate code to JavaScript" and run a query, ARK stores the system message in memory
 2. **Agent Update**: Someone changes the agent prompt to "You translate code to Python"  
-3. **Follow-up Query**: When you run a follow-up query like "create a unit test for this", ARK uses the **current** agent prompt (Python) for execution, not the original one
+3. **Follow-up Query**: When you run a follow-up query, ARK uses the **current** agent prompt (Python) for execution, not the stored one
 
-### Controlling System Message Storage
+This is the default and recommended behavior for most use cases.
 
-Use the `ark.mckinsey.com/memory-include-hydrate-system-message: "true"` annotation on agents to include the system message in memory storage:
+### Controlling System Message Hydration
+
+Use the `ark.mckinsey.com/memory-hydrate-system-message: "true"` annotation **on the Query** to load system messages from memory:
 
 ```yaml
 apiVersion: ark.mckinsey.com/v1alpha1
-kind: Agent
+kind: Query
 metadata:
-  name: coder-agent
+  name: follow-up-query
   annotations:
-    ark.mckinsey.com/memory-include-hydrate-system-message: "true"
+    ark.mckinsey.com/memory-hydrate-system-message: "true"
 spec:
-  prompt: You translate code to JavaScript
+  input: "create a unit test for this"
+  sessionId: user-session-123
+  memory:
+    name: default
+  targets:
+    - type: agent
+      name: coder-agent
 ```
 
-With this annotation, the agent's system message is stored in memory at the start of each conversation session. This ensures that follow-up queries use the original system message from memory rather than the current agent prompt.
+With this annotation:
+- The **historical** system message from memory is used (e.g., "JavaScript translator")
+- Even if the agent's current prompt is "Python translator", the query will use the prompt that was active when the conversation started
+- Useful for preserving conversation context or debugging
+
+## Examples
+
+See the complete test suite demonstrating system message hydration with agent prompt changes:
+- **Location**: [`samples/test-system-message-hydration/`](../../../../samples/test-system-message-hydration/)
+- **Files**: 
+  - `01-create-agent.yaml` - Creates the test agent
+  - `02-start-conversation.yaml` - Stores system message in memory
+  - `04-query-without-hydration.yaml` - Uses current agent prompt (default behavior)
+  - `05-query-with-hydration.yaml` - Uses historical prompt from memory (with annotation)
+- **Documentation**: [`README.md`](../../../../samples/test-system-message-hydration/README.md)
+
+**Note**: The annotation works for both agent queries and team queries. Simply add it to the query metadata when needed.
+
+### Use Cases
+
+**Default Behavior (No annotation)**: Use when you want agents to always use their current prompt
+- Most production scenarios
+- When prompts are stable
+- When you want prompt updates to apply immediately
+
+**With Annotation**: Use when you need historical prompt preservation
+- Debugging conversations with original prompts
+- Agent prompts changed mid-conversation
+- Audit compliance (know which prompt version was used)
+- A/B testing different prompt versions
