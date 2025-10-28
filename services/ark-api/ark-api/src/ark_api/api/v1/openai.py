@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 import uuid
@@ -60,8 +61,7 @@ class ChatCompletionRequest(BaseModel):
 
 
 def process_request_metadata(
-    request_metadata: Optional[Dict[str, str]],
-    base_metadata: Dict[str, any]
+    request_metadata: Optional[Dict[str, str]], base_metadata: Dict[str, any]
 ) -> Optional[JSONResponse]:
     """Process request metadata and merge Ark annotations into base metadata.
 
@@ -87,22 +87,50 @@ def process_request_metadata(
                     "error": {
                         "message": f"Invalid Ark metadata: {str(e)}",
                         "type": "invalid_request_error",
-                        "code": "invalid_ark_metadata"
+                        "code": "invalid_ark_metadata",
                     }
-                }
+                },
             )
     # Ignore other metadata keys per OpenAI SDK pattern
     return None
 
 
+# TODO: Maybe we should start streaming first, wait for the first chunk/response
+# and use the status code of that to respond with
 async def proxy_streaming_response(streaming_url: str):
     """Proxy streaming chunks from memory service."""
     timeout = httpx.Timeout(10.0, read=None)  # 10s connect, infinite read
     async with httpx.AsyncClient(timeout=timeout) as client:
         async with client.stream("GET", streaming_url) as response:
             if response.status_code != 200:
+                # Try to extract error message from response body
+                error_message = f"{response.status_code} {response.reason_phrase}"
+                try:
+                    response_text = await response.aread()
+                    response_json = json.loads(response_text.decode("utf-8"))
+                    if isinstance(response_json, dict) and "error" in response_json:
+                        if (
+                            isinstance(response_json["error"], dict)
+                            and "message" in response_json["error"]
+                        ):
+                            error_message = response_json["error"]["message"]
+                        elif isinstance(response_json["error"], str):
+                            error_message = response_json["error"]
+                except Exception:
+                    # If we can't parse the response, use the default message
+                    pass
+
+                # Forward the error response as an SSE error event
+                error_data = {
+                    "error": {
+                        "status": response.status_code,
+                        "message": error_message,
+                        "type": "server_error",
+                        "code": "server_error",
+                    }
+                }
+                yield f"data: {json.dumps(error_data)}\n\n"
                 return  # Streaming failed, exit generator
-            
             # Use aiter_lines() for line-by-line streaming without buffering
             async for line in response.aiter_lines():
                 if line.strip():  # Skip empty lines
@@ -177,9 +205,7 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletion:
                 )
                 sse_lines = create_single_chunk_sse_response(completion)
                 return StreamingResponse(
-                    iter(sse_lines),
-                    media_type="text/event-stream",
-                    headers=sse_headers
+                    iter(sse_lines), media_type="text/event-stream", headers=sse_headers
                 )
 
             # Streaming is enabled - get the base URL and construct full URL
@@ -187,14 +213,16 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletion:
             # Construct streaming URL with query parameters:
             # - from-beginning=true: Start streaming from the first chunk (don't skip any data)
             # - wait-for-query=30s: Wait up to 30 seconds for the query to start producing output
-            streaming_url = f"{base_url}/stream/{query_name}?from-beginning=true&wait-for-query=30s"
+            streaming_url = (
+                f"{base_url}/stream/{query_name}?from-beginning=true&wait-for-query=30s"
+            )
 
             # Proxy to the streaming endpoint
             logger.info(f"Streaming available for query: {query_name}")
             return StreamingResponse(
                 proxy_streaming_response(streaming_url),
                 media_type="text/event-stream",
-                headers=sse_headers
+                headers=sse_headers,
             )
 
     except ValidationError as e:
@@ -205,9 +233,9 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletion:
                 "error": {
                     "message": str(e),
                     "type": "invalid_request_error",
-                    "code": "invalid_value"
+                    "code": "invalid_value",
                 }
-            }
+            },
         )
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
@@ -218,9 +246,9 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletion:
                 "error": {
                     "message": str(e),
                     "type": "server_error",
-                    "code": "internal_error"
+                    "code": "internal_error",
                 }
-            }
+            },
         )
 
 
