@@ -81,6 +81,16 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 				"address":   a2aAddress,
 			},
 		})
+
+		if eventStream != nil {
+			modelID := fmt.Sprintf("agent/%s", agentName)
+			chunk := StreamingError{ErrorMessage: err.Error()}
+			chunkWithMeta := WrapErrorWithMetadata(ctx, &chunk, modelID)
+			if err := eventStream.StreamChunk(ctx, chunkWithMeta); err != nil {
+				log.Error(err, "failed to send A2A error chunk to event stream")
+			}
+		}
+
 		return nil, err
 	}
 

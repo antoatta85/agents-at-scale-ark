@@ -41,6 +41,55 @@ type ChunkWithMetadata struct {
 	Ark *StreamMetadata `json:"ark,omitempty"`
 }
 
+type StreamingError struct {
+	ErrorMessage string `json:"error,omitempty"`
+}
+
+type ErrorWithMetadata struct {
+	*StreamingError
+	Ark *StreamMetadata `json:"ark,omitempty"`
+}
+
+func WrapErrorWithMetadata(ctx context.Context, streamingError *StreamingError, modelName string) any {
+	// Build metadata from context
+	metadata := &StreamMetadata{}
+
+	// Get execution metadata from context
+	execMeta := GetExecutionMetadata(ctx)
+	if target, ok := execMeta["target"].(string); ok {
+		metadata.Target = target
+	}
+	if team, ok := execMeta["team"].(string); ok {
+		metadata.Team = team
+	}
+	if agent, ok := execMeta["agent"].(string); ok {
+		metadata.Agent = agent
+	}
+	if model, ok := execMeta["model"].(string); ok {
+		metadata.Model = model
+	} else if modelName != "" {
+		metadata.Model = modelName
+	}
+
+	// Add query and session IDs
+	if queryID := getQueryID(ctx); queryID != "" {
+		metadata.Query = queryID
+	}
+	if sessionID := getSessionID(ctx); sessionID != "" {
+		metadata.Session = sessionID
+	}
+
+	// If no metadata, return chunk as-is for backward compatibility
+	if *metadata == (StreamMetadata{}) {
+		return streamingError
+	}
+
+	return ErrorWithMetadata{
+		StreamingError: streamingError,
+		Ark:            metadata,
+	}
+}
+
 // WrapChunkWithMetadata adds ARK metadata to a streaming chunk
 func WrapChunkWithMetadata(ctx context.Context, chunk *openai.ChatCompletionChunk, modelName string) interface{} {
 	// Build metadata from context

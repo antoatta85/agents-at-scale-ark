@@ -2,14 +2,17 @@ import { Router, Response } from 'express';
 import { StreamStore } from '../stream-store.js';
 import { StreamResponse } from '../types.js';
 
+type ErrorChunk = {
+  status: number;
+  message: string;
+}
+
 // Helper function to parse timeout parameter
 const parseTimeout = (timeoutStr: string | undefined, defaultTimeout: number): number => {
   if (!timeoutStr) return defaultTimeout;
   const timeout = parseInt(timeoutStr);
   return isNaN(timeout) ? defaultTimeout : Math.max(1000, Math.min(timeout * 1000, 300000));
 };
-
-
 
 // Helper function to write SSE event
 const writeSSEEvent = (res: Response, data: StreamResponse): boolean => {
@@ -20,6 +23,30 @@ const writeSSEEvent = (res: Response, data: StreamResponse): boolean => {
     console.error('Error writing SSE event:', error);
     return false;
   }
+};
+
+const parseErrorChunk = (error: any): ErrorChunk => {
+  let status = 500
+  let message = ''
+
+  if (typeof error === "string") {
+    message = error
+  }
+
+  if (typeof error === "object") {
+    if(error.status) {
+      const s = parseInt(error.status);
+      if (!isNaN(s)) {
+        status = s
+      }
+    }
+
+    if(error.message) {
+      message = JSON.stringify(error.message)
+    }
+  }
+
+  return {status, message}
 };
 
 export function createStreamRouter(stream: StreamStore): Router {
@@ -155,6 +182,14 @@ export function createStreamRouter(stream: StreamStore): Router {
           clearTimeout(timeoutHandle);
           timeoutHandle = undefined;
         }
+
+        //check for errors
+        if(chunk?.error) {
+          const { status, message } = parseErrorChunk(chunk.error)
+          res.status(status).json({ error: message });
+          return;
+        }
+
         // Chunks are already in OpenAI format, just forward them (including finish_reason chunks)
         if (!writeSSEEvent(res, chunk)) {
           console.log(`[STREAM-OUT] Query ${query_name}: Client disconnected (write failed)`);
