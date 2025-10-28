@@ -208,6 +208,7 @@ export function createStreamRouter(stream: StreamStore): Router {
         timeoutHandle = setTimeout(() => {
           if (!hasReceivedChunks) {
             console.log(`[STREAM] Query ${query_name}: Timeout after ${timeout}ms waiting for chunks (no chunks received)`);
+            res.status(408); //HTTP status code for request timeout
             res.end();
             unsubscribeChunks();
             unsubscribeComplete();
