@@ -29,9 +29,7 @@ export async function executeQuery(options: QueryOptions): Promise<void> {
   const queryTimeoutMs = options.timeout
     ? parseDuration(options.timeout)
     : parseDuration('5m');
-  const watchTimeoutMs = options.watchTimeout
-    ? parseDuration(options.watchTimeout)
-    : queryTimeoutMs + 60000;
+  const watchTimeoutMs = 6000
 
   const timestamp = Date.now();
   const queryName = `cli-query-${timestamp}`;

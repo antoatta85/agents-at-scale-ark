@@ -99,7 +99,15 @@ runs:
     - name: Run Query
       shell: bash
       run: |
+        set -x
+        echo "Starting query at $(date)"
         ark query model/default "Hello, please confirm you received this test message"
+        echo "Checking query status..."
+        kubectl get queries -o yaml
+        echo "Checking controller logs..."
+        kubectl logs -n ark-system deployment/ark-controller --tail=100
+        echo "Query completed at $(date)"
+        exit 1
 
     - name: Uninstall Ark
       shell: bash
