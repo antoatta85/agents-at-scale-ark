@@ -5,7 +5,9 @@ description: AI/ML observability and evaluation platform for monitoring agent pe
 
 # Phoenix Service
 
-Phoenix ([Arize Phoenix](https://arize.com/docs/phoenix)) provides comprehensive observability and evaluation for AI/ML applications, offering detailed tracing, performance monitoring, and model evaluation capabilities for your ARK agents and teams. This guide covers setting up and using Phoenix with ARK.
+Phoenix ([Arize Phoenix](https://arize.com/docs/phoenix)) provides comprehensive observability and evaluation for AI/ML applications, offering detailed tracing, performance monitoring, and model evaluation capabilities for your ARK agents and teams.
+
+> **Note**: Phoenix is now part of the ARK Marketplace. For complete installation and configuration documentation, see the [Phoenix Marketplace Documentation](../../../marketplace/docs/content/services/phoenix.mdx).
 
 ## Overview
 
@@ -18,79 +20,40 @@ Phoenix integration with ARK provides:
 
 ## Installation
 
+Phoenix is available in the ARK Marketplace at `marketplace/services/phoenix/`.
+
 ### Quick Start
 
-Deploy Phoenix as part of your ARK installation:
-
+**Using DevSpace (Recommended):**
 ```bash
-# From repository root - install Phoenix
-make phoenix-install
-
-# Start dashboard with automatic port-forward (recommended)
-make phoenix-dashboard
+cd marketplace/services/phoenix
+devspace dev
+# Dashboard automatically available at http://localhost:6006
 ```
 
-### Configuration
+**Using Helm:**
+```bash
+cd marketplace/services/phoenix
+helm dependency update chart/
+helm install phoenix ./chart -n phoenix --create-namespace
 
-Phoenix is automatically configured with:
+# Access dashboard
+kubectl port-forward -n phoenix svc/phoenix-svc 6006:6006
+```
+
+### Default Configuration
+
+Phoenix is deployed with:
 - **Namespace**: `phoenix`
 - **Service**: `phoenix-svc:6006`
 - **OTEL Endpoint**: `http://phoenix-svc.phoenix.svc.cluster.local:6006/v1/traces`
+- **Dashboard**: `http://localhost:6006` (when using DevSpace or port-forwarding)
 
 The installation automatically:
 1. Deploys Phoenix to the `phoenix` namespace
 2. Creates OTEL environment variable secrets in configured namespaces (default: `ark-system`, `default`)
 
-## Accessing Phoenix Dashboard
-
-### Local Development Access
-
-After installation, start the dashboard with automatic port-forwarding:
-
-```bash
-make phoenix-dashboard
-# Output:
-# Starting Phoenix dashboard...
-# 
-# Dashboard available at: http://localhost:6006
-# Press Ctrl+C to stop
-```
-
-The dashboard command automatically:
-- Finds an available port (starting from 6006)
-- Shows you the exact URL to visit
-- Starts port-forwarding to Phoenix
-- No authentication required - Phoenix is ready to use immediately
-
-Simply visit the URL shown to access the Phoenix dashboard.
-
-### Gateway API Access
-
-Phoenix can be configured with Gateway API HTTPRoute for namespace-based access:
-
-```bash
-# Access via nip.io DNS pattern (if HTTPRoute is enabled)
-open http://phoenix.phoenix.127.0.0.1.nip.io:8080
-```
-
-**Note**: HTTPRoute is disabled by default. To enable it, update `services/phoenix/chart/values.yaml`:
-
-```yaml
-httpRoute:
-  enabled: true
-  parentRefs:
-    - name: localhost-gateway
-      namespace: ark-system
-  hostnames:
-    - "phoenix.phoenix.127.0.0.1.nip.io"
-```
-
-Then reinstall Phoenix:
-
-```bash
-make phoenix-uninstall
-make phoenix-install
-```
+For detailed configuration options, see the [Phoenix Marketplace Documentation](../../../marketplace/docs/content/services/phoenix.mdx).
 
 ## Configuration
 
@@ -99,20 +62,10 @@ make phoenix-install
 The installation automatically configures these OpenTelemetry environment variables:
 
 ```bash
-# Automatically configured by make phoenix-install
 OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix-svc.phoenix.svc.cluster.local:6006/v1/traces
 ```
 
 **Note**: Unlike Langfuse, Phoenix does not require authentication headers for OTEL integration.
-
-### Service Configuration
-
-Phoenix is deployed with these default settings:
-
-- **Namespace**: `phoenix`
-- **Service Name**: `phoenix-svc`
-- **Port**: `6006`
-- **Authentication**: Disabled (no credentials required)
 
 ### Configuring Services for OTEL
 
@@ -133,15 +86,7 @@ containers:
 kubectl rollout restart deployment/ark-controller-devspace -n ark-system
 ```
 
-To configure which namespaces receive OTEL secrets, set in `services/phoenix/chart/values.yaml`:
-
-```yaml
-otelEnvironmentVariableSecrets:
-  enabled: true
-  namespaces:
-    - ark-system
-    - default
-```
+For advanced configuration options including namespace configuration, HTTPRoute setup, and custom values, see the [Phoenix Marketplace Documentation](../../../marketplace/docs/content/services/phoenix.mdx).
 
 ## Using Phoenix Dashboard
 
@@ -211,17 +156,17 @@ If traces aren't showing up in Phoenix:
 
 ## Uninstalling
 
-To remove Phoenix and clean up OTEL configuration:
-
+**Using DevSpace:**
 ```bash
-# Uninstall Phoenix
-make phoenix-uninstall
+cd marketplace/services/phoenix
+devspace purge
 ```
 
-This will:
-1. Remove Phoenix from the `phoenix` namespace
-2. Remove the Helm release
-3. Clean up installation stamps
+**Using Helm:**
+```bash
+helm uninstall phoenix -n phoenix
+kubectl delete namespace phoenix  # Optional
+```
 
 **Note**: OTEL environment variable secrets in other namespaces are not automatically removed. To clean them up:
 
