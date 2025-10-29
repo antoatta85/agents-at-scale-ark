@@ -7,11 +7,12 @@ Phoenix observability for Ark AI agents.
 ### Using DevSpace
 
 ```bash
-# Deploy Phoenix
-devspace deploy
-
 # Deploy + port-forward dashboard
 devspace dev
+
+# Deploy Phoenix
+devspace deploy
+kubectl port-forward -n phoenix svc/phoenix-svc 6006:6006
 
 # Uninstall Phoenix
 devspace purge
