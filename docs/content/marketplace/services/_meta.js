@@ -1,3 +1,3 @@
 export default {
-  phoenix: 'Phoenix'
+  phoenix: 'Observability - Phoenix'
 }

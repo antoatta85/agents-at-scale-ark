@@ -7,57 +7,6 @@ description: AI/ML observability and evaluation platform for monitoring agent pe
 
 > **📍 This page has moved**: Phoenix is now part of the ARK Marketplace. See the [Marketplace documentation](/marketplace/services/phoenix) for installation and setup instructions.
 
-Phoenix ([Arize Phoenix](https://arize.com/docs/phoenix)) provides comprehensive observability and evaluation for AI/ML applications, offering detailed tracing, performance monitoring, and model evaluation capabilities for your ARK agents and teams.
-
-## Quick Reference
-
-**Location**: `marketplace/services/phoenix/`
-
-**Quick Install**:
-```bash
-cd marketplace/services/phoenix
-devspace dev  # Deploy + dashboard at http://localhost:6006
-```
-
-**Default Configuration**:
-- **Namespace**: `phoenix`
-- **Service**: `phoenix-svc:6006`
-- **OTEL Endpoint**: `http://phoenix-svc.phoenix.svc.cluster.local:6006/v1/traces`
-
-For complete documentation, see: [Marketplace → Phoenix](/marketplace/services/phoenix)
-
-## Integration with ARK
-
-Phoenix automatically integrates with ARK services through OpenTelemetry environment variables. The installation creates `otel-environment-variables` secrets in configured namespaces.
-
-To enable Phoenix tracing in your ARK deployments:
-
-```yaml
-containers:
-- name: my-service
-  envFrom:
-  - secretRef:
-      name: otel-environment-variables
-      optional: true
-```
-
-After installation, restart deployments to apply the configuration:
-
-```bash
-kubectl rollout restart deployment/ark-controller-manager -n ark-system
-```
-
-## More Information
-
-For complete documentation including:
-- Detailed installation and configuration
-- HTTPRoute and Gateway API setup
-- Python and LangChain integration examples
-- Troubleshooting guides
-- Advanced usage patterns
-
-See: [Marketplace → Phoenix](/marketplace/services/phoenix)
-
 ---
 
 **Previous**: [Langfuse Service](/developer-guide/observability/langfuse-service)

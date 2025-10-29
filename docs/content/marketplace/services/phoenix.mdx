@@ -3,7 +3,7 @@ title: Phoenix
 description: AI/ML observability and evaluation platform
 ---
 
-# Phoenix
+# Observability - Phoenix
 
 > **📍 Documentation Location**: Complete Phoenix documentation is available in the marketplace.
 
@@ -38,10 +38,44 @@ cd marketplace/services/phoenix
 devspace dev  # Deploy + dashboard at http://localhost:6006
 ```
 
+**Default Configuration**:
+- **Namespace**: `phoenix`
+- **Service**: `phoenix-svc:6006`
+- **OTEL Endpoint**: `http://phoenix-svc.phoenix.svc.cluster.local:6006/v1/traces`
+
+For complete documentation, see: [Marketplace → Phoenix](/marketplace/services/phoenix)
+
 ## Integration with ARK
 
-For information on integrating Phoenix with ARK agents and services, see:
-- [ARK Observability Guide](/developer-guide/observability/phoenix-service)
+Phoenix automatically integrates with ARK services through OpenTelemetry environment variables. The installation creates `otel-environment-variables` secrets in configured namespaces.
+
+To enable Phoenix tracing in your ARK deployments:
+
+```yaml
+containers:
+- name: my-service
+  envFrom:
+  - secretRef:
+      name: otel-environment-variables
+      optional: true
+```
+
+After installation, restart deployments to apply the configuration:
+
+```bash
+kubectl rollout restart deployment/ark-controller-manager -n ark-system
+```
+
+## More Information
+
+For complete documentation including:
+- Detailed installation and configuration
+- HTTPRoute and Gateway API setup
+- Python and LangChain integration examples
+- Troubleshooting guides
+- Advanced usage patterns
+
+See: [Marketplace → Phoenix](/marketplace/services/phoenix)
 
 ---
 
