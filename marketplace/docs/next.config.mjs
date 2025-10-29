@@ -23,5 +23,7 @@ export default withNextra({
   images: {
     unoptimized: true
   },
-  turbopack: {}
+  turbopack: {
+    root: process.cwd()
+  }
 })
