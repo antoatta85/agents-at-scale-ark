@@ -1,0 +1,41 @@
+# DevSpace configuration for Langfuse observability
+version: v2beta1
+
+pipelines:
+  dev: |-
+    create_deployments --all
+    
+    echo ""
+    echo "Langfuse Dashboard: http://localhost:3000"
+    echo "Username: ark@ark.com"
+    echo "Password: password123"
+    echo "Press Ctrl+C to stop port-forwarding"
+    echo ""
+    
+    # Wait for Langfuse to be ready and start port-forwarding
+    echo "Waiting for Langfuse to be ready..."
+    until kubectl port-forward -n telemetry svc/langfuse-web 3000:3000; do 
+      echo "Port-forwarding failed - Langfuse not ready yet. Retrying in 10s..."
+      sleep 10
+    done
+
+deployments:
+  langfuse:
+    namespace: telemetry
+    helm:
+      chart:
+        path: ./chart
+      values:
+        # Development-specific values can be added here
+        httpRoute:
+          # when true, http://langfuse.telemetry.127.0.0.1.nip.io:8080 will be created
+          enabled: false
+        otelEnvironmentVariableSecrets:
+          enabled: true
+          namespaces:
+            - ark-system
+            - default
+        demo:
+          project:
+            publicKey: lf_pk_1234567890
+            secretKey: lf_sk_1234567890
