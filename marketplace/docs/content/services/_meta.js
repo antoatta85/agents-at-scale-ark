@@ -1,3 +1,4 @@
 export default {
-  phoenix: 'Phoenix'
+  phoenix: 'Phoenix',
+  langfuse: 'Langfuse'
 }

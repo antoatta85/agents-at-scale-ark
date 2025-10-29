@@ -1,3 +1,4 @@
 export default {
-  phoenix: 'Observability - Phoenix'
+  phoenix: 'Observability - Phoenix',
+  langfuse: 'Observability - Langfuse'
 }
