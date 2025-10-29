@@ -82,7 +82,7 @@ envFrom:
 
 **Note**: Existing deployments must be restarted to pick up new/updated secrets:
 ```bash
-kubectl rollout restart deployment/<deployment-name> -n <namespace>
+kubectl rollout restart deployment/ark-controller-devspace -n ark-system
 ```
 
 ### Custom Configuration
@@ -134,14 +134,14 @@ kubectl port-forward -n phoenix svc/phoenix-svc 6006:6006
 3. Ensure OTEL secrets are mounted in your deployments
 4. Restart deployments after updating secrets:
    ```bash
-   kubectl rollout restart deployment/<name> -n <namespace>
+   kubectl rollout restart deployment/ark-controller-devspace -n ark-system
    ```
 
 ### OTEL Secrets Not Created
 
 Check if the secret exists:
 ```bash
-kubectl get secret otel-environment-variables -n <namespace>
+kubectl get secret otel-environment-variables -n ark-system
 ```
 
 If missing, verify `otelEnvironmentVariableSecrets.enabled: true` in `values.yaml` and redeploy.
