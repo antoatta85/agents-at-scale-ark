@@ -29,6 +29,8 @@ cd marketplace/services/phoenix
 devspace deploy
 ```
 
+**Note**: DevSpace automatically restarts the ARK controller after deployment to ensure it picks up the new Phoenix configuration.
+
 **Using Helm:**
 ```bash
 cd marketplace/services/phoenix
@@ -42,7 +44,9 @@ helm install phoenix ./chart -n phoenix --create-namespace
 ```bash
 cd marketplace/services/phoenix
 devspace dev
-# Dashboard automatically available at http://localhost:6006
+# Then port-forward to access dashboard:
+kubectl port-forward -n phoenix svc/phoenix-svc 6006:6006
+# Open http://localhost:6006
 ```
 
 **With kubectl:**
@@ -82,9 +86,10 @@ envFrom:
       optional: true
 ```
 
-**Note**: Existing deployments must be restarted to pick up new/updated secrets:
+**Note**: When using DevSpace, the ARK controller is automatically restarted after Phoenix deployment. For manual deployments, existing deployments must be restarted to pick up new/updated secrets:
 ```bash
-kubectl rollout restart deployment/ark-controller-devspace -n ark-system
+# Only needed for manual deployments (not DevSpace)
+kubectl rollout restart deployment/ark-controller -n ark-system
 ```
 
 ### Custom Configuration
@@ -134,9 +139,10 @@ kubectl port-forward -n phoenix svc/phoenix-svc 6006:6006
 1. Verify OTEL endpoint is configured correctly
 2. Check that applications are instrumented with OpenTelemetry
 3. Ensure OTEL secrets are mounted in your deployments
-4. Restart deployments after updating secrets:
+4. When using manual deployment methods, restart deployments after updating secrets:
    ```bash
-   kubectl rollout restart deployment/ark-controller-devspace -n ark-system
+   # Only needed for manual deployments (DevSpace handles this automatically)
+   kubectl rollout restart deployment/ark-controller -n ark-system
    ```
 
 ### OTEL Secrets Not Created
