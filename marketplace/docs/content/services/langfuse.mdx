@@ -28,6 +28,8 @@ cd marketplace/services/langfuse
 devspace deploy
 ```
 
+**Note**: DevSpace automatically restarts the ARK controller after deployment to ensure it picks up the new Langfuse configuration.
+
 **Using Helm:**
 ```bash
 cd marketplace/services/langfuse
@@ -42,7 +44,9 @@ helm install langfuse ./chart -n telemetry --create-namespace
 ```bash
 cd marketplace/services/langfuse
 devspace dev
-# Dashboard automatically available at http://localhost:3000
+# Then port-forward to access dashboard:
+kubectl port-forward -n telemetry svc/langfuse-web 3000:3000
+# Open http://localhost:3000
 ```
 
 **Login Credentials:**
@@ -95,9 +99,10 @@ envFrom:
       optional: true
 ```
 
-**Note**: Existing deployments must be restarted to pick up new/updated secrets:
+**Note**: When using DevSpace, the ARK controller is automatically restarted after Langfuse deployment. For manual deployments, existing deployments must be restarted to pick up new/updated secrets:
 ```bash
-kubectl rollout restart deployment/ark-controller-devspace -n ark-system
+# Only needed for manual deployments (not DevSpace)
+kubectl rollout restart deployment/ark-controller -n ark-system
 ```
 
 ### Custom Configuration
@@ -192,9 +197,10 @@ If you can't log in with the default credentials:
 1. Verify OTEL endpoint is configured correctly
 2. Check that applications are instrumented with OpenTelemetry
 3. Ensure OTEL secrets are mounted in your deployments
-4. Restart deployments after updating secrets:
+4. When using manual deployment methods, restart deployments after updating secrets:
    ```bash
-   kubectl rollout restart deployment/ark-controller-devspace -n ark-system
+   # Only needed for manual deployments (DevSpace handles this automatically)
+   kubectl rollout restart deployment/ark-controller -n ark-system
    ```
 5. Check telemetry initialization logs:
    ```bash
