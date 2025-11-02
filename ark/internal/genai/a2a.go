@@ -394,8 +394,6 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 		a2aServerAddress = a2aServer.Status.LastResolvedAddress
 	}
 
-	a2aTaskTask := arkv1alpha1.ConvertTaskFromProtocol(task)
-
 	labels := map[string]string{
 		"ark.mckinsey.com/task-id": task.ID,
 		"ark.mckinsey.com/agent":   agentName,
@@ -430,13 +428,15 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 		},
 		Status: arkv1alpha1.A2ATaskStatus{
 			Phase: convertProtocolStateToPhase(string(task.Status.State)),
-			Task:  &a2aTaskTask,
 			AssignedAgent: &arkv1alpha1.AgentRef{
 				Name:      agentName,
 				Namespace: namespace,
 			},
 		},
 	}
+
+	// Populate A2A protocol fields into status
+	PopulateA2ATaskStatusFromProtocol(&a2aTask.Status, task)
 
 	// Set start time
 	now := metav1.NewTime(time.Now())

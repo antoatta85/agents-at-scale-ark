@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -60,6 +61,12 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		a2aTask.Status.Phase = statusPending
 	}
 
+	// Initialize Completed condition if not set
+	if len(a2aTask.Status.Conditions) == 0 {
+		r.setConditionCompleted(&a2aTask, metav1.ConditionFalse, "TaskNotStarted", "Task has not been started yet")
+		return ctrl.Result{}, r.Status().Update(ctx, &a2aTask)
+	}
+
 	// Handle terminal states
 	if isTerminalPhase(a2aTask.Status.Phase) {
 		log.Info("A2ATask is in terminal state", "taskId", a2aTask.Spec.TaskID, "phase", a2aTask.Status.Phase)
@@ -91,9 +98,13 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	// Requeue for non-terminal tasks
+	// Requeue for non-terminal tasks using the configured poll interval
 	if !isTerminalPhase(a2aTask.Status.Phase) {
-		return ctrl.Result{RequeueAfter: time.Second * 3}, nil
+		pollInterval := time.Second * 5 // default fallback
+		if a2aTask.Spec.PollInterval != nil {
+			pollInterval = a2aTask.Spec.PollInterval.Duration
+		}
+		return ctrl.Result{RequeueAfter: pollInterval}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -128,36 +139,27 @@ func (r *A2ATaskReconciler) pollA2ATaskStatus(ctx context.Context, a2aTask *arkv
 
 // createA2AClient creates an A2A client for the task
 func (r *A2ATaskReconciler) createA2AClient(ctx context.Context, a2aTask *arkv1alpha1.A2ATask) (*a2aclient.A2AClient, error) {
-	// Try annotations first (URLs can't be in labels due to special characters)
-	a2aServerAddress, hasAddress := a2aTask.Annotations["ark.mckinsey.com/a2a-server-address"]
-	if !hasAddress {
-		// Fallback to labels for compatibility
-		a2aServerAddress, hasAddress = a2aTask.Labels["ark.mckinsey.com/a2a-server-address"]
-		if !hasAddress {
-			return nil, fmt.Errorf("A2ATask missing required annotation/label ark.mckinsey.com/a2a-server-address")
-		}
-	}
-
-	a2aServerName, hasServerName := a2aTask.Annotations["ark.mckinsey.com/a2a-server-name"]
-	if !hasServerName {
-		// Fallback to labels for compatibility
-		a2aServerName, hasServerName = a2aTask.Labels["ark.mckinsey.com/a2a-server-name"]
-		if !hasServerName {
-			return nil, fmt.Errorf("A2ATask missing required annotation/label ark.mckinsey.com/a2a-server-name")
-		}
+	serverNamespace := a2aTask.Spec.A2AServerRef.Namespace
+	if serverNamespace == "" {
+		serverNamespace = a2aTask.Namespace
 	}
 
 	var a2aServer arkv1prealpha1.A2AServer
-	serverKey := client.ObjectKey{Name: a2aServerName, Namespace: a2aTask.Namespace}
+	serverKey := client.ObjectKey{Name: a2aTask.Spec.A2AServerRef.Name, Namespace: serverNamespace}
 	if err := r.Get(ctx, serverKey, &a2aServer); err != nil {
 		return nil, fmt.Errorf("unable to get A2AServer %v: %w", serverKey, err)
+	}
+
+	a2aServerAddress := a2aServer.Status.LastResolvedAddress
+	if a2aServerAddress == "" {
+		return nil, fmt.Errorf("A2AServer %v has no resolved address", serverKey)
 	}
 
 	var clientOptions []a2aclient.Option
 	if len(a2aServer.Spec.Headers) > 0 {
 		resolvedHeaders := make(map[string]string)
 		for _, header := range a2aServer.Spec.Headers {
-			headerValue, err := genai.ResolveHeaderValueV1PreAlpha1(ctx, r.Client, header, a2aTask.Namespace)
+			headerValue, err := genai.ResolveHeaderValueV1PreAlpha1(ctx, r.Client, header, serverNamespace)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve header %s: %w", header.Name, err)
 			}
@@ -184,37 +186,35 @@ func (r *A2ATaskReconciler) queryTaskStatus(ctx context.Context, a2aClient *a2ac
 	return task, nil
 }
 
-func (r *A2ATaskReconciler) mergeArtifacts(existingTask, newTaskData *arkv1alpha1.A2ATaskTask, taskID string, log logr.Logger) {
+func (r *A2ATaskReconciler) mergeArtifacts(existingStatus, newStatus *arkv1alpha1.A2ATaskStatus) {
 	existingArtifactIds := make(map[string]bool)
-	for _, artifact := range existingTask.Artifacts {
+	for _, artifact := range existingStatus.Artifacts {
 		existingArtifactIds[artifact.ArtifactID] = true
 	}
 
-	for _, newArtifact := range newTaskData.Artifacts {
+	for _, newArtifact := range newStatus.Artifacts {
 		if !existingArtifactIds[newArtifact.ArtifactID] {
-			existingTask.Artifacts = append(existingTask.Artifacts, newArtifact)
-			log.Info("added new artifact", "taskId", taskID, "artifactId", newArtifact.ArtifactID)
+			existingStatus.Artifacts = append(existingStatus.Artifacts, newArtifact)
 		}
 	}
 }
 
-func (r *A2ATaskReconciler) mergeHistory(existingTask, newTaskData *arkv1alpha1.A2ATaskTask, taskID string, log logr.Logger) {
-	if len(newTaskData.History) == 0 {
+func (r *A2ATaskReconciler) mergeHistory(existingStatus, newStatus *arkv1alpha1.A2ATaskStatus) {
+	if len(newStatus.History) == 0 {
 		return
 	}
 
 	existingMessages := make(map[string]bool)
-	for _, existingMsg := range existingTask.History {
+	for _, existingMsg := range existingStatus.History {
 		msgKey := r.generateMessageKey(existingMsg)
 		existingMessages[msgKey] = true
 	}
 
-	for _, newMsg := range newTaskData.History {
+	for _, newMsg := range newStatus.History {
 		msgKey := r.generateMessageKey(newMsg)
 		if !existingMessages[msgKey] {
-			existingTask.History = append(existingTask.History, newMsg)
+			existingStatus.History = append(existingStatus.History, newMsg)
 			existingMessages[msgKey] = true
-			log.Info("added new history message", "taskId", taskID, "messageKey", msgKey[:8], "totalHistory", len(existingTask.History))
 		}
 	}
 }
@@ -224,6 +224,20 @@ func (r *A2ATaskReconciler) updateTaskPhase(a2aTask *arkv1alpha1.A2ATask, task *
 	if newPhase != a2aTask.Status.Phase {
 		log.Info("task phase changed", "taskId", task.ID, "oldPhase", a2aTask.Status.Phase, "newPhase", newPhase)
 		a2aTask.Status.Phase = newPhase
+
+		// Update Completed condition based on phase
+		switch newPhase {
+		case statusPending, statusAssigned:
+			r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskPending", "Task is pending execution")
+		case statusRunning:
+			r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskRunning", "Task is running")
+		case statusCompleted:
+			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskSucceeded", "Task completed successfully")
+		case statusFailed:
+			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskFailed", "Task failed")
+		case statusCancelled:
+			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskCancelled", "Task was cancelled")
+		}
 
 		if isTerminalPhase(newPhase) {
 			now := metav1.NewTime(time.Now())
@@ -261,22 +275,24 @@ func (r *A2ATaskReconciler) updateTaskStatus(ctx context.Context, a2aTask *arkv1
 	log := logf.FromContext(ctx)
 	log.Info("received updated task status", "taskId", task.ID, "state", task.Status.State)
 
-	newTaskData := arkv1alpha1.ConvertTaskFromProtocol(task)
+	newTaskData := arkv1alpha1.A2ATaskStatus{}
+	genai.PopulateA2ATaskStatusFromProtocol(&newTaskData, task)
 
-	if a2aTask.Status.Task == nil {
-		a2aTask.Status.Task = &newTaskData
+	if len(a2aTask.Status.History) == 0 && len(a2aTask.Status.Artifacts) == 0 {
+		genai.PopulateA2ATaskStatusFromProtocol(&a2aTask.Status, task)
 		r.updateTaskPhase(a2aTask, task, log)
 		r.updateTaskProgress(a2aTask, task, log)
 		return nil
 	}
 
-	existingTask := a2aTask.Status.Task
-	r.mergeArtifacts(existingTask, &newTaskData, task.ID, log)
-	r.mergeHistory(existingTask, &newTaskData, task.ID, log)
+	r.mergeArtifacts(&a2aTask.Status, &newTaskData)
+	r.mergeHistory(&a2aTask.Status, &newTaskData)
 
-	existingTask.Status = newTaskData.Status
-	existingTask.Metadata = newTaskData.Metadata
-	existingTask.SessionID = newTaskData.SessionID
+	a2aTask.Status.ProtocolState = newTaskData.ProtocolState
+	a2aTask.Status.ProtocolMetadata = newTaskData.ProtocolMetadata
+	a2aTask.Status.SessionID = newTaskData.SessionID
+	a2aTask.Status.LastStatusMessage = newTaskData.LastStatusMessage
+	a2aTask.Status.LastStatusTimestamp = newTaskData.LastStatusTimestamp
 
 	r.updateTaskPhase(a2aTask, task, log)
 	r.updateTaskProgress(a2aTask, task, log)
@@ -336,6 +352,17 @@ func (r *A2ATaskReconciler) generateMessageKey(msg arkv1alpha1.A2ATaskMessage) s
 	// Create a hash of the content to keep the key manageable
 	hash := sha256.Sum256([]byte(content.String()))
 	return fmt.Sprintf("%x", hash)
+}
+
+// setConditionCompleted sets the Completed condition on the A2ATask
+func (r *A2ATaskReconciler) setConditionCompleted(a2aTask *arkv1alpha1.A2ATask, status metav1.ConditionStatus, reason, message string) {
+	meta.SetStatusCondition(&a2aTask.Status.Conditions, metav1.Condition{
+		Type:               string(arkv1alpha1.A2ATaskCompleted),
+		Status:             status,
+		Reason:             reason,
+		Message:            message,
+		ObservedGeneration: a2aTask.Generation,
+	})
 }
 
 // Force devspace reload ven  5 set 2025 14:30:15 CEST - Added HistoryLength to TaskQueryParams

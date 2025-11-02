@@ -55,21 +55,52 @@ spec:
           metadata:
             type: object
           spec:
+            description: |-
+              A2ATaskSpec defines the desired state of an A2ATask.
+              Links the task to its originating query and captures task parameters.
             properties:
+              a2aServerRef:
+                description: A2AServerRef references the A2AServer to poll for task
+                  status updates.
+                properties:
+                  name:
+                    description: Name of the A2AServer resource.
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace where the A2AServer resource is located.
+                      If empty, defaults to the same namespace as the A2ATask.
+                    type: string
+                required:
+                - name
+                type: object
               contextId:
+                description: ContextID links this task to an A2A conversation context
+                  for stateful interactions.
                 type: string
               input:
+                description: Input contains the user's input that initiated this task.
                 type: string
               parameters:
                 additionalProperties:
                   type: string
+                description: Parameters contains additional key-value parameters for
+                  task execution.
                 type: object
+              pollInterval:
+                default: 5s
+                description: PollInterval specifies how frequently to check the A2A
+                  server for task status updates.
+                type: string
               priority:
                 default: 0
+                description: Priority determines task execution order (higher values
+                  execute first).
                 format: int32
                 type: integer
               queryRef:
-                description: QueryRef references a query for post-hoc evaluation
+                description: QueryRef references the Query that created this A2A task.
                 properties:
                   name:
                     minLength: 1
@@ -84,31 +115,326 @@ spec:
                 - name
                 type: object
               taskId:
+                description: TaskID is the unique identifier from the A2A protocol.
                 minLength: 1
                 type: string
               timeout:
-                default: 5m
+                default: 12h
+                description: |-
+                  Timeout specifies how long we will poll the A2A server for task completion before timing out.
+                  If the task has not reached a terminal state (completed, failed, cancelled) within this duration,
+                  it will be marked as failed.
+                type: string
+              ttl:
+                default: 720h
+                description: |-
+                  TTL (time to live) specifies how long to keep this A2ATask resource in the system after completion.
+                  After this duration, the resource may be automatically deleted.
                 type: string
             required:
+            - a2aServerRef
             - queryRef
             - taskId
             type: object
           status:
+            description: |-
+              A2ATaskStatus defines the observed state of an A2ATask.
+              Combines Kubernetes lifecycle tracking with A2A protocol task data.
             properties:
+              artifacts:
+                description: Artifacts contains outputs produced by the A2A task execution.
+                items:
+                  description: |-
+                    A2ATaskArtifact represents artifacts produced during A2A task execution.
+                    Artifacts contain structured content with one or more parts.
+                  properties:
+                    artifactId:
+                      description: ArtifactID uniquely identifies this artifact within
+                        the task.
+                      minLength: 1
+                      type: string
+                    description:
+                      description: Description provides additional context about the
+                        artifact.
+                      type: string
+                    metadata:
+                      additionalProperties:
+                        type: string
+                      description: Metadata contains additional key-value pairs for
+                        this artifact.
+                      type: object
+                    name:
+                      description: Name is a human-readable name for the artifact.
+                      type: string
+                    parts:
+                      description: Parts contains the content of the artifact as one
+                        or more parts.
+                      items:
+                        description: |-
+                          A2ATaskPart represents content parts compatible with A2A protocol.
+                          Parts can contain text, binary data, or file references.
+                        properties:
+                          data:
+                            description: Data contains base64-encoded binary content
+                              when Kind is "data".
+                            type: string
+                          kind:
+                            description: 'Kind specifies the type of content: "text",
+                              "file", or "data".'
+                            enum:
+                            - text
+                            - file
+                            - data
+                            type: string
+                          metadata:
+                            additionalProperties:
+                              type: string
+                            description: Metadata contains additional key-value pairs
+                              for this part.
+                            type: object
+                          mimeType:
+                            description: MimeType specifies the content type (e.g.,
+                              "text/plain", "application/json").
+                            type: string
+                          text:
+                            description: Text contains the actual text content when
+                              Kind is "text".
+                            type: string
+                          uri:
+                            description: URI references an external resource when
+                              Kind is "file".
+                            type: string
+                        required:
+                        - kind
+                        type: object
+                      type: array
+                  required:
+                  - artifactId
+                  - parts
+                  type: object
+                type: array
               assignedAgent:
+                description: AssignedAgent references the agent that executed or is
+                  executing this task.
                 properties:
                   name:
+                    description: Name of the Agent resource.
                     type: string
                   namespace:
+                    description: |-
+                      Namespace where the Agent resource is located.
+                      If empty, defaults to the same namespace as the A2ATask.
                     type: string
                 type: object
               completionTime:
+                description: CompletionTime records when task execution finished (success
+                  or failure).
                 format: date-time
                 type: string
+              conditions:
+                description: |-
+                  Conditions represent the latest available observations of the task's state.
+                  The Completed condition indicates whether the task is no longer running.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
               error:
+                description: Error contains the error message if the task failed.
+                type: string
+              history:
+                description: History contains the complete conversation from the A2A
+                  protocol.
+                items:
+                  description: |-
+                    A2ATaskMessage represents messages exchanged during A2A task execution.
+                    Messages form the conversation history between user, agent, and system.
+                  properties:
+                    metadata:
+                      additionalProperties:
+                        type: string
+                      description: Metadata contains additional key-value pairs for
+                        this message.
+                      type: object
+                    parts:
+                      description: Parts contains the message content as one or more
+                        parts.
+                      items:
+                        description: |-
+                          A2ATaskPart represents content parts compatible with A2A protocol.
+                          Parts can contain text, binary data, or file references.
+                        properties:
+                          data:
+                            description: Data contains base64-encoded binary content
+                              when Kind is "data".
+                            type: string
+                          kind:
+                            description: 'Kind specifies the type of content: "text",
+                              "file", or "data".'
+                            enum:
+                            - text
+                            - file
+                            - data
+                            type: string
+                          metadata:
+                            additionalProperties:
+                              type: string
+                            description: Metadata contains additional key-value pairs
+                              for this part.
+                            type: object
+                          mimeType:
+                            description: MimeType specifies the content type (e.g.,
+                              "text/plain", "application/json").
+                            type: string
+                          text:
+                            description: Text contains the actual text content when
+                              Kind is "text".
+                            type: string
+                          uri:
+                            description: URI references an external resource when
+                              Kind is "file".
+                            type: string
+                        required:
+                        - kind
+                        type: object
+                      type: array
+                    role:
+                      description: 'Role identifies the message sender: "user", "agent",
+                        or "system".'
+                      enum:
+                      - user
+                      - agent
+                      - system
+                      type: string
+                  required:
+                  - parts
+                  - role
+                  type: object
+                type: array
+              lastStatusMessage:
+                description: LastStatusMessage contains the most recent status message
+                  from the A2A protocol.
+                properties:
+                  metadata:
+                    additionalProperties:
+                      type: string
+                    description: Metadata contains additional key-value pairs for
+                      this message.
+                    type: object
+                  parts:
+                    description: Parts contains the message content as one or more
+                      parts.
+                    items:
+                      description: |-
+                        A2ATaskPart represents content parts compatible with A2A protocol.
+                        Parts can contain text, binary data, or file references.
+                      properties:
+                        data:
+                          description: Data contains base64-encoded binary content
+                            when Kind is "data".
+                          type: string
+                        kind:
+                          description: 'Kind specifies the type of content: "text",
+                            "file", or "data".'
+                          enum:
+                          - text
+                          - file
+                          - data
+                          type: string
+                        metadata:
+                          additionalProperties:
+                            type: string
+                          description: Metadata contains additional key-value pairs
+                            for this part.
+                          type: object
+                        mimeType:
+                          description: MimeType specifies the content type (e.g.,
+                            "text/plain", "application/json").
+                          type: string
+                        text:
+                          description: Text contains the actual text content when
+                            Kind is "text".
+                          type: string
+                        uri:
+                          description: URI references an external resource when Kind
+                            is "file".
+                          type: string
+                      required:
+                      - kind
+                      type: object
+                    type: array
+                  role:
+                    description: 'Role identifies the message sender: "user", "agent",
+                      or "system".'
+                    enum:
+                    - user
+                    - agent
+                    - system
+                    type: string
+                required:
+                - parts
+                - role
+                type: object
+              lastStatusTimestamp:
+                description: LastStatusTimestamp records when the protocol status
+                  was last updated (RFC3339 format).
                 type: string
               phase:
                 default: pending
+                description: |-
+                  Phase indicates the current Kubernetes lifecycle stage of the task.
+                  Possible values: pending, assigned, running, completed, failed, cancelled.
                 enum:
                 - pending
                 - assigned
@@ -118,186 +444,41 @@ spec:
                 - cancelled
                 type: string
               progress:
+                description: Progress indicates task completion percentage (0-100).
                 format: int32
                 maximum: 100
                 minimum: 0
                 type: integer
+              protocolMetadata:
+                additionalProperties:
+                  type: string
+                description: ProtocolMetadata contains additional key-value pairs
+                  from the A2A protocol.
+                type: object
+              protocolState:
+                description: |-
+                  A2A Protocol fields (flattened from protocol.Task)
+                  ProtocolState indicates the current state in the A2A protocol.
+                  Possible values: submitted, working, input-required, completed, canceled, failed, rejected, auth-required, unknown.
+                enum:
+                - submitted
+                - working
+                - input-required
+                - completed
+                - canceled
+                - failed
+                - rejected
+                - auth-required
+                - unknown
+                type: string
+              sessionId:
+                description: SessionID links this task to a specific A2A conversation
+                  session.
+                type: string
               startTime:
+                description: StartTime records when task execution began.
                 format: date-time
                 type: string
-              task:
-                description: Use A2A protocol types directly
-                properties:
-                  artifacts:
-                    items:
-                      description: A2ATaskArtifact represents artifacts from A2A protocol
-                      properties:
-                        artifactId:
-                          minLength: 1
-                          type: string
-                        description:
-                          type: string
-                        metadata:
-                          additionalProperties:
-                            type: string
-                          type: object
-                        name:
-                          type: string
-                        parts:
-                          items:
-                            description: A2ATaskPart represents content parts compatible
-                              with A2A protocol
-                            properties:
-                              data:
-                                type: string
-                              kind:
-                                enum:
-                                - text
-                                - file
-                                - data
-                                type: string
-                              metadata:
-                                additionalProperties:
-                                  type: string
-                                type: object
-                              mimeType:
-                                type: string
-                              text:
-                                type: string
-                              uri:
-                                type: string
-                            required:
-                            - kind
-                            type: object
-                          type: array
-                      required:
-                      - artifactId
-                      - parts
-                      type: object
-                    type: array
-                  history:
-                    items:
-                      description: A2ATaskMessage represents messages from A2A protocol
-                      properties:
-                        metadata:
-                          additionalProperties:
-                            type: string
-                          type: object
-                        parts:
-                          items:
-                            description: A2ATaskPart represents content parts compatible
-                              with A2A protocol
-                            properties:
-                              data:
-                                type: string
-                              kind:
-                                enum:
-                                - text
-                                - file
-                                - data
-                                type: string
-                              metadata:
-                                additionalProperties:
-                                  type: string
-                                type: object
-                              mimeType:
-                                type: string
-                              text:
-                                type: string
-                              uri:
-                                type: string
-                            required:
-                            - kind
-                            type: object
-                          type: array
-                        role:
-                          enum:
-                          - user
-                          - agent
-                          - system
-                          type: string
-                      required:
-                      - parts
-                      - role
-                      type: object
-                    type: array
-                  id:
-                    minLength: 1
-                    type: string
-                  metadata:
-                    additionalProperties:
-                      type: string
-                    type: object
-                  sessionId:
-                    type: string
-                  status:
-                    description: A2ATaskStatus represents task status from A2A protocol
-                    properties:
-                      message:
-                        description: A2ATaskMessage represents messages from A2A protocol
-                        properties:
-                          metadata:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          parts:
-                            items:
-                              description: A2ATaskPart represents content parts compatible
-                                with A2A protocol
-                              properties:
-                                data:
-                                  type: string
-                                kind:
-                                  enum:
-                                  - text
-                                  - file
-                                  - data
-                                  type: string
-                                metadata:
-                                  additionalProperties:
-                                    type: string
-                                  type: object
-                                mimeType:
-                                  type: string
-                                text:
-                                  type: string
-                                uri:
-                                  type: string
-                              required:
-                              - kind
-                              type: object
-                            type: array
-                          role:
-                            enum:
-                            - user
-                            - agent
-                            - system
-                            type: string
-                        required:
-                        - parts
-                        - role
-                        type: object
-                      state:
-                        enum:
-                        - submitted
-                        - working
-                        - input-required
-                        - completed
-                        - canceled
-                        - failed
-                        - rejected
-                        - auth-required
-                        - unknown
-                        type: string
-                      timestamp:
-                        type: string
-                    required:
-                    - state
-                    type: object
-                required:
-                - id
-                - status
-                type: object
             type: object
         type: object
     served: true

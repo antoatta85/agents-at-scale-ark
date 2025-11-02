@@ -3,130 +3,202 @@
 package v1alpha1
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"trpc.group/trpc-go/trpc-a2a-go/protocol"
 )
 
+type A2ATaskConditionType string
+
+// A2ATask condition types
+const (
+	// A2ATaskCompleted indicates the task is no longer running (regardless of outcome).
+	// Status=True means the task has finished and no more changes will occur.
+	// Status=False means the task is still in progress.
+	A2ATaskCompleted A2ATaskConditionType = "Completed"
+)
+
+// AgentRef references an Agent resource by name and namespace.
+// Used to track which agent was assigned to execute an A2A task.
 type AgentRef struct {
+	// Name of the Agent resource.
 	// +kubebuilder:validation:Optional
 	Name string `json:"name,omitempty"`
+	// Namespace where the Agent resource is located.
+	// If empty, defaults to the same namespace as the A2ATask.
 	// +kubebuilder:validation:Optional
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// A2ATaskPart represents content parts compatible with A2A protocol
+// A2AServerRef references an A2AServer resource by name and namespace.
+// Used to identify which A2A server to poll for task status updates.
+type A2AServerRef struct {
+	// Name of the A2AServer resource.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+	// Namespace where the A2AServer resource is located.
+	// If empty, defaults to the same namespace as the A2ATask.
+	// +kubebuilder:validation:Optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// A2ATaskPart represents content parts compatible with A2A protocol.
+// Parts can contain text, binary data, or file references.
 type A2ATaskPart struct {
+	// Kind specifies the type of content: "text", "file", or "data".
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=text;file;data
 	Kind string `json:"kind"`
+	// Text contains the actual text content when Kind is "text".
 	// +kubebuilder:validation:Optional
 	Text string `json:"text,omitempty"`
+	// Data contains base64-encoded binary content when Kind is "data".
 	// +kubebuilder:validation:Optional
 	Data string `json:"data,omitempty"`
+	// MimeType specifies the content type (e.g., "text/plain", "application/json").
 	// +kubebuilder:validation:Optional
 	MimeType string `json:"mimeType,omitempty"`
+	// URI references an external resource when Kind is "file".
 	// +kubebuilder:validation:Optional
 	URI string `json:"uri,omitempty"`
+	// Metadata contains additional key-value pairs for this part.
 	// +kubebuilder:validation:Optional
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-// A2ATaskArtifact represents artifacts from A2A protocol
+// A2ATaskArtifact represents artifacts produced during A2A task execution.
+// Artifacts contain structured content with one or more parts.
 type A2ATaskArtifact struct {
+	// ArtifactID uniquely identifies this artifact within the task.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	ArtifactID string `json:"artifactId"`
+	// Name is a human-readable name for the artifact.
 	// +kubebuilder:validation:Optional
 	Name string `json:"name,omitempty"`
+	// Description provides additional context about the artifact.
 	// +kubebuilder:validation:Optional
 	Description string `json:"description,omitempty"`
+	// Parts contains the content of the artifact as one or more parts.
 	// +kubebuilder:validation:Required
 	Parts []A2ATaskPart `json:"parts"`
+	// Metadata contains additional key-value pairs for this artifact.
 	// +kubebuilder:validation:Optional
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-// A2ATaskMessage represents messages from A2A protocol
+// A2ATaskMessage represents messages exchanged during A2A task execution.
+// Messages form the conversation history between user, agent, and system.
 type A2ATaskMessage struct {
+	// Role identifies the message sender: "user", "agent", or "system".
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=user;agent;system
 	Role string `json:"role"`
+	// Parts contains the message content as one or more parts.
 	// +kubebuilder:validation:Required
 	Parts []A2ATaskPart `json:"parts"`
+	// Metadata contains additional key-value pairs for this message.
 	// +kubebuilder:validation:Optional
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-// A2ATaskStatus represents task status from A2A protocol
-type A2ATaskTaskStatus struct {
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=submitted;working;input-required;completed;canceled;failed;rejected;auth-required;unknown
-	State string `json:"state"`
-	// +kubebuilder:validation:Optional
-	Message *A2ATaskMessage `json:"message,omitempty"`
-	// +kubebuilder:validation:Optional
-	Timestamp string `json:"timestamp,omitempty"`
-}
-
-// A2ATaskTask represents the full A2A task structure
-type A2ATaskTask struct {
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	ID string `json:"id"`
-	// +kubebuilder:validation:Optional
-	SessionID string `json:"sessionId,omitempty"`
-	// +kubebuilder:validation:Required
-	Status A2ATaskTaskStatus `json:"status"`
-	// +kubebuilder:validation:Optional
-	Artifacts []A2ATaskArtifact `json:"artifacts,omitempty"`
-	// +kubebuilder:validation:Optional
-	History []A2ATaskMessage `json:"history,omitempty"`
-	// +kubebuilder:validation:Optional
-	Metadata map[string]string `json:"metadata,omitempty"`
-}
-
+// A2ATaskSpec defines the desired state of an A2ATask.
+// Links the task to its originating query and captures task parameters.
 type A2ATaskSpec struct {
+	// QueryRef references the Query that created this A2A task.
 	// +kubebuilder:validation:Required
 	QueryRef QueryRef `json:"queryRef"`
+	// A2AServerRef references the A2AServer to poll for task status updates.
+	// +kubebuilder:validation:Required
+	A2AServerRef A2AServerRef `json:"a2aServerRef"`
+	// TaskID is the unique identifier from the A2A protocol.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	TaskID string `json:"taskId"`
+	// ContextID links this task to an A2A conversation context for stateful interactions.
 	// +kubebuilder:validation:Optional
 	ContextID string `json:"contextId,omitempty"`
+	// Input contains the user's input that initiated this task.
 	// +kubebuilder:validation:Optional
 	Input string `json:"input,omitempty"`
+	// Parameters contains additional key-value parameters for task execution.
 	// +kubebuilder:validation:Optional
 	Parameters map[string]string `json:"parameters,omitempty"`
+	// Priority determines task execution order (higher values execute first).
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=0
 	Priority int32 `json:"priority,omitempty"`
+	// Timeout specifies how long we will poll the A2A server for task completion before timing out.
+	// If the task has not reached a terminal state (completed, failed, cancelled) within this duration,
+	// it will be marked as failed.
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="5m"
+	// +kubebuilder:default="12h"
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
+	// TTL (time to live) specifies how long to keep this A2ATask resource in the system after completion.
+	// After this duration, the resource may be automatically deleted.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="720h"
+	TTL *metav1.Duration `json:"ttl,omitempty"`
+	// PollInterval specifies how frequently to check the A2A server for task status updates.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="5s"
+	PollInterval *metav1.Duration `json:"pollInterval,omitempty"`
 }
 
+// A2ATaskStatus defines the observed state of an A2ATask.
+// Combines Kubernetes lifecycle tracking with A2A protocol task data.
 type A2ATaskStatus struct {
+	// Phase indicates the current Kubernetes lifecycle stage of the task.
+	// Possible values: pending, assigned, running, completed, failed, cancelled.
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="pending"
 	// +kubebuilder:validation:Enum=pending;assigned;running;completed;failed;cancelled
 	Phase string `json:"phase,omitempty"`
+	// Conditions represent the latest available observations of the task's state.
+	// The Completed condition indicates whether the task is no longer running.
+	// +kubebuilder:validation:Optional
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	// AssignedAgent references the agent that executed or is executing this task.
 	// +kubebuilder:validation:Optional
 	AssignedAgent *AgentRef `json:"assignedAgent,omitempty"`
+	// StartTime records when task execution began.
 	// +kubebuilder:validation:Optional
 	StartTime *metav1.Time `json:"startTime,omitempty"`
+	// CompletionTime records when task execution finished (success or failure).
 	// +kubebuilder:validation:Optional
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+	// Error contains the error message if the task failed.
 	// +kubebuilder:validation:Optional
 	Error string `json:"error,omitempty"`
-	// +kubebuilder:validation:Optional
-	// Use A2A protocol types directly
-	Task *A2ATaskTask `json:"task,omitempty"`
+	// Progress indicates task completion percentage (0-100).
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=100
 	Progress int32 `json:"progress,omitempty"`
+
+	// A2A Protocol fields (flattened from protocol.Task)
+	// ProtocolState indicates the current state in the A2A protocol.
+	// Possible values: submitted, working, input-required, completed, canceled, failed, rejected, auth-required, unknown.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=submitted;working;input-required;completed;canceled;failed;rejected;auth-required;unknown
+	ProtocolState string `json:"protocolState,omitempty"`
+	// SessionID links this task to a specific A2A conversation session.
+	// +kubebuilder:validation:Optional
+	SessionID string `json:"sessionId,omitempty"`
+	// Artifacts contains outputs produced by the A2A task execution.
+	// +kubebuilder:validation:Optional
+	Artifacts []A2ATaskArtifact `json:"artifacts,omitempty"`
+	// History contains the complete conversation from the A2A protocol.
+	// +kubebuilder:validation:Optional
+	History []A2ATaskMessage `json:"history,omitempty"`
+	// ProtocolMetadata contains additional key-value pairs from the A2A protocol.
+	// +kubebuilder:validation:Optional
+	ProtocolMetadata map[string]string `json:"protocolMetadata,omitempty"`
+	// LastStatusMessage contains the most recent status message from the A2A protocol.
+	// +kubebuilder:validation:Optional
+	LastStatusMessage *A2ATaskMessage `json:"lastStatusMessage,omitempty"`
+	// LastStatusTimestamp records when the protocol status was last updated (RFC3339 format).
+	// +kubebuilder:validation:Optional
+	LastStatusTimestamp string `json:"lastStatusTimestamp,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -155,165 +227,4 @@ type A2ATaskList struct {
 
 func init() {
 	SchemeBuilder.Register(&A2ATask{}, &A2ATaskList{})
-}
-
-// Conversion functions between A2A protocol types and K8s-compatible types
-
-// ConvertPartFromProtocol converts a protocol.Part to A2ATaskPart
-func ConvertPartFromProtocol(part interface{}) A2ATaskPart {
-	switch p := part.(type) {
-	case *protocol.TextPart:
-		return A2ATaskPart{
-			Kind: "text",
-			Text: p.Text,
-		}
-	case *protocol.DataPart:
-		return A2ATaskPart{
-			Kind: "data",
-			Data: fmt.Sprintf("%v", p.Data),
-		}
-	case *protocol.FilePart:
-		taskPart := A2ATaskPart{
-			Kind: "file",
-		}
-		if fileWithURI, ok := p.File.(*protocol.FileWithURI); ok {
-			taskPart.URI = fileWithURI.URI
-			if fileWithURI.MimeType != nil {
-				taskPart.MimeType = *fileWithURI.MimeType
-			}
-		}
-		if fileWithBytes, ok := p.File.(*protocol.FileWithBytes); ok {
-			taskPart.Data = fileWithBytes.Bytes // base64 content
-			if fileWithBytes.MimeType != nil {
-				taskPart.MimeType = *fileWithBytes.MimeType
-			}
-		}
-		return taskPart
-	default:
-		return A2ATaskPart{
-			Kind: "text",
-			Text: "unknown part type",
-		}
-	}
-}
-
-// ConvertPartToProtocol converts A2ATaskPart to protocol.Part
-func ConvertPartToProtocol(part A2ATaskPart) protocol.Part {
-	switch part.Kind {
-	case "text":
-		return protocol.NewTextPart(part.Text)
-	case "data":
-		return protocol.NewDataPart(part.Data)
-	case "file":
-		if part.URI != "" {
-			return protocol.NewFilePartWithURI("", part.MimeType, part.URI)
-		}
-		return protocol.NewTextPart("file part without URI")
-	default:
-		return protocol.NewTextPart(part.Text)
-	}
-}
-
-func convertArtifactsFromProtocol(protocolArtifacts []protocol.Artifact) []A2ATaskArtifact {
-	artifacts := make([]A2ATaskArtifact, 0, len(protocolArtifacts))
-	for _, artifact := range protocolArtifacts {
-		var parts []A2ATaskPart
-		for _, part := range artifact.Parts {
-			parts = append(parts, ConvertPartFromProtocol(part))
-		}
-
-		metadata := convertMetadataToStringMap(artifact.Metadata)
-
-		if len(parts) > 0 {
-			taskArtifact := A2ATaskArtifact{
-				ArtifactID: artifact.ArtifactID,
-				Parts:      parts,
-				Metadata:   metadata,
-			}
-			if artifact.Name != nil {
-				taskArtifact.Name = *artifact.Name
-			}
-			if artifact.Description != nil {
-				taskArtifact.Description = *artifact.Description
-			}
-			artifacts = append(artifacts, taskArtifact)
-		}
-	}
-	return artifacts
-}
-
-func convertHistoryFromProtocol(protocolHistory []protocol.Message) []A2ATaskMessage {
-	history := make([]A2ATaskMessage, 0, len(protocolHistory))
-	for _, msg := range protocolHistory {
-		var msgParts []A2ATaskPart
-		for _, part := range msg.Parts {
-			msgParts = append(msgParts, ConvertPartFromProtocol(part))
-		}
-
-		msgMetadata := convertMetadataToStringMap(msg.Metadata)
-
-		if len(msgParts) > 0 {
-			historyMessage := A2ATaskMessage{
-				Role:     string(msg.Role),
-				Parts:    msgParts,
-				Metadata: msgMetadata,
-			}
-			history = append(history, historyMessage)
-		}
-	}
-	return history
-}
-
-func convertStatusMessageFromProtocol(statusMessage *protocol.Message) (*A2ATaskMessage, []A2ATaskPart) {
-	if statusMessage == nil {
-		return nil, nil
-	}
-
-	msgParts := make([]A2ATaskPart, 0, len(statusMessage.Parts))
-	for _, part := range statusMessage.Parts {
-		msgParts = append(msgParts, ConvertPartFromProtocol(part))
-	}
-
-	msgMetadata := convertMetadataToStringMap(statusMessage.Metadata)
-
-	message := &A2ATaskMessage{
-		Role:     string(statusMessage.Role),
-		Parts:    msgParts,
-		Metadata: msgMetadata,
-	}
-
-	return message, msgParts
-}
-
-func convertMetadataToStringMap(metadata map[string]any) map[string]string {
-	result := make(map[string]string)
-	for k, v := range metadata {
-		result[k] = fmt.Sprintf("%v", v)
-	}
-	return result
-}
-
-// ConvertTaskFromProtocol converts a protocol.Task to A2ATaskTask
-func ConvertTaskFromProtocol(task *protocol.Task) A2ATaskTask {
-	artifacts := convertArtifactsFromProtocol(task.Artifacts)
-	history := convertHistoryFromProtocol(task.History)
-	taskMetadata := convertMetadataToStringMap(task.Metadata)
-
-	message, msgParts := convertStatusMessageFromProtocol(task.Status.Message)
-	if len(msgParts) > 0 {
-		history = append(history, *message)
-	}
-
-	return A2ATaskTask{
-		ID:        task.ID,
-		SessionID: task.ContextID,
-		Status: A2ATaskTaskStatus{
-			State:     string(task.Status.State),
-			Message:   message,
-			Timestamp: task.Status.Timestamp,
-		},
-		Artifacts: artifacts,
-		History:   history,
-		Metadata:  taskMetadata,
-	}
 }

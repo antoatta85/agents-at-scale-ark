@@ -255,15 +255,6 @@ spec:
             type: object
           status:
             properties:
-              associatedTask:
-                description: AssociatedTask tracks the A2ATask created for this query
-                properties:
-                  taskId:
-                    description: TaskID from the A2A protocol
-                    type: string
-                required:
-                - taskId
-                type: object
               conditions:
                 description: Conditions represent the latest available observations
                   of a query's state
