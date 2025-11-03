@@ -60,23 +60,12 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	// Set start time for new tasks
-	if a2aTask.Status.Phase == genai.PhasePending && a2aTask.Status.StartTime == nil {
-		now := metav1.NewTime(time.Now())
-		a2aTask.Status.StartTime = &now
-		a2aTask.Status.Phase = genai.PhaseAssigned
+	// Fetch task status from A2A server for all non-terminal tasks
+	if err := r.fetchA2ATaskStatus(ctx, &a2aTask); err != nil {
+		log.Error(err, "failed to fetch A2A task status", "taskId", a2aTask.Spec.TaskID)
+		r.Recorder.Event(&a2aTask, "Warning", "TaskPollingFailed", fmt.Sprintf("Failed to fetch task status: %v", err))
 
-		r.Recorder.Event(&a2aTask, "Normal", "TaskStarted", "A2A task execution started")
-	}
-
-	// Fetch task status from A2A server if we have the required information
-	if a2aTask.Status.Phase == genai.PhaseAssigned || a2aTask.Status.Phase == genai.PhaseRunning {
-		if err := r.fetchA2ATaskStatus(ctx, &a2aTask); err != nil {
-			log.Error(err, "failed to fetch A2A task status", "taskId", a2aTask.Spec.TaskID)
-			r.Recorder.Event(&a2aTask, "Warning", "TaskPollingFailed", fmt.Sprintf("Failed to fetch task status: %v", err))
-
-			// Continue with requeue even on error to retry polling
-		}
+		// Continue with requeue even on error to retry polling
 	}
 
 	// Update status
@@ -115,8 +104,9 @@ func (r *A2ATaskReconciler) fetchA2ATaskStatus(ctx context.Context, a2aTask *ark
 		return err
 	}
 
+	oldPhase := a2aTask.Status.Phase
 	genai.UpdateA2ATaskStatus(&a2aTask.Status, task)
-	r.updateTaskPhase(a2aTask, task)
+	r.updateConditionsAndEvents(a2aTask, oldPhase)
 	return nil
 }
 
@@ -184,31 +174,30 @@ func (r *A2ATaskReconciler) queryTaskStatus(ctx context.Context, a2aClient *a2ac
 	return task, nil
 }
 
-func (r *A2ATaskReconciler) updateTaskPhase(a2aTask *arkv1alpha1.A2ATask, task *protocol.Task) {
-	newPhase := genai.ConvertA2AStateToPhase(string(task.Status.State))
-	if newPhase != a2aTask.Status.Phase {
-		a2aTask.Status.Phase = newPhase
+func (r *A2ATaskReconciler) updateConditionsAndEvents(a2aTask *arkv1alpha1.A2ATask, oldPhase string) {
+	newPhase := a2aTask.Status.Phase
+	if newPhase == oldPhase {
+		return
+	}
 
-		// Update Completed condition based on phase
-		switch newPhase {
-		case genai.PhasePending, genai.PhaseAssigned:
-			r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskPending", "Task is pending execution")
-		case genai.PhaseRunning:
-			r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskRunning", "Task is running")
-		case genai.PhaseCompleted:
-			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskSucceeded", "Task completed successfully")
-		case genai.PhaseFailed:
-			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskFailed", "Task failed")
-		case genai.PhaseCancelled:
-			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskCancelled", "Task was cancelled")
+	// Update Completed condition based on phase
+	switch newPhase {
+	case genai.PhasePending, genai.PhaseAssigned:
+		r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskPending", "Task is pending execution")
+	case genai.PhaseRunning:
+		r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskRunning", "Task is running")
+		if oldPhase == genai.PhasePending {
+			r.Recorder.Event(a2aTask, "Normal", "TaskStarted", "A2A task execution started")
 		}
-
-		if genai.IsTerminalPhase(newPhase) {
-			now := metav1.NewTime(time.Now())
-			a2aTask.Status.CompletionTime = &now
-			r.Recorder.Event(a2aTask, "Normal", "TaskCompleted",
-				fmt.Sprintf("A2A task completed with status: %s", newPhase))
-		}
+	case genai.PhaseCompleted:
+		r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskSucceeded", "Task completed successfully")
+		r.Recorder.Event(a2aTask, "Normal", "TaskCompleted", "A2A task completed successfully")
+	case genai.PhaseFailed:
+		r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskFailed", "Task failed")
+		r.Recorder.Event(a2aTask, "Normal", "TaskCompleted", "A2A task failed")
+	case genai.PhaseCancelled:
+		r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskCancelled", "Task was cancelled")
+		r.Recorder.Event(a2aTask, "Normal", "TaskCompleted", "A2A task was cancelled")
 	}
 }
 

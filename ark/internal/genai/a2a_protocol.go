@@ -4,7 +4,9 @@ package genai
 
 import (
 	"fmt"
+	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"trpc.group/trpc-go/trpc-a2a-go/protocol"
 )
@@ -224,11 +226,13 @@ func UpdateA2ATaskStatus(a2aTaskStatus *arkv1alpha1.A2ATaskStatus, task *protoco
 		return
 	}
 
+	oldPhase := a2aTaskStatus.Phase
 	newTaskData := arkv1alpha1.A2ATaskStatus{}
 	PopulateA2ATaskStatusFromProtocol(&newTaskData, task)
 
 	if len(a2aTaskStatus.History) == 0 && len(a2aTaskStatus.Artifacts) == 0 {
 		PopulateA2ATaskStatusFromProtocol(a2aTaskStatus, task)
+		setTaskTimestamps(a2aTaskStatus, oldPhase, task)
 		return
 	}
 
@@ -240,4 +244,37 @@ func UpdateA2ATaskStatus(a2aTaskStatus *arkv1alpha1.A2ATaskStatus, task *protoco
 	a2aTaskStatus.SessionID = newTaskData.SessionID
 	a2aTaskStatus.LastStatusMessage = newTaskData.LastStatusMessage
 	a2aTaskStatus.LastStatusTimestamp = newTaskData.LastStatusTimestamp
+
+	setTaskTimestamps(a2aTaskStatus, oldPhase, task)
+}
+
+func setTaskTimestamps(status *arkv1alpha1.A2ATaskStatus, oldPhase string, task *protocol.Task) {
+	newPhase := ConvertA2AStateToPhase(string(task.Status.State))
+	status.Phase = newPhase
+
+	// Set StartTime from protocol timestamp when task first starts execution
+	if oldPhase == PhasePending && status.StartTime == nil {
+		if timestamp := parseProtocolTimestamp(task.Status.Timestamp); timestamp != nil {
+			status.StartTime = timestamp
+		}
+	}
+
+	// Set CompletionTime from protocol timestamp when reaching terminal state
+	if !IsTerminalPhase(oldPhase) && IsTerminalPhase(newPhase) {
+		if timestamp := parseProtocolTimestamp(task.Status.Timestamp); timestamp != nil {
+			status.CompletionTime = timestamp
+		}
+	}
+}
+
+func parseProtocolTimestamp(rfc3339Timestamp string) *metav1.Time {
+	if rfc3339Timestamp == "" {
+		return nil
+	}
+	parsedTime, err := time.Parse(time.RFC3339, rfc3339Timestamp)
+	if err != nil {
+		return nil
+	}
+	timestamp := metav1.NewTime(parsedTime)
+	return &timestamp
 }
