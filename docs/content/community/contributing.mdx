@@ -1,0 +1,193 @@
+---
+title: Contributing to ARK
+description: How to contribute code, documentation, and improvements to ARK
+---
+
+# Contributing to ARK
+
+Thank you for your interest in contributing to ARK! We welcome contributions from the community.
+
+## How to Contribute
+
+There are many ways to contribute:
+
+- 🐛 **Report bugs**: Help us identify and fix issues
+- 💡 **Suggest features**: Share your ideas for improvements
+- 📝 **Improve documentation**: Help others learn and use ARK
+- 💻 **Write code**: Fix bugs, add features, improve performance
+- ✅ **Review PRs**: Help ensure quality contributions
+- 💬 **Answer questions**: Help others in discussions and issues
+
+## Getting Started
+
+### 1. Set Up Local Development
+
+Before contributing, set up your development environment:
+
+```bash
+# Clone the repository
+git clone https://github.com/mckinsey/agents-at-scale-ark.git
+cd agents-at-scale-ark
+
+# Follow the local development guide
+# See: /developer-guide/local-development
+```
+
+See [Local Development](/developer-guide/local-development) for detailed setup instructions.
+
+### 2. Find Something to Work On
+
+- **Good first issues**: Look for issues tagged `good-first-issue`
+- **Documentation**: Check issue #338 for documentation improvements
+- **Bugs**: Search for issues tagged `bug`
+- **Features**: Review issues tagged `enhancement`
+
+## Contribution Process
+
+### Reporting Bugs
+
+1. **Check existing issues**: Search for similar reports
+2. **Create detailed issue**:
+   - Clear title
+   - Steps to reproduce
+   - Expected vs actual behavior
+   - Environment details (ARK version, K8s version)
+   - Relevant logs
+
+### Suggesting Features
+
+1. **Check existing requests**: Search for similar ideas
+2. **Create feature request**:
+   - Clear description
+   - Use case / problem it solves
+   - Proposed solution
+   - Alternatives considered
+
+### Submitting Code Changes
+
+1. **Fork the repository**
+2. **Create a branch**: `git checkout -b feature/my-feature`
+3. **Make changes**: Write code, add tests, update docs
+4. **Test your changes**: Ensure all tests pass
+5. **Commit**: Use [conventional commits](https://www.conventionalcommits.org/)
+   ```
+   feat: add new feature
+   fix: resolve bug in X
+   docs: update documentation
+   ```
+6. **Push**: `git push origin feature/my-feature`
+7. **Create Pull Request**: Fill out the PR template
+
+### Pull Request Guidelines
+
+- **Clear title**: Describe what the PR does
+- **Description**: Explain why and how
+- **Link issues**: Reference related issues
+- **Tests**: Include tests for new features
+- **Documentation**: Update docs if needed
+- **Keep focused**: One logical change per PR
+
+## Code Style
+
+### Go Code
+- Follow `gofmt` formatting
+- Run `go vet` and `golangci-lint`
+- Follow existing code patterns
+
+### Python Code
+- Follow PEP 8
+- Use type hints where appropriate
+- Run linters and formatters
+
+### TypeScript/JavaScript
+- Follow project ESLint rules
+- Use TypeScript for new code
+- Match existing code style
+
+### Documentation
+- Use clear, concise language
+- Include examples where helpful
+- Link related content
+- Follow Diataxis principles (explanations, tutorials, how-to, reference)
+
+## Commit Message Format
+
+ARK uses [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types**:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+
+**Examples**:
+```
+feat(agents): add support for custom parameters
+fix(api): resolve timeout issue in queries
+docs(tutorials): add multi-agent team tutorial
+```
+
+## Testing
+
+- **Run existing tests**: `make test` (if available)
+- **Add tests**: Include tests for new features
+- **E2E tests**: Use Chainsaw for E2E testing (see [Testing Guide](/developer-guide/testing))
+
+## Documentation Contributions
+
+We especially welcome documentation improvements! See [Issue #338](https://github.com/mckinsey/agents-at-scale-ark/issues/338) for areas needing work.
+
+### Documentation Style
+
+- **Be clear and concise**: Write for your audience
+- **Include examples**: Show, don't just tell
+- **Link related content**: Connect concepts
+- **Use proper formatting**: Code blocks, lists, etc.
+
+### Documentation Types
+
+- **Explanations**: Conceptual understanding (why/when)
+- **Tutorials**: Step-by-step learning (how to learn)
+- **How-to Guides**: Problem-solving (how to accomplish)
+- **Reference**: Technical specifications (what/how)
+
+See the [Explanations section](/explanations) for examples of each type.
+
+## Code of Conduct
+
+Be respectful, inclusive, and constructive. We're all here to build something great together.
+
+## Getting Help
+
+If you need help contributing:
+
+- **Read docs**: Check [Developer Guide](/developer-guide)
+- **Ask questions**: Open a discussion or comment on an issue
+- **Join community**: See [Getting Help](./getting-help)
+
+## Recognition
+
+Contributors will be:
+- Listed in release notes (if significant contributions)
+- Recognized in [Contributors](/reference/contributors) page
+- Appreciated by the community!
+
+## Questions?
+
+- Open an issue for technical questions
+- Start a discussion for general questions
+- Check [FAQ](./faq) for common questions
+
+Thank you for contributing to ARK! 🎉
+

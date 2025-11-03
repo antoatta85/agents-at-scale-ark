@@ -1,0 +1,230 @@
+---
+title: Why Kubernetes for Agents?
+description: Understanding the benefits of Kubernetes-native agent architecture
+---
+
+# Why Kubernetes for Agents?
+
+Traditional agent frameworks treat agents as applications that you deploy manually or through custom infrastructure. Ark takes a different approach: agents are **first-class Kubernetes resources**, just like Deployments, Services, and ConfigMaps.
+
+## What Does "Kubernetes-Native" Mean?
+
+In Ark, agents, teams, and queries are defined as Custom Resource Definitions (CRDs):
+
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: my-agent
+spec:
+  prompt: "You are a helpful assistant"
+```
+
+This means they:
+- Are defined declaratively (like other K8s resources)
+- Benefit from Kubernetes lifecycle management
+- Integrate with K8s RBAC and policies
+- Use standard K8s tooling (kubectl, Helm, operators)
+
+## Key Benefits
+
+### 1. Familiar Operational Patterns
+
+If you know Kubernetes, you know how to operate Ark:
+
+```bash
+# List agents (like listing pods)
+kubectl get agents
+
+# Describe an agent (like describing pods)
+kubectl describe agent my-agent
+
+# Watch for changes
+kubectl get agents --watch
+
+# Apply configurations
+kubectl apply -f agent.yaml
+```
+
+No new tooling or patterns to learn.
+
+### 2. Built-in Reliability
+
+Kubernetes provides:
+
+- **Health Checks**: Liveness and readiness probes
+- **Auto-restart**: Failed agents restart automatically
+- **Rolling Updates**: Update agents without downtime
+- **Self-healing**: Cluster maintains desired state
+
+### 3. Resource Management
+
+Kubernetes resource quotas and limits apply to agents:
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+```
+
+Prevents resource exhaustion and enables fair sharing.
+
+### 4. Multi-Tenancy and Isolation
+
+Kubernetes namespaces provide:
+- **Logical Separation**: Different teams/tenants in different namespaces
+- **RBAC**: Fine-grained permissions per namespace
+- **Resource Quotas**: Limits per tenant
+- **Network Policies**: Network isolation if needed
+
+### 5. Standard Observability
+
+Use existing Kubernetes tools:
+- **kubectl logs**: View agent execution logs
+- **Events API**: Track agent lifecycle events
+- **Metrics**: Prometheus metrics for agents
+- **Tracing**: Distributed tracing support
+
+### 6. CI/CD Integration
+
+Standard K8s deployment patterns:
+- **GitOps**: Agents defined in Git, applied via ArgoCD/Flux
+- **Helm Charts**: Package and version agent configurations
+- **Operators**: Automate agent management
+- **Validation**: K8s admission controllers ensure correctness
+
+### 7. Scalability
+
+Kubernetes scaling applies to agents:
+- **Horizontal Scaling**: Multiple agent instances for high load
+- **Auto-scaling**: HPA scales based on query volume
+- **Load Balancing**: Native K8s service load balancing
+
+## Why CRDs Instead of APIs?
+
+Other frameworks use REST APIs to manage agents. Ark uses CRDs:
+
+| Approach | Benefits |
+|----------|----------|
+| **CRDs** | Declarative, versioned, auditable, GitOps-friendly |
+| **REST APIs** | Imperative, stateful, harder to version, API-specific |
+
+### Declarative Configuration
+
+```yaml
+# Define desired state
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: support-agent
+spec:
+  prompt: "Help customers with questions"
+# Kubernetes makes it so
+```
+
+vs
+
+```bash
+# Imperative commands
+curl -X POST /api/agents -d '{"name": "support-agent", ...}'
+curl -X PUT /api/agents/support-agent -d '{...}'
+curl -X PATCH /api/agents/support-agent -d '{...}'
+```
+
+### Version Control
+
+Agent configurations are versioned with your code:
+
+```bash
+git commit -m "Update support agent prompt"
+git push
+# GitOps applies changes automatically
+```
+
+### Auditability
+
+K8s audit logs track all changes:
+
+```bash
+kubectl get events --field-selector involvedObject.kind=Agent
+```
+
+## Comparison with Alternatives
+
+### LangChain / AutoGen
+- ❌ Custom deployment and scaling logic required
+- ❌ Manual infrastructure management
+- ✅ Simple for prototyping
+- ❌ Harder for production
+
+### Ark
+- ✅ Standard K8s deployment
+- ✅ Built-in scaling and reliability
+- ✅ Production-ready from day one
+- ✅ Leverages existing K8s expertise
+
+## Real-World Example
+
+Imagine deploying a customer support agent:
+
+**Without Kubernetes**:
+1. Provision VM or container
+2. Install Python and dependencies
+3. Configure reverse proxy
+4. Set up monitoring
+5. Configure auto-scaling
+6. Set up logging
+7. Configure backups
+8. ... (many more steps)
+
+**With Ark (Kubernetes-Native)**:
+1. Define agent YAML
+2. `kubectl apply -f agent.yaml`
+3. Done! ✅
+
+All the infrastructure concerns are handled by Kubernetes.
+
+## When Kubernetes Makes Sense
+
+✅ **You're already using Kubernetes**: Natural fit  
+✅ **Production deployments**: Need reliability and scaling  
+✅ **Multi-tenant systems**: Need isolation  
+✅ **Enterprise requirements**: RBAC, auditing, compliance  
+✅ **GitOps workflows**: Infrastructure as code  
+
+## When Alternatives Might Be Better
+
+- ❌ Simple prototypes: Kubernetes overhead not worth it
+- ❌ No K8s expertise: Learning curve may be steep
+- ❌ Single-use cases: Custom deployment might be simpler
+
+## Core Resource Model
+
+Ark defines these as Kubernetes resources:
+
+- **Model**: LLM configuration (like ConfigMap)
+- **Agent**: AI agent definition
+- **Team**: Multi-agent orchestration
+- **Query**: Execution request
+- **Tool**: External capability
+- **MCPServer**: Tool provider
+- **Memory**: Persistent storage
+- **Evaluator**: Quality assessment
+
+Each follows Kubernetes patterns:
+- Declarative spec
+- Status tracking
+- Lifecycle management
+- Event emission
+
+## Next Steps
+
+- Learn about [Core Resource Model](./core-resource-model)
+- Read [Why Ark Exists](./why-ark-exists) for problem statement
+- Explore [Event-Driven Architecture](./event-driven-architecture)
+- See [Creating Agents](/user-guide/agents) for practical examples
+

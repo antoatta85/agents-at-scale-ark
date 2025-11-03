@@ -1,0 +1,192 @@
+---
+title: Your First Agent
+description: A 10-minute tutorial to create your first AI agent in ARK
+sidebar_position: 1
+---
+
+# Your First Agent
+
+In this tutorial, you'll create your first AI agent in ARK. By the end, you'll have a working agent that can answer questions and perform tasks.
+
+**Time**: ~10 minutes  
+**Prerequisites**: ARK installed, a Kubernetes cluster, and a configured model
+
+## What You'll Build
+
+A simple but capable agent that can:
+- Answer questions conversationally
+- Explain concepts clearly
+- Perform calculations
+- Remember context during a conversation
+
+## Step 1: Verify Your Setup
+
+First, ensure ARK is running and you have a model configured:
+
+```bash
+# Check ARK status
+ark status
+
+# List available models
+ark models list
+
+# If no models exist, create one
+ark models create default
+```
+
+## Step 2: Create a Secret (If Needed)
+
+If your model requires an API key, create a Kubernetes secret:
+
+```bash
+kubectl create secret generic default-model-secret \
+  --from-literal=api-key='YOUR_API_KEY'
+```
+
+## Step 3: Define Your Agent
+
+Create a file named `my-first-agent.yaml`:
+
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: first-agent
+  namespace: default
+spec:
+  prompt: |
+    You are a friendly and helpful assistant. You explain concepts clearly,
+    answer questions thoroughly, and maintain a conversational tone.
+    Always be concise but complete in your responses.
+  modelRef:
+    name: default
+```
+
+Key components:
+- **name**: Unique identifier for your agent
+- **prompt**: Instructions that define the agent's behavior
+- **modelRef**: Which model to use (references a Model resource)
+
+## Step 4: Deploy Your Agent
+
+Apply the configuration to your cluster:
+
+```bash
+kubectl apply -f my-first-agent.yaml
+```
+
+Verify the agent was created:
+
+```bash
+kubectl get agents
+kubectl describe agent first-agent
+```
+
+You should see the agent in a ready state.
+
+## Step 5: Query Your Agent
+
+Use the ARK CLI to interact with your agent:
+
+```bash
+# Simple query
+ark query agent/first-agent "What is machine learning?"
+
+# Follow-up question (agent remembers context)
+ark query agent/first-agent "Can you explain that more simply?"
+```
+
+Or use kubectl to create a Query resource:
+
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: my-first-query
+spec:
+  input: "Explain how neural networks work in simple terms"
+  targets:
+    - type: agent
+      name: first-agent
+```
+
+Apply and check the result:
+
+```bash
+kubectl apply -f query.yaml
+kubectl get query my-first-query
+kubectl get query my-first-query -o yaml  # See full response
+```
+
+## Step 6: Improve Your Agent
+
+Let's enhance the agent with a better prompt:
+
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: first-agent
+spec:
+  prompt: |
+    You are an expert educator with a gift for making complex topics
+    accessible. Your goal is to help people learn by:
+    
+    1. Breaking down complex concepts into digestible parts
+    2. Using analogies and examples
+    3. Checking for understanding
+    4. Adapting your explanation to the user's level
+    
+    Be friendly, patient, and encouraging. If something is unclear,
+    ask clarifying questions.
+  modelRef:
+    name: default
+```
+
+Update the agent:
+
+```bash
+kubectl apply -f my-first-agent.yaml
+```
+
+## Understanding What Happened
+
+When you created the agent, ARK:
+
+1. **Validated** the configuration
+2. **Registered** it as a Kubernetes resource
+3. **Made it available** for queries
+4. **Tracked its status** and health
+
+When you queried the agent:
+
+1. ARK **received** your query
+2. **Retrieved** the agent configuration
+3. **Loaded** the model and prompt
+4. **Executed** the LLM reasoning
+5. **Returned** the response
+6. **Stored** the result in the Query resource
+
+## Next Steps
+
+Congratulations! You've created your first agent. Now explore:
+
+- **Add Tools**: [Creating Tools and MCP Servers](/user-guide/tools) - Give your agent capabilities
+- **Build Teams**: [Build a Multi-Agent Team](./multi-agent-team) - Coordinate multiple agents
+- **Use Memory**: [Memory and State](/explanations/concepts/memory-and-state) - Persistent conversations
+- **Monitor Performance**: Check agent metrics and logs in the dashboard
+
+## Common Issues
+
+**Agent not found**: Verify the agent was created with `kubectl get agents`
+
+**Model errors**: Ensure your model is configured and available with `ark models list`
+
+**No response**: Check the Query resource status with `kubectl describe query <name>`
+
+## Related Topics
+
+- [What Are Agents?](/explanations/concepts/what-are-agents) - Understand agent concepts
+- [Creating and Managing Agents](/user-guide/agents) - Detailed guide
+- [Agent Reference](/reference/resources/agent) - Complete specification
+

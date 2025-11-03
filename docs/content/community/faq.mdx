@@ -1,0 +1,241 @@
+---
+title: Frequently Asked Questions
+description: Common questions about ARK and agentic systems
+---
+
+# Frequently Asked Questions
+
+## General Questions
+
+### What is ARK?
+
+ARK (Agentic Runtime for Kubernetes) is a Kubernetes-native platform for building, deploying, and operating AI agents at scale. It provides custom resources, APIs, and tooling to manage agents as first-class Kubernetes citizens.
+
+### What are流失 agents?
+
+Agents are autonomous AI systems that can reason, plan, and act to accomplish goals. In ARK, agents combine large language models with prompts, tools, and memory to perform tasks.
+
+### Do I need Kubernetes to use ARK?
+
+Yes, ARK requires a Kubernetes cluster. It can be local (Minikube, Kind, Docker Desktop) or cloud-based (EKS, GKE, AKS).
+
+### Is ARK production-ready?
+
+ARK is in **technical preview**. While it includes production patterns, it's rapidly evolving. See the [Disclaimer](/disclaimer) for important information about using ARK.
+
+## Getting Started
+
+### How do I install ARK?
+
+See the [Quickstart](/quickstart) guide. Basic installation:
+
+```bash
+npm install -g @agents-at-scale/ark
+ark install
+```
+
+### What prerequisites do I need?
+
+- Kubernetes cluster (local or cloud)
+- kubectl configured
+- Helm installed
+- Node.js (for CLI)
+
+### How do I configure a model?
+
+```bash
+ark models create default
+```
+
+Or create a Model resource manually. See [Creating and Managing Models](/user-guide/models).
+
+## Agents
+
+### What's the difference between an agent and a team?
+
+- **Agent**: Single AI system handling a task
+- **Team**: Multiple agents working together with coordination
+
+See [Agents vs Teams](/explanations/concepts/agents-vs-teams) for details.
+
+### How do I update an agent's prompt?
+
+Update the agent YAML and apply:
+
+```bash
+kubectl apply -f agent.yaml
+```
+
+ARK will update the agent without downtime.
+
+### Can agents remember previous conversations?
+
+Yes, using Memory resources. See [Memory and State](/explanations/concepts/memory-and-state).
+
+### How do I debug an agent that's not working?
+
+1. Check agent status: `kubectl describe agent <name>`
+2. View query results: `kubectl get queries`
+3. Check logs: `kubectl logs -l app=ark-controller`
+4. See [Troubleshooting](./troubleshooting) for common issues
+
+## Teams
+
+### When should I use a team instead of an agent?
+
+Use teams when you need:
+- Multiple specialized agents
+- Coordination between steps
+- Quality assurance/review
+- Parallel processing
+
+See [Agents vs Teams](/explanations/concepts/agents-vs-teams) for decision guidance.
+
+### What team strategies are available?
+
+- **Sequential**: Agents work one after another
+- **Round-Robin**: Agents take turns
+- **Graph**: Complex workflows with dependencies
+- **Selector**: AI-powered agent selection
+
+See [Team Strategies](/user-guide/samples/teams/team-strategies).
+
+## Tools and MCP
+
+### What is MCP?
+
+Model Context Protocol (MCP) is a standardized way for agents to access external tools and capabilities. ARK uses MCP servers to provide tools to agents.
+
+### How do I add custom tools?
+
+1. Create or deploy an MCP server
+2. Register it as an MCPServer resource
+3. Reference tools in your agent configuration
+
+See [Creating Tools and MCP Servers](/user-guide/tools).
+
+### Can I use my own MCP server?
+
+Yes! ARK supports any MCP-compliant server. See [MCP Integration](/explanations/mcp-integration).
+
+## Deployment and Operations
+
+### How do I deploy ARK to production?
+
+See [Deploying ARK](/operations-guide/deploying-ark) for production deployment guide.
+
+### How do I monitor agents?
+
+- Dashboard: `ark dashboard`
+- kubectl: `kubectl get agents,queries`
+- Events: `kubectl get events`
+- Observability: See [Observability](/developer-guide/observability)
+
+### How do I scale agents?
+
+ARK agents are Kubernetes resources. Use standard K8s scaling:
+- Horizontal Pod Autoscaler (HPA)
+- ReplicaSets for multiple instances
+- Resource quotas for limits
+
+### How do I backup agent configurations?
+
+Agent configurations are Kubernetes resources. Backup with:
+```bash
+kubectl get agents -o yaml > agents-backup.yaml
+```
+
+Or use GitOps to version control configurations.
+
+## Development
+
+### How do I contribute to ARK?
+
+See [Contributing](./contributing) guide. ARK welcomes contributions!
+
+### Can I extend ARK?
+
+Yes! ARK is designed for extensibility:
+- Custom execution engines
+- Custom tools via MCP
+- Custom resources (advanced)
+
+See [Developer Guide](/developer-guide).
+
+### How do I set up local development?
+
+See [Local Development](/developer-guide/local-development).
+
+## Cost and Performance
+
+### How much do agents cost to run?
+
+Cost depends on:
+- Model provider (OpenAI, Azure, etc.)
+- Number of queries
+- Token usage per query
+- Team complexity (multiple agents = multiple LLM calls)
+
+Monitor costs via your model provider dashboard.
+
+### How do I optimize agent performance?
+
+- Use appropriate models (smaller for simple tasks)
+- Optimize prompts (smaller prompts = fewer tokens)
+- Cache responses when possible
+- Use teams efficiently (avoid unnecessary agents)
+- Monitor token usage per query
+
+### Can I limit agent resource usage?
+
+Yes, via Kubernetes resource limits:
+
+```yaml
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+```
+
+## Comparison with Alternatives
+
+### How is ARK different from LangChain?
+
+- **ARK**: Kubernetes-native, production-focused, multi-agent
+- **LangChain**: Framework for building LLM apps, more flexible, less opinionated
+
+See [Kubernetes-Native Design](/explanations/architecture/kubernetes-native-design) for benefits.
+
+### Should I use ARK or AutoGen?
+
+- **ARK**: Production deployment, Kubernetes integration, enterprise features
+- **AutoGen**: Research, prototyping, simpler setup
+
+Choose ARK for production; AutoGen for rapid prototyping.
+
+## Troubleshooting
+
+### Agent queries are failing
+
+1. Check model availability: `ark models list`
+2. Verify agent status: `kubectl describe agent <name>`
+3. Check query status: `kubectl describe query <name>`
+4. Review logs: `kubectl logs -l app=ark-controller`
+
+### Cannot connect to Kubernetes
+
+1. Verify kubeconfig: `kubectl cluster-info`
+2. Check namespace: `kubectl get ns`
+3. Verify ARK installation: `ark status`
+
+### Models not working
+
+1. Check API keys in secrets: `kubectl get secrets`
+2. Verify model configuration: `kubectl describe model <name>`
+3. Test model directly: `ark models query default "test"`
+
+For more help, see [Troubleshooting](./troubleshooting) or [Getting Help](./getting-help).
+

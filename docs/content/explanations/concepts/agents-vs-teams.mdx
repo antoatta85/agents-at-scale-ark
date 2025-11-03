@@ -1,0 +1,189 @@
+---
+title: Agents vs Teams - When to Use Which?
+description: Understanding when to use a single agent versus a team of agents
+---
+
+# Agents vs Teams - When to Use Which?
+
+Understanding when to use a single agent versus orchestrating multiple agents in a team is crucial for building effective agentic systems.
+
+## Single Agent: When One Is Enough
+
+Use a **single agent** when your task is:
+
+### ✅ Well-Defined and Focused
+- Clear scope and objectives
+- Straightforward workflow
+- Limited decision points
+
+**Example**: A customer support agent that answers questions about your product. It has access to documentation and can handle most inquiries directly.
+
+### ✅ Single Expertise Required
+- One domain of knowledge
+- Consistent reasoning approach
+- No need for specialization
+
+**Example**: A code review agent that analyzes pull requests for security issues. It applies consistent security rules to all code.
+
+### ✅ Sequential Processing Works
+- Tasks can be completed in order
+- No parallel work needed
+- Simple input → output flow
+
+**Example**: A data analysis agent that receives a dataset, analyzes it, and generates a report.
+
+## Teams: When Multiple Agents Excel
+
+Use a **team of agents** when your task requires:
+
+### ✅ Diverse Expertise
+- Multiple specialized skills
+- Different problem-solving approaches
+- Complementary knowledge domains
+
+**Example**: A research team with a researcher (gathers information), analyst (processes data), and writer (creates report).
+
+### ✅ Complex Coordination
+- Tasks need coordination between steps
+- Work must be validated or reviewed
+- Information must flow between specialists
+
+**Example**: A software development team: architect (designs), developer (implements), tester (validates), reviewer (approves).
+
+### ✅ Parallel Processing
+- Multiple tasks can run simultaneously
+- Independent workstreams
+- Faster completion through parallelism
+
+**Example**: A content generation team where different agents create different sections of a document simultaneously.
+
+### ✅ Quality Assurance
+- Requiring oversight and review
+- Multiple perspectives needed
+- Error checking and validation
+
+**Example**: A legal document review team where one agent drafts and another reviews for compliance.
+
+## Decision Framework
+
+Ask these questions:
+
+1. **Can one agent handle this?** → Use a single agent
+2. **Does it need multiple perspectives?** → Consider a team
+3. **Are there distinct, specialized steps?** → Team with specialized agents
+4. **Must tasks run in parallel?** → Team for efficiency
+5. **Is quality/correctness critical?** → Team with reviewer/validator agent
+
+## Team Strategies in ARK
+
+ARK provides several team coordination patterns:
+
+### Sequential Strategy
+Agents work one after another, passing outputs as inputs.
+
+```
+Input → Agent 1 → Agent 2 → Agent 3 → Output
+```
+
+**Use when**: Work must happen in a specific order, each step depends on the previous.
+
+### Round-Robin Strategy
+Agents take turns processing tasks.
+
+```
+Task 1 → Agent A
+Task 2 → Agent B  
+Task 3 → Agent A
+Task 4 → Agent B
+```
+
+**Use when**: Load balancing, equal distribution, similar capabilities.
+
+### Graph Strategy
+Complex workflow with conditional routing and dependencies.
+
+```
+           → Agent B →
+Input → Agent A        → Agent D → Output
+           → Agent C →
+```
+
+**Use when**: Complex workflows, conditional logic, multiple paths.
+
+### Selector Strategy
+AI-powered agent selection based on task characteristics.
+
+```
+Input → [Selector Agent] → Chooses best agent → Output
+```
+
+**Use when**: Dynamic routing, optimal agent selection, context-aware.
+
+## Practical Examples
+
+### Example 1: Single Agent
+**Task**: Answer customer questions about order status
+
+```yaml
+# Single agent is sufficient
+kind: Agent
+metadata:
+  name: order-support
+spec:
+  prompt: |
+    You help customers check order status. Access the order database
+    and provide clear, helpful responses.
+```
+
+### Example 2: Team Required
+**Task**: Create a comprehensive market research report
+
+```yaml
+# Team with specialized agents
+kind: Team
+metadata:
+  name: research-team
+spec:
+  strategy: sequential
+  members:
+    - name: researcher    # Gathers market data
+    - name: analyst       # Analyzes trends
+    - name: writer        # Creates report
+```
+
+## Performance Considerations
+
+**Single Agent**:
+- ⚡ Lower latency (no coordination overhead)
+- 💰 Lower cost (one LLM call)
+- 🎯 Faster for simple tasks
+
+**Team**:
+- ⚡ Higher latency (coordination overhead)
+- 💰 Higher cost (multiple LLM calls)
+- 🎯 Better quality for complex tasks
+- ⚡ Can be faster with parallel strategies
+
+## Migration Path
+
+Start simple, then evolve:
+
+1. **Start with single agent** for prototyping
+2. **Identify bottlenecks** or quality issues
+3. **Add specialization** where needed
+4. **Form a team** when complexity increases
+
+## Best Practices
+
+1. **Begin simple**: Start with one agent, add complexity as needed
+2. **Specialize agents**: Each agent should have a clear role
+3. **Define interfaces**: Clearly specify how agents communicate
+4. **Monitor coordination**: Track team performance and bottlenecks
+5. **Optimize strategy**: Choose the right coordination pattern
+
+## Related Topics
+
+- Learn about [Team Patterns](../team-patterns) for coordination strategies
+- Read [Creating Teams](/user-guide/teams) for practical implementation
+- Explore [Team Strategies](/user-guide/samples/teams/team-strategies) for examples
+

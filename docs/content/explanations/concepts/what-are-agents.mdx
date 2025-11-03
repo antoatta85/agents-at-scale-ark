@@ -1,0 +1,102 @@
+---
+title: What Are Agents?
+description: Understanding autonomous AI agents and their role in agentic systems
+---
+
+# What Are Agents?
+
+An **agent** in ARK is an autonomous AI system that can reason, plan, and act to accomplish goals. Agents combine large language models (LLMs) with prompts, tools, and context to perform tasks.
+
+## Core Concepts
+
+### Autonomous Decision Making
+
+Unlike Franz simple prompt templates, agents can:
+- **Reason**: Analyze situations and determine what needs to be done
+- **Plan**: Break down complex tasks into steps
+- **Act**: Execute actions using tools and APIs
+- **Adapt**: Adjust behavior based on feedback and results
+
+### Agent Components
+
+An agent in ARK consists of:
+
+1. **Prompt**: Instructions that define the agent's role, behavior, and capabilities
+2. **Model**: The LLM that powers the agent's reasoning (e.g., GPT-4, Claude)
+3. **Tools**: Functions the agent can call to interact with the world
+4. **Memory**: Persistent storage for conversations and context
+5. **Configuration**: Parameters like temperature, max tokens, and retry policies
+
+### How Agents Work
+
+```
+User Query → Agent Receives Input → LLM Reasons → Agent Decides Action → Tool Execution → Response → Memory Update
+```
+
+1. **Receive Input**: Agent gets a query or task from a user or another agent
+2. **Reason**: The LLM processes the input using the agent's prompt and context
+3. **Decide**: Agent determines what action to take (respond, call tool, ask for clarification)
+4. **Execute**: If needed, agent calls tools to gather information or perform actions
+5. **Respond**: Agent provides a result based on reasoning and tool outputs
+6. **Remember**: Important information is stored in memory for future interactions
+
+## Agents vs Traditional Systems
+
+| Traditional System | Agent |
+|-------------------|-------|
+| Fixed workflow | Adaptive reasoning |
+| Predefined logic | Dynamic decision-making |
+| Limited context | Rich, persistent memory |
+| Single execution path | Multiple strategies |
+| Manual error handling | Self-correcting |
+
+## Why Use Agents?
+
+Agents excel at tasks that require:
+- **Complex Reasoning**: Situations where multiple steps and decisions are needed
+- **Uncertainty Handling**: When inputs are ambiguous or incomplete
+- **Tool Integration**: Combining AI reasoning with external APIs and services
+- **Natural Interaction**: Conversational interfaces that feel natural
+- **Learning from Context**: Improving responses based on conversation history
+
+## Agent Lifecycle in ARK
+
+In ARK, agents are Kubernetes resources that follow a standard lifecycle:
+
+1. **Creation**: Define agent with YAML or via dashboard
+2. **Deployment**: ARK controller ensures agent is ready
+3. **Execution**: Agent processes queries when invoked
+4. **Monitoring**: Track performance, costs, and errors
+5. **Updates**: Modify prompts or configuration without downtime
+6. **Scaling**: Handle concurrent queries and load balancing
+
+## Example: Simple Agent
+
+Here's what a basic agent looks like:
+
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: math-assistant
+spec:
+  prompt: |
+    You are a helpful math tutor. Explain mathematical concepts
+    clearly and show step-by-step solutions. Always verify your work.
+  modelRef:
+    name: default
+```
+
+This agent:
+- Has a clear role (math tutor)
+- Uses the default model
+- Can be queried with math questions
+- Will reason through problems step-by-step
+
+## Next Steps
+
+- Learn about [Agents vs Teams](./agents-vs-teams) to understand when to use each
+- Explore [Memory and State](./memory-and-state) for persistent conversations
+- See [Creating Agents](/user-guide/agents) for practical examples
+- Read about [Tools and Capabilities](./tools-and-capabilities) to extend agent abilities
+
