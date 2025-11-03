@@ -307,6 +307,10 @@ spec:
                     A2ATaskMessage represents messages exchanged during A2A task execution.
                     Messages form the conversation history between user, agent, and system.
                   properties:
+                    messageId:
+                      description: MessageID is the unique identifier for this message
+                        from the A2A protocol.
+                      type: string
                     metadata:
                       additionalProperties:
                         type: string
@@ -372,6 +376,10 @@ spec:
                 description: LastStatusMessage contains the most recent status message
                   from the A2A protocol.
                 properties:
+                  messageId:
+                    description: MessageID is the unique identifier for this message
+                      from the A2A protocol.
+                    type: string
                   metadata:
                     additionalProperties:
                       type: string

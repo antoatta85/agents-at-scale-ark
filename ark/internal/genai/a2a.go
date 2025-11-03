@@ -427,7 +427,7 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 			},
 		},
 		Status: arkv1alpha1.A2ATaskStatus{
-			Phase: convertProtocolStateToPhase(string(task.Status.State)),
+			Phase: ConvertA2AStateToPhase(string(task.Status.State)),
 			AssignedAgent: &arkv1alpha1.AgentRef{
 				Name:      agentName,
 				Namespace: namespace,
@@ -456,30 +456,4 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 	}
 
 	return nil
-}
-
-const (
-	protocolStateFailed = "failed"
-)
-
-// convertProtocolStateToPhase converts A2A protocol task states to K8s A2ATask phases
-func convertProtocolStateToPhase(state string) string {
-	switch state {
-	case "submitted":
-		return "assigned"
-	case "working":
-		return "running"
-	case "completed":
-		return "completed"
-	case protocolStateFailed:
-		return protocolStateFailed
-	case "canceled", "cancelled":
-		return "cancelled"
-	case "rejected":
-		return protocolStateFailed
-	case "input-required", "auth-required":
-		return "running" // Keep running until resolved
-	default:
-		return "pending"
-	}
 }

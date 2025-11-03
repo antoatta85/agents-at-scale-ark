@@ -4,10 +4,8 @@ package controller
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
-	"slices"
-	"strings"
+	"net/http"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -23,13 +21,6 @@ import (
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
 	"mckinsey.com/ark/internal/genai"
-)
-
-const (
-	statusAssigned  = "assigned"
-	statusCompleted = "completed"
-	statusFailed    = "failed"
-	statusCancelled = "cancelled"
 )
 
 type A2ATaskReconciler struct {
@@ -55,7 +46,7 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Initialize phase if not set
 	if a2aTask.Status.Phase == "" {
-		a2aTask.Status.Phase = statusPending
+		a2aTask.Status.Phase = genai.PhasePending
 	}
 
 	// Initialize Completed condition if not set
@@ -65,24 +56,24 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// Handle terminal states
-	if isTerminalPhase(a2aTask.Status.Phase) {
+	if genai.IsTerminalPhase(a2aTask.Status.Phase) {
 		return ctrl.Result{}, nil
 	}
 
 	// Set start time for new tasks
-	if a2aTask.Status.Phase == statusPending && a2aTask.Status.StartTime == nil {
+	if a2aTask.Status.Phase == genai.PhasePending && a2aTask.Status.StartTime == nil {
 		now := metav1.NewTime(time.Now())
 		a2aTask.Status.StartTime = &now
-		a2aTask.Status.Phase = statusAssigned
+		a2aTask.Status.Phase = genai.PhaseAssigned
 
 		r.Recorder.Event(&a2aTask, "Normal", "TaskStarted", "A2A task execution started")
 	}
 
-	// Poll task status from A2A server if we have the required information
-	if a2aTask.Status.Phase == statusAssigned || a2aTask.Status.Phase == statusRunning {
-		if err := r.pollA2ATaskStatus(ctx, &a2aTask); err != nil {
-			log.Error(err, "failed to poll A2A task status", "taskId", a2aTask.Spec.TaskID)
-			r.Recorder.Event(&a2aTask, "Warning", "TaskPollingFailed", fmt.Sprintf("Failed to poll task status: %v", err))
+	// Fetch task status from A2A server if we have the required information
+	if a2aTask.Status.Phase == genai.PhaseAssigned || a2aTask.Status.Phase == genai.PhaseRunning {
+		if err := r.fetchA2ATaskStatus(ctx, &a2aTask); err != nil {
+			log.Error(err, "failed to fetch A2A task status", "taskId", a2aTask.Spec.TaskID)
+			r.Recorder.Event(&a2aTask, "Warning", "TaskPollingFailed", fmt.Sprintf("Failed to fetch task status: %v", err))
 
 			// Continue with requeue even on error to retry polling
 		}
@@ -95,7 +86,7 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// Requeue for non-terminal tasks using the configured poll interval
-	if !isTerminalPhase(a2aTask.Status.Phase) {
+	if !genai.IsTerminalPhase(a2aTask.Status.Phase) {
 		pollInterval := time.Second * 5 // default fallback
 		if a2aTask.Spec.PollInterval != nil {
 			pollInterval = a2aTask.Spec.PollInterval.Duration
@@ -112,14 +103,8 @@ func (r *A2ATaskReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// isTerminalPhase returns true if the task phase represents a terminal state
-func isTerminalPhase(phase string) bool {
-	terminalPhases := []string{statusCompleted, statusFailed, statusCancelled}
-	return slices.Contains(terminalPhases, phase)
-}
-
-// pollA2ATaskStatus queries the A2A server for the current task status and updates the A2ATask
-func (r *A2ATaskReconciler) pollA2ATaskStatus(ctx context.Context, a2aTask *arkv1alpha1.A2ATask) error {
+// fetchA2ATaskStatus queries the A2A server for the current task status and updates the A2ATask
+func (r *A2ATaskReconciler) fetchA2ATaskStatus(ctx context.Context, a2aTask *arkv1alpha1.A2ATask) error {
 	a2aClient, err := r.createA2AClient(ctx, a2aTask)
 	if err != nil {
 		return err
@@ -130,7 +115,9 @@ func (r *A2ATaskReconciler) pollA2ATaskStatus(ctx context.Context, a2aTask *arkv
 		return err
 	}
 
-	return r.updateTaskStatus(a2aTask, task)
+	genai.UpdateA2ATaskStatus(&a2aTask.Status, task)
+	r.updateTaskPhase(a2aTask, task)
+	return nil
 }
 
 // createA2AClient creates an A2A client for the task
@@ -161,11 +148,26 @@ func (r *A2ATaskReconciler) createA2AClient(ctx context.Context, a2aTask *arkv1a
 			}
 			resolvedHeaders[header.Name] = headerValue
 		}
-		// TODO: implement header handling for client
-		_ = resolvedHeaders
+
+		httpClient := &http.Client{Timeout: 30 * time.Second}
+		clientOptions = append(clientOptions, a2aclient.WithHTTPClient(httpClient))
+		clientOptions = append(clientOptions, a2aclient.WithHTTPReqHandler(&a2aTaskRequestHandler{
+			headers: resolvedHeaders,
+		}))
 	}
 
 	return a2aclient.NewA2AClient(a2aServerAddress, clientOptions...)
+}
+
+type a2aTaskRequestHandler struct {
+	headers map[string]string
+}
+
+func (h *a2aTaskRequestHandler) Handle(ctx context.Context, httpClient *http.Client, req *http.Request) (*http.Response, error) {
+	for name, value := range h.headers {
+		req.Header.Set(name, value)
+	}
+	return httpClient.Do(req)
 }
 
 // queryTaskStatus queries the A2A server for task status
@@ -182,148 +184,32 @@ func (r *A2ATaskReconciler) queryTaskStatus(ctx context.Context, a2aClient *a2ac
 	return task, nil
 }
 
-func (r *A2ATaskReconciler) mergeArtifacts(existingStatus, newStatus *arkv1alpha1.A2ATaskStatus) {
-	existingArtifactIds := make(map[string]bool)
-	for _, artifact := range existingStatus.Artifacts {
-		existingArtifactIds[artifact.ArtifactID] = true
-	}
-
-	for _, newArtifact := range newStatus.Artifacts {
-		if !existingArtifactIds[newArtifact.ArtifactID] {
-			existingStatus.Artifacts = append(existingStatus.Artifacts, newArtifact)
-		}
-	}
-}
-
-func (r *A2ATaskReconciler) mergeHistory(existingStatus, newStatus *arkv1alpha1.A2ATaskStatus) {
-	if len(newStatus.History) == 0 {
-		return
-	}
-
-	existingMessages := make(map[string]bool)
-	for _, existingMsg := range existingStatus.History {
-		msgKey := r.generateMessageKey(existingMsg)
-		existingMessages[msgKey] = true
-	}
-
-	for _, newMsg := range newStatus.History {
-		msgKey := r.generateMessageKey(newMsg)
-		if !existingMessages[msgKey] {
-			existingStatus.History = append(existingStatus.History, newMsg)
-			existingMessages[msgKey] = true
-		}
-	}
-}
-
 func (r *A2ATaskReconciler) updateTaskPhase(a2aTask *arkv1alpha1.A2ATask, task *protocol.Task) {
-	newPhase := convertA2AStateToPhase(string(task.Status.State))
+	newPhase := genai.ConvertA2AStateToPhase(string(task.Status.State))
 	if newPhase != a2aTask.Status.Phase {
 		a2aTask.Status.Phase = newPhase
 
 		// Update Completed condition based on phase
 		switch newPhase {
-		case statusPending, statusAssigned:
+		case genai.PhasePending, genai.PhaseAssigned:
 			r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskPending", "Task is pending execution")
-		case statusRunning:
+		case genai.PhaseRunning:
 			r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskRunning", "Task is running")
-		case statusCompleted:
+		case genai.PhaseCompleted:
 			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskSucceeded", "Task completed successfully")
-		case statusFailed:
+		case genai.PhaseFailed:
 			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskFailed", "Task failed")
-		case statusCancelled:
+		case genai.PhaseCancelled:
 			r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskCancelled", "Task was cancelled")
 		}
 
-		if isTerminalPhase(newPhase) {
+		if genai.IsTerminalPhase(newPhase) {
 			now := metav1.NewTime(time.Now())
 			a2aTask.Status.CompletionTime = &now
 			r.Recorder.Event(a2aTask, "Normal", "TaskCompleted",
 				fmt.Sprintf("A2A task completed with status: %s", newPhase))
 		}
 	}
-}
-
-// updateTaskStatus updates the A2ATask status with information from the A2A server
-func (r *A2ATaskReconciler) updateTaskStatus(a2aTask *arkv1alpha1.A2ATask, task *protocol.Task) error {
-	if task == nil {
-		return nil
-	}
-
-	newTaskData := arkv1alpha1.A2ATaskStatus{}
-	genai.PopulateA2ATaskStatusFromProtocol(&newTaskData, task)
-
-	if len(a2aTask.Status.History) == 0 && len(a2aTask.Status.Artifacts) == 0 {
-		genai.PopulateA2ATaskStatusFromProtocol(&a2aTask.Status, task)
-		r.updateTaskPhase(a2aTask, task)
-		return nil
-	}
-
-	r.mergeArtifacts(&a2aTask.Status, &newTaskData)
-	r.mergeHistory(&a2aTask.Status, &newTaskData)
-
-	a2aTask.Status.ProtocolState = newTaskData.ProtocolState
-	a2aTask.Status.ProtocolMetadata = newTaskData.ProtocolMetadata
-	a2aTask.Status.SessionID = newTaskData.SessionID
-	a2aTask.Status.LastStatusMessage = newTaskData.LastStatusMessage
-	a2aTask.Status.LastStatusTimestamp = newTaskData.LastStatusTimestamp
-
-	r.updateTaskPhase(a2aTask, task)
-
-	return nil
-}
-
-// convertA2AStateToPhase converts A2A protocol task states to K8s A2ATask phases
-func convertA2AStateToPhase(state string) string {
-	switch state {
-	case "submitted":
-		return statusAssigned
-	case "working":
-		return statusRunning
-	case "completed":
-		return statusCompleted
-	case "failed":
-		return statusFailed
-	case "canceled", "cancelled":
-		return statusCancelled
-	case "rejected":
-		return statusFailed
-	case "input-required", "auth-required":
-		return statusRunning // Keep running until resolved
-	default:
-		return statusRunning
-	}
-}
-
-// generateMessageKey creates a unique key for a message based on its content
-// This key is used to determine if a message already exists in the history
-func (r *A2ATaskReconciler) generateMessageKey(msg arkv1alpha1.A2ATaskMessage) string {
-	var content strings.Builder
-
-	// Include role
-	content.WriteString(msg.Role)
-	content.WriteString("|")
-
-	// Include all text parts content
-	for i, part := range msg.Parts {
-		if i > 0 {
-			content.WriteString("||")
-		}
-		content.WriteString(part.Kind)
-		content.WriteString(":")
-		switch part.Kind {
-		case "text":
-			content.WriteString(part.Text)
-		case "data":
-			content.WriteString(part.Data)
-		case "file":
-			content.WriteString(part.URI)
-			content.WriteString(part.MimeType)
-		}
-	}
-
-	// Create a hash of the content to keep the key manageable
-	hash := sha256.Sum256([]byte(content.String()))
-	return fmt.Sprintf("%x", hash)
 }
 
 // setConditionCompleted sets the Completed condition on the A2ATask

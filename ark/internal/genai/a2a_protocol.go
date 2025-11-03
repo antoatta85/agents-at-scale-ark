@@ -9,6 +9,42 @@ import (
 	"trpc.group/trpc-go/trpc-a2a-go/protocol"
 )
 
+const (
+	PhasePending   = "pending"
+	PhaseAssigned  = "assigned"
+	PhaseRunning   = "running"
+	PhaseCompleted = "completed"
+	PhaseFailed    = "failed"
+	PhaseCancelled = "cancelled"
+)
+
+// ConvertA2AStateToPhase converts A2A protocol task states to Ark K8s A2ATask phases
+func ConvertA2AStateToPhase(state string) string {
+	switch state {
+	case "submitted":
+		return PhaseAssigned
+	case "working":
+		return PhaseRunning
+	case "completed":
+		return PhaseCompleted
+	case "failed":
+		return PhaseFailed
+	case "canceled":
+		return PhaseCancelled
+	case "rejected":
+		return PhaseFailed
+	case "input-required", "auth-required":
+		return PhaseRunning
+	default:
+		return PhaseRunning
+	}
+}
+
+// IsTerminalPhase returns true if the phase represents a terminal state
+func IsTerminalPhase(phase string) bool {
+	return phase == PhaseCompleted || phase == PhaseFailed || phase == PhaseCancelled
+}
+
 func convertPartFromProtocol(part interface{}) arkv1alpha1.A2ATaskPart {
 	switch p := part.(type) {
 	case *protocol.TextPart:
@@ -86,9 +122,10 @@ func convertHistoryFromProtocol(protocolHistory []protocol.Message) []arkv1alpha
 
 		if len(msgParts) > 0 {
 			historyMessage := arkv1alpha1.A2ATaskMessage{
-				Role:     string(msg.Role),
-				Parts:    msgParts,
-				Metadata: msgMetadata,
+				MessageID: msg.MessageID,
+				Role:      string(msg.Role),
+				Parts:     msgParts,
+				Metadata:  msgMetadata,
 			}
 			history = append(history, historyMessage)
 		}
@@ -109,9 +146,10 @@ func convertStatusMessageFromProtocol(statusMessage *protocol.Message) (*arkv1al
 	msgMetadata := convertMetadataToStringMap(statusMessage.Metadata)
 
 	message := &arkv1alpha1.A2ATaskMessage{
-		Role:     string(statusMessage.Role),
-		Parts:    msgParts,
-		Metadata: msgMetadata,
+		MessageID: statusMessage.MessageID,
+		Role:      string(statusMessage.Role),
+		Parts:     msgParts,
+		Metadata:  msgMetadata,
 	}
 
 	return message, msgParts
@@ -143,4 +181,63 @@ func PopulateA2ATaskStatusFromProtocol(status *arkv1alpha1.A2ATaskStatus, task *
 	status.ProtocolMetadata = taskMetadata
 	status.LastStatusMessage = message
 	status.LastStatusTimestamp = task.Status.Timestamp
+}
+
+// MergeArtifacts merges new artifacts into existing status, avoiding duplicates by ArtifactID
+func MergeArtifacts(existingStatus, newStatus *arkv1alpha1.A2ATaskStatus) {
+	existingArtifactIds := make(map[string]bool)
+	for _, artifact := range existingStatus.Artifacts {
+		existingArtifactIds[artifact.ArtifactID] = true
+	}
+
+	for _, newArtifact := range newStatus.Artifacts {
+		if !existingArtifactIds[newArtifact.ArtifactID] {
+			existingStatus.Artifacts = append(existingStatus.Artifacts, newArtifact)
+		}
+	}
+}
+
+// MergeHistory merges new messages into existing history, avoiding duplicates by MessageID
+func MergeHistory(existingStatus, newStatus *arkv1alpha1.A2ATaskStatus) {
+	if len(newStatus.History) == 0 {
+		return
+	}
+
+	existingMessageIds := make(map[string]bool)
+	for _, existingMsg := range existingStatus.History {
+		if existingMsg.MessageID != "" {
+			existingMessageIds[existingMsg.MessageID] = true
+		}
+	}
+
+	for _, newMsg := range newStatus.History {
+		if newMsg.MessageID != "" && !existingMessageIds[newMsg.MessageID] {
+			existingStatus.History = append(existingStatus.History, newMsg)
+			existingMessageIds[newMsg.MessageID] = true
+		}
+	}
+}
+
+// UpdateA2ATaskStatus updates the A2ATask status with information from the A2A server
+func UpdateA2ATaskStatus(a2aTaskStatus *arkv1alpha1.A2ATaskStatus, task *protocol.Task) {
+	if task == nil {
+		return
+	}
+
+	newTaskData := arkv1alpha1.A2ATaskStatus{}
+	PopulateA2ATaskStatusFromProtocol(&newTaskData, task)
+
+	if len(a2aTaskStatus.History) == 0 && len(a2aTaskStatus.Artifacts) == 0 {
+		PopulateA2ATaskStatusFromProtocol(a2aTaskStatus, task)
+		return
+	}
+
+	MergeArtifacts(a2aTaskStatus, &newTaskData)
+	MergeHistory(a2aTaskStatus, &newTaskData)
+
+	a2aTaskStatus.ProtocolState = newTaskData.ProtocolState
+	a2aTaskStatus.ProtocolMetadata = newTaskData.ProtocolMetadata
+	a2aTaskStatus.SessionID = newTaskData.SessionID
+	a2aTaskStatus.LastStatusMessage = newTaskData.LastStatusMessage
+	a2aTaskStatus.LastStatusTimestamp = newTaskData.LastStatusTimestamp
 }

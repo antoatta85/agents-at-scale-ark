@@ -89,6 +89,9 @@ type A2ATaskArtifact struct {
 // A2ATaskMessage represents messages exchanged during A2A task execution.
 // Messages form the conversation history between user, agent, and system.
 type A2ATaskMessage struct {
+	// MessageID is the unique identifier for this message from the A2A protocol.
+	// +kubebuilder:validation:Optional
+	MessageID string `json:"messageId,omitempty"`
 	// Role identifies the message sender: "user", "agent", or "system".
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=user;agent;system
