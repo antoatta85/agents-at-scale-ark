@@ -443,12 +443,6 @@ spec:
                 - failed
                 - cancelled
                 type: string
-              progress:
-                description: Progress indicates task completion percentage (0-100).
-                format: int32
-                maximum: 100
-                minimum: 0
-                type: integer
               protocolMetadata:
                 additionalProperties:
                   type: string

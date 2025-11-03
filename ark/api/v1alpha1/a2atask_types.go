@@ -169,11 +169,6 @@ type A2ATaskStatus struct {
 	// Error contains the error message if the task failed.
 	// +kubebuilder:validation:Optional
 	Error string `json:"error,omitempty"`
-	// Progress indicates task completion percentage (0-100).
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=100
-	Progress int32 `json:"progress,omitempty"`
 
 	// A2A Protocol fields (flattened from protocol.Task)
 	// ProtocolState indicates the current state in the A2A protocol.

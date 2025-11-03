@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,8 +53,6 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	log.Info("Reconciling A2ATask", "taskId", a2aTask.Spec.TaskID, "phase", a2aTask.Status.Phase)
-
 	// Initialize phase if not set
 	if a2aTask.Status.Phase == "" {
 		a2aTask.Status.Phase = statusPending
@@ -69,7 +66,6 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Handle terminal states
 	if isTerminalPhase(a2aTask.Status.Phase) {
-		log.Info("A2ATask is in terminal state", "taskId", a2aTask.Spec.TaskID, "phase", a2aTask.Status.Phase)
 		return ctrl.Result{}, nil
 	}
 
@@ -134,7 +130,7 @@ func (r *A2ATaskReconciler) pollA2ATaskStatus(ctx context.Context, a2aTask *arkv
 		return err
 	}
 
-	return r.updateTaskStatus(ctx, a2aTask, task)
+	return r.updateTaskStatus(a2aTask, task)
 }
 
 // createA2AClient creates an A2A client for the task
@@ -219,10 +215,9 @@ func (r *A2ATaskReconciler) mergeHistory(existingStatus, newStatus *arkv1alpha1.
 	}
 }
 
-func (r *A2ATaskReconciler) updateTaskPhase(a2aTask *arkv1alpha1.A2ATask, task *protocol.Task, log logr.Logger) {
+func (r *A2ATaskReconciler) updateTaskPhase(a2aTask *arkv1alpha1.A2ATask, task *protocol.Task) {
 	newPhase := convertA2AStateToPhase(string(task.Status.State))
 	if newPhase != a2aTask.Status.Phase {
-		log.Info("task phase changed", "taskId", task.ID, "oldPhase", a2aTask.Status.Phase, "newPhase", newPhase)
 		a2aTask.Status.Phase = newPhase
 
 		// Update Completed condition based on phase
@@ -248,40 +243,18 @@ func (r *A2ATaskReconciler) updateTaskPhase(a2aTask *arkv1alpha1.A2ATask, task *
 	}
 }
 
-func (r *A2ATaskReconciler) updateTaskProgress(a2aTask *arkv1alpha1.A2ATask, task *protocol.Task, log logr.Logger) {
-	progressValue, hasProgress := task.Metadata["progress"]
-	if !hasProgress {
-		return
-	}
-
-	progressStr, ok := progressValue.(string)
-	if !ok {
-		return
-	}
-
-	var progress int32
-	if _, parseErr := fmt.Sscanf(progressStr, "%d", &progress); parseErr == nil {
-		a2aTask.Status.Progress = progress
-		log.Info("updated task progress", "taskId", task.ID, "progress", progress)
-	}
-}
-
 // updateTaskStatus updates the A2ATask status with information from the A2A server
-func (r *A2ATaskReconciler) updateTaskStatus(ctx context.Context, a2aTask *arkv1alpha1.A2ATask, task *protocol.Task) error {
+func (r *A2ATaskReconciler) updateTaskStatus(a2aTask *arkv1alpha1.A2ATask, task *protocol.Task) error {
 	if task == nil {
 		return nil
 	}
-
-	log := logf.FromContext(ctx)
-	log.Info("received updated task status", "taskId", task.ID, "state", task.Status.State)
 
 	newTaskData := arkv1alpha1.A2ATaskStatus{}
 	genai.PopulateA2ATaskStatusFromProtocol(&newTaskData, task)
 
 	if len(a2aTask.Status.History) == 0 && len(a2aTask.Status.Artifacts) == 0 {
 		genai.PopulateA2ATaskStatusFromProtocol(&a2aTask.Status, task)
-		r.updateTaskPhase(a2aTask, task, log)
-		r.updateTaskProgress(a2aTask, task, log)
+		r.updateTaskPhase(a2aTask, task)
 		return nil
 	}
 
@@ -294,8 +267,7 @@ func (r *A2ATaskReconciler) updateTaskStatus(ctx context.Context, a2aTask *arkv1
 	a2aTask.Status.LastStatusMessage = newTaskData.LastStatusMessage
 	a2aTask.Status.LastStatusTimestamp = newTaskData.LastStatusTimestamp
 
-	r.updateTaskPhase(a2aTask, task, log)
-	r.updateTaskProgress(a2aTask, task, log)
+	r.updateTaskPhase(a2aTask, task)
 
 	return nil
 }
