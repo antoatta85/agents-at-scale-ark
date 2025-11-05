@@ -2,6 +2,8 @@
 
 ARK translates Query resources into A2A protocol messages when targeting agents hosted on A2A servers.
 
+When a Query targets an A2A-hosted agent, ARK automatically creates an [A2ATask](/reference/resources/a2atask) resource to track the A2A protocol interaction. For message-based queries that return immediately, the A2ATask completes synchronously with phase `completed`. For long-running tasks, the A2ATask tracks execution progress with polling.
+
 ## Messages
 
 A2A messages are suitable for interactions that don't require long-running processing or complex state management. When A2A servers return a message, the contents are translated into the query response. Client-side accumulation of conversation context is not needed, and conversation context is ignored if sent to the server. Ark history can be used to track messages, but conversation history is not hydrated.
@@ -58,6 +60,18 @@ status:
         name: echo-agent
         type: agent
 ```
+
+View the A2ATask that was created for this query:
+
+```bash
+# List A2ATasks for the query
+kubectl get a2atasks -l ark.mckinsey.com/query-name=echo-example
+
+# View the completed A2ATask details
+kubectl describe a2atask $(kubectl get a2atasks -l ark.mckinsey.com/query-name=echo-example -o name)
+```
+
+The A2ATask will show phase `completed` with the message history and artifacts from the A2A protocol interaction.
 
 ## Stateful Messages
 

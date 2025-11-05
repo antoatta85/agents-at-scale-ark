@@ -34,7 +34,6 @@ status:
     name: "langchain-weather-agent"
     namespace: "default"
   startTime: "2025-01-15T10:30:00Z"
-  progress: 45
   task:
     id: "task-12345"
     sessionId: "context-67890"
@@ -56,15 +55,18 @@ status:
           source: "WeatherAPI"
           timestamp: "2025-01-15T10:32:00Z"
     history:
-      - role: "user"
+      - messageId: "msg-001"
+        role: "user"
         parts:
           - kind: "text"
             text: "What is the weather like in New York today?"
-      - role: "agent"
+      - messageId: "msg-002"
+        role: "agent"
         parts:
           - kind: "text"
             text: "I'll check the current weather conditions for New York..."
-      - role: "agent"
+      - messageId: "msg-003"
+        role: "agent"
         parts:
           - kind: "text"
             text: "The current weather in New York is 72°F with sunny conditions."
@@ -74,35 +76,36 @@ status:
 
 ### Spec
 
-- **queryRef** (required): Reference to the originating Query resource
+- **queryRef** (required, Ark): Reference to the originating Query resource
   - **name**: Name of the Query resource
   - **namespace**: Namespace of the Query resource (optional)
   - **responseTarget**: Target name to match against query responses (optional)
-- **taskId** (required): Unique identifier for the task in the A2A protocol
-- **contextId** (optional): Context or session identifier for grouped tasks
-- **input** (optional): Input text or prompt for the task
-- **parameters** (optional): Key-value parameters for task execution
-- **priority** (optional): Task priority (default: 0)
-- **timeout** (optional): Maximum execution time (default: "5m")
+- **taskId** (required, A2A protocol): Unique identifier for the task
+- **contextId** (optional, A2A protocol): Context or session identifier for grouped tasks
+- **input** (optional, A2A protocol): Input text or prompt for the task
+- **parameters** (optional, A2A protocol): Key-value parameters for task execution
+- **priority** (optional, A2A protocol): Task priority (default: 0)
+- **timeout** (optional, Ark): Maximum execution time (default: "5m")
 
 ### Status
 
-- **phase**: Current task phase
+- **phase** (Ark): Current task phase derived from A2A protocol state
   - `pending`: Task created but not yet assigned
   - `assigned`: Task assigned to an agent
   - `running`: Task is actively being executed
   - `completed`: Task execution finished successfully
   - `failed`: Task execution failed
   - `cancelled`: Task was cancelled
-- **assignedAgent**: Reference to the agent executing the task
-- **startTime**: When task execution began
-- **completionTime**: When task execution finished
-- **progress**: Execution progress (0-100)
-- **error**: Error message if task failed
-- **task**: Full A2A protocol task structure with execution details
-  - **artifacts**: Array of task artifacts produced during execution
-  - **history**: Complete message history between user and agent
-  - **status**: Current task status with state and timestamps
+- **assignedAgent** (Ark): Reference to the agent executing the task
+- **startTime** (Ark): When task execution began, set from A2A protocol timestamp
+- **completionTime** (Ark): When task execution finished, set from A2A protocol timestamp
+- **error** (Ark): Error message if task failed
+- **task** (A2A protocol): Full A2A protocol task structure with execution details
+  - **id** (A2A protocol): Task identifier
+  - **sessionId** (A2A protocol): Session or context identifier
+  - **artifacts** (A2A protocol): Array of task artifacts produced during execution, each with artifactId
+  - **history** (A2A protocol): Complete message history, each message includes messageId from A2A protocol for deduplication
+  - **status** (A2A protocol): Current task status with state and timestamps
 
 ## A2A Protocol Integration
 
