@@ -5,7 +5,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -128,36 +127,12 @@ func (r *A2ATaskReconciler) createA2AClient(ctx context.Context, a2aTask *arkv1a
 		return nil, fmt.Errorf("A2AServer %v has no resolved address", serverKey)
 	}
 
-	var clientOptions []a2aclient.Option
-	if len(a2aServer.Spec.Headers) > 0 {
-		resolvedHeaders := make(map[string]string)
-		for _, header := range a2aServer.Spec.Headers {
-			headerValue, err := genai.ResolveHeaderValueV1PreAlpha1(ctx, r.Client, header, serverNamespace)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve header %s: %w", header.Name, err)
-			}
-			resolvedHeaders[header.Name] = headerValue
-		}
-
-		httpClient := &http.Client{Timeout: 30 * time.Second}
-		clientOptions = append(clientOptions, a2aclient.WithHTTPClient(httpClient))
-		clientOptions = append(clientOptions, a2aclient.WithHTTPReqHandler(&a2aTaskRequestHandler{
-			headers: resolvedHeaders,
-		}))
+	agentName := a2aTask.Spec.A2AServerRef.Name
+	if a2aTask.Status.AssignedAgent != nil {
+		agentName = a2aTask.Status.AssignedAgent.Name
 	}
 
-	return a2aclient.NewA2AClient(a2aServerAddress, clientOptions...)
-}
-
-type a2aTaskRequestHandler struct {
-	headers map[string]string
-}
-
-func (h *a2aTaskRequestHandler) Handle(ctx context.Context, httpClient *http.Client, req *http.Request) (*http.Response, error) {
-	for name, value := range h.headers {
-		req.Header.Set(name, value)
-	}
-	return httpClient.Do(req)
+	return genai.CreateA2AClient(ctx, r.Client, a2aServerAddress, a2aServer.Spec.Headers, serverNamespace, agentName, r.Recorder, a2aTask)
 }
 
 // queryTaskStatus queries the A2A server for task status

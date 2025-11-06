@@ -83,7 +83,7 @@ func ExecuteA2AAgent(ctx context.Context, k8sClient client.Client, address strin
 	logf.FromContext(ctx).Info("calling A2A server", "url", rpcURL)
 
 	// Create and configure A2A client
-	a2aClient, err := createA2AClientForExecution(ctx, k8sClient, rpcURL, headers, namespace, agentName, recorder, obj)
+	a2aClient, err := CreateA2AClient(ctx, k8sClient, rpcURL, headers, namespace, agentName, recorder, obj)
 	if err != nil {
 		return "", err
 	}
@@ -92,15 +92,13 @@ func ExecuteA2AAgent(ctx context.Context, k8sClient client.Client, address strin
 	return executeA2AAgentMessage(ctx, k8sClient, a2aClient, input, agentName, rpcURL, namespace, queryName, recorder, obj, tokenCollector)
 }
 
-// createA2AClientForExecution creates and configures A2A client for agent execution
-func createA2AClientForExecution(ctx context.Context, k8sClient client.Client, rpcURL string, headers []arkv1prealpha1.Header, namespace, agentName string, recorder record.EventRecorder, obj client.Object) (*a2aclient.A2AClient, error) {
+// CreateA2AClient creates and configures A2A client with header resolution and injection
+func CreateA2AClient(ctx context.Context, k8sClient client.Client, rpcURL string, headers []arkv1prealpha1.Header, namespace, agentName string, recorder record.EventRecorder, obj client.Object) (*a2aclient.A2AClient, error) {
 	var clientOptions []a2aclient.Option
 	if len(headers) > 0 {
 		resolvedHeaders, err := resolveA2AHeaders(ctx, k8sClient, headers, namespace)
 		if err != nil {
-			if recorder != nil && obj != nil {
-				recorder.Event(obj, corev1.EventTypeWarning, "A2AHeaderResolutionFailed", fmt.Sprintf("Failed to resolve headers for agent %s: %v", agentName, err))
-			}
+			recorder.Event(obj, corev1.EventTypeWarning, "A2AHeaderResolutionFailed", fmt.Sprintf("Failed to resolve headers for agent %s: %v", agentName, err))
 			return nil, err
 		}
 
@@ -113,9 +111,7 @@ func createA2AClientForExecution(ctx context.Context, k8sClient client.Client, r
 
 	a2aClient, err := a2aclient.NewA2AClient(rpcURL, clientOptions...)
 	if err != nil {
-		if recorder != nil && obj != nil {
-			recorder.Event(obj, corev1.EventTypeWarning, "A2AClientCreateFailed", fmt.Sprintf("Failed to create A2A client for agent %s at %s: %v", agentName, rpcURL, err))
-		}
+		recorder.Event(obj, corev1.EventTypeWarning, "A2AClientCreateFailed", fmt.Sprintf("Failed to create A2A client for agent %s at %s: %v", agentName, rpcURL, err))
 		return nil, fmt.Errorf("failed to create A2A client: %w", err)
 	}
 	return a2aClient, nil
