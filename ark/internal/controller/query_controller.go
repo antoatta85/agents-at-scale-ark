@@ -24,6 +24,7 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/genai"
+	"mckinsey.com/ark/internal/telemetry"
 	telemetryconfig "mckinsey.com/ark/internal/telemetry/config"
 )
 
@@ -613,6 +614,31 @@ func (r *QueryReconciler) finalize(ctx context.Context, query *arkv1alpha1.Query
 	}
 }
 
+// handleTargetExecutionError handles error reporting for target execution failures.
+// It streams errors to clients if streaming is enabled, records telemetry, and emits events.
+func (r *QueryReconciler) handleTargetExecutionError(ctx context.Context, err error, target arkv1alpha1.QueryTarget, span telemetry.Span, metadata map[string]string, eventStream genai.EventStreamInterface, tokenCollector *genai.TokenUsageCollector) {
+	// Stream error to clients if streaming is enabled
+	if eventStream != nil {
+		errorChunk := genai.StreamingError{}
+		errorChunk.Error.Message = err.Error()
+		errorChunk.Error.Type = "server_error"
+		errorChunk.Error.Code = fmt.Sprintf("%s_execution_failed", target.Type)
+		errorChunkWithMeta := genai.WrapErrorWithMetadata(ctx, &errorChunk, fmt.Sprintf("%s/%s", target.Type, target.Name))
+		if streamErr := eventStream.StreamChunk(ctx, errorChunkWithMeta); streamErr != nil {
+			logf.FromContext(ctx).Error(streamErr, "failed to send error chunk to event stream")
+		}
+	}
+	r.Telemetry.QueryRecorder().RecordError(span, err)
+	// Add trace correlation to event metadata for observability linkage
+	metadata["traceId"] = span.TraceID()
+	metadata["spanId"] = span.SpanID()
+	event := genai.ExecutionEvent{
+		BaseEvent: genai.BaseEvent{Name: target.Name, Metadata: metadata},
+		Type:      target.Type,
+	}
+	tokenCollector.EmitEvent(ctx, corev1.EventTypeWarning, "TargetExecutionError", event)
+}
+
 func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Query, target arkv1alpha1.QueryTarget, impersonatedClient client.Client, memory genai.MemoryInterface, eventStream genai.EventStreamInterface, tokenCollector *genai.TokenUsageCollector) ([]genai.Message, error) {
 	// Store query in context for access in deeper call stacks
 	ctx = context.WithValue(ctx, genai.QueryContextKey, &query)
@@ -680,43 +706,25 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	}
 
 	if err != nil {
-		// Stream error to clients if streaming is enabled
-		if eventStream != nil {
-			errorChunk := genai.StreamingError{}
-			errorChunk.Error.Message = err.Error()
-			errorChunk.Error.Type = "server_error"
-			errorChunk.Error.Code = fmt.Sprintf("%s_execution_failed", target.Type)
-			errorChunkWithMeta := genai.WrapErrorWithMetadata(ctx, &errorChunk, fmt.Sprintf("%s/%s", target.Type, target.Name))
-			if streamErr := eventStream.StreamChunk(ctx, errorChunkWithMeta); streamErr != nil {
-				logf.FromContext(ctx).Error(streamErr, "failed to send error chunk to event stream")
-			}
-		}
-		r.Telemetry.QueryRecorder().RecordError(span, err)
-		// Add trace correlation to event metadata for observability linkage
-		metadata["traceId"] = span.TraceID()
-		metadata["spanId"] = span.SpanID()
-		event := genai.ExecutionEvent{
-			BaseEvent: genai.BaseEvent{Name: target.Name, Metadata: metadata},
-			Type:      target.Type,
-		}
-		tokenCollector.EmitEvent(ctx, corev1.EventTypeWarning, "TargetExecutionError", event)
-	} else {
-		// Set the final response as output at trace level
-		if len(responseMessages) > 0 {
-			lastMessage := responseMessages[len(responseMessages)-1]
-			responseContent := messageToText(lastMessage)
-			r.Telemetry.QueryRecorder().RecordOutput(span, responseContent)
-		}
-		r.Telemetry.QueryRecorder().RecordSuccess(span)
-		// Add trace correlation to event metadata for observability linkage
-		metadata["traceId"] = span.TraceID()
-		metadata["spanId"] = span.SpanID()
-		event := genai.ExecutionEvent{
-			BaseEvent: genai.BaseEvent{Name: target.Name, Metadata: metadata},
-			Type:      target.Type,
-		}
-		tokenCollector.EmitEvent(ctx, corev1.EventTypeNormal, "TargetExecutionComplete", event)
+		r.handleTargetExecutionError(ctx, err, target, span, metadata, eventStream, tokenCollector)
+		return nil, err
 	}
+
+	// Set the final response as output at trace level
+	if len(responseMessages) > 0 {
+		lastMessage := responseMessages[len(responseMessages)-1]
+		responseContent := messageToText(lastMessage)
+		r.Telemetry.QueryRecorder().RecordOutput(span, responseContent)
+	}
+	r.Telemetry.QueryRecorder().RecordSuccess(span)
+	// Add trace correlation to event metadata for observability linkage
+	metadata["traceId"] = span.TraceID()
+	metadata["spanId"] = span.SpanID()
+	event := genai.ExecutionEvent{
+		BaseEvent: genai.BaseEvent{Name: target.Name, Metadata: metadata},
+		Type:      target.Type,
+	}
+	tokenCollector.EmitEvent(ctx, corev1.EventTypeNormal, "TargetExecutionComplete", event)
 	return responseMessages, err
 }
 
