@@ -186,5 +186,3 @@ func (r *A2ATaskReconciler) setConditionCompleted(a2aTask *arkv1alpha1.A2ATask, 
 		ObservedGeneration: a2aTask.Generation,
 	})
 }
-
-// Force devspace reload ven  5 set 2025 14:30:15 CEST - Added HistoryLength to TaskQueryParams
