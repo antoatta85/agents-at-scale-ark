@@ -1,11 +1,6 @@
 import { Router, Response } from 'express';
 import { StreamStore } from '../stream-store.js';
-import { StreamResponse } from '../types.js';
-
-type ErrorChunk = {
-  status: number;
-  message: string;
-}
+import { StreamResponse, StreamError } from '../types.js';
 
 // Helper function to parse timeout parameter
 const parseTimeout = (timeoutStr: string | undefined, defaultTimeout: number): number => {
@@ -25,29 +20,6 @@ const writeSSEEvent = (res: Response, data: StreamResponse): boolean => {
   }
 };
 
-const parseErrorChunk = (error: any): ErrorChunk => {
-  let status = 500
-  let message = ''
-
-  if (typeof error === "string") {
-    message = error
-  }
-
-  if (typeof error === "object") {
-    if(error.status) {
-      const s = parseInt(error.status);
-      if (!isNaN(s)) {
-        status = s
-      }
-    }
-
-    if(error.message) {
-      message = JSON.stringify(error.message)
-    }
-  }
-
-  return {status, message}
-};
 
 export function createStreamRouter(stream: StreamStore): Router {
   const router = Router();
@@ -185,6 +157,16 @@ export function createStreamRouter(stream: StreamStore): Router {
 
         // Check for errors and send as SSE event (not JSON response)
         if(chunk?.error) {
+          // Validate error structure - chunk.error should be a StreamError
+          const streamError = chunk.error as StreamError;
+          if (typeof streamError.message !== "string" || typeof streamError.type !== "string") {
+            console.error(`[STREAM-OUT] Query ${query_name}: Invalid error chunk structure`, chunk);
+            res.status(500).json({ error: "Invalid error chunk structure" });
+            unsubscribeChunks();
+            unsubscribeComplete();
+            return;
+          }
+
           // Error chunks should be sent as SSE events, not JSON responses
           // This allows OpenAI SDK and other clients to properly handle errors
           if (!writeSSEEvent(res, chunk)) {

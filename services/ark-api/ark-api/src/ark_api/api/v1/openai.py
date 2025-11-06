@@ -95,8 +95,8 @@ def process_request_metadata(
     return None
 
 
-# TODO: Maybe we should start streaming first, wait for the first chunk/response
-# and use the status code of that to respond with
+# See https://github.com/mckinsey/agents-at-scale-ark/issues/415 for potential improvement:
+# Start streaming first, wait for the first chunk/response, and use the status code of that to respond with
 async def proxy_streaming_response(streaming_url: str):
     """Proxy streaming chunks from memory service."""
     timeout = httpx.Timeout(10.0, read=None)  # 10s connect, infinite read
@@ -121,7 +121,7 @@ async def proxy_streaming_response(streaming_url: str):
                     pass
 
                 # Forward the error response as an SSE error event
-                error_data = {
+                error_data: StreamingErrorResponse = {
                     "error": {
                         "status": response.status_code,
                         "message": error_message,
