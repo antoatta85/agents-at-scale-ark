@@ -183,10 +183,21 @@ export function createStreamRouter(stream: StreamStore): Router {
           timeoutHandle = undefined;
         }
 
-        //check for errors
+        // Check for errors and send as SSE event (not JSON response)
         if(chunk?.error) {
-          const { status, message } = parseErrorChunk(chunk.error)
-          res.status(status).json({ error: message });
+          // Error chunks should be sent as SSE events, not JSON responses
+          // This allows OpenAI SDK and other clients to properly handle errors
+          if (!writeSSEEvent(res, chunk)) {
+            console.log(`[STREAM-OUT] Query ${query_name}: Failed to write error chunk, client may have disconnected`);
+            unsubscribeChunks();
+            unsubscribeComplete();
+            return;
+          }
+          // After sending error, close the stream gracefully
+          res.write('data: [DONE]\n\n');
+          res.end();
+          unsubscribeChunks();
+          unsubscribeComplete();
           return;
         }
 

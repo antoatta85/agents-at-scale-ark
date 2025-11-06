@@ -208,6 +208,17 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 
 	responses, eventStream, err := r.reconcileQueue(opCtx, obj, impersonatedClient, memory, tokenCollector)
 	if err != nil {
+		// Stream error to clients if streaming is enabled
+		if eventStream != nil {
+			errorChunk := genai.StreamingError{}
+			errorChunk.Error.Message = err.Error()
+			errorChunk.Error.Type = "server_error"
+			errorChunk.Error.Code = "query_execution_failed"
+			errorChunkWithMeta := genai.WrapErrorWithMetadata(opCtx, &errorChunk, "query")
+			if streamErr := eventStream.StreamChunk(opCtx, errorChunkWithMeta); streamErr != nil {
+				log.Error(streamErr, "failed to send error chunk to event stream")
+			}
+		}
 		queryTracker.Fail(err)
 		r.Telemetry.QueryRecorder().RecordError(span, err)
 		_ = r.updateStatus(opCtx, &obj, statusError)
@@ -669,6 +680,17 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	}
 
 	if err != nil {
+		// Stream error to clients if streaming is enabled
+		if eventStream != nil {
+			errorChunk := genai.StreamingError{}
+			errorChunk.Error.Message = err.Error()
+			errorChunk.Error.Type = "server_error"
+			errorChunk.Error.Code = fmt.Sprintf("%s_execution_failed", target.Type)
+			errorChunkWithMeta := genai.WrapErrorWithMetadata(ctx, &errorChunk, fmt.Sprintf("%s/%s", target.Type, target.Name))
+			if streamErr := eventStream.StreamChunk(ctx, errorChunkWithMeta); streamErr != nil {
+				logf.FromContext(ctx).Error(streamErr, "failed to send error chunk to event stream")
+			}
+		}
 		r.Telemetry.QueryRecorder().RecordError(span, err)
 		// Add trace correlation to event metadata for observability linkage
 		metadata["traceId"] = span.TraceID()

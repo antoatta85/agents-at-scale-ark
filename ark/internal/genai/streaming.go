@@ -41,8 +41,13 @@ type ChunkWithMetadata struct {
 	Ark *StreamMetadata `json:"ark,omitempty"`
 }
 
+// StreamingError represents an OpenAI-compatible error format for streaming
 type StreamingError struct {
-	ErrorMessage string `json:"error,omitempty"`
+	Error struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Code    string `json:"code,omitempty"`
+	} `json:"error"`
 }
 
 type ErrorWithMetadata struct {
