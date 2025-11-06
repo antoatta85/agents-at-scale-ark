@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/openai/openai-go"
 	"mckinsey.com/ark/internal/common"
@@ -99,6 +100,36 @@ func (m *HTTPMemory) resolveAndUpdateAddress(ctx context.Context) error {
 	return nil
 }
 
+// getEffectiveTimeout calculates an appropriate HTTP client timeout based on context deadline.
+// When cluster memory is slow, this allows the HTTP client to use more time if the context
+// deadline permits, preventing premature timeouts that cause TargetExecutionError.
+// It reserves 10% of remaining context time as a buffer and ensures a minimum of 5 seconds.
+func (m *HTTPMemory) getEffectiveTimeout(ctx context.Context, defaultTimeout time.Duration) time.Duration {
+	// Check if context has a deadline
+	if deadline, ok := ctx.Deadline(); ok {
+		remaining := time.Until(deadline)
+		// Reserve 10% of remaining time as buffer to ensure context deadline is respected
+		contextBasedTimeout := remaining * 90 / 100
+		
+		// Ensure minimum of 5 seconds
+		if contextBasedTimeout < 5*time.Second {
+			contextBasedTimeout = 5 * time.Second
+		}
+		
+		// Use the maximum of context-based timeout and default timeout
+		// This allows longer timeouts when context permits, preventing premature failures
+		if contextBasedTimeout > defaultTimeout {
+			// Cap at 5 minutes to prevent excessively long timeouts
+			maxTimeout := 5 * time.Minute
+			if contextBasedTimeout > maxTimeout {
+				return maxTimeout
+			}
+			return contextBasedTimeout
+		}
+	}
+	return defaultTimeout
+}
+
 // AddMessages stores messages to the memory backend
 func (m *HTTPMemory) AddMessages(ctx context.Context, queryID string, messages []Message) error {
 	if len(messages) == 0 {
@@ -143,7 +174,14 @@ func (m *HTTPMemory) AddMessages(ctx context.Context, queryID string, messages [
 	req.Header.Set("Content-Type", ContentTypeJSON)
 	req.Header.Set("User-Agent", UserAgent)
 
-	resp, err := m.httpClient.Do(req)
+	// Create a request-specific HTTP client with timeout that respects context deadline
+	effectiveTimeout := m.getEffectiveTimeout(ctx, m.httpClient.Timeout)
+	requestClient := &http.Client{
+		Transport: m.httpClient.Transport,
+		Timeout:   effectiveTimeout,
+	}
+
+	resp, err := requestClient.Do(req)
 	if err != nil {
 		tracker.Fail(fmt.Errorf("HTTP request failed: %w", err))
 		return fmt.Errorf("HTTP request failed: %w", err)
@@ -182,7 +220,14 @@ func (m *HTTPMemory) GetMessages(ctx context.Context) ([]Message, error) {
 	req.Header.Set("Accept", ContentTypeJSON)
 	req.Header.Set("User-Agent", UserAgent)
 
-	resp, err := m.httpClient.Do(req)
+	// Create a request-specific HTTP client with timeout that respects context deadline
+	effectiveTimeout := m.getEffectiveTimeout(ctx, m.httpClient.Timeout)
+	requestClient := &http.Client{
+		Transport: m.httpClient.Transport,
+		Timeout:   effectiveTimeout,
+	}
+
+	resp, err := requestClient.Do(req)
 	if err != nil {
 		tracker.Fail(fmt.Errorf("HTTP request failed: %w", err))
 		return nil, fmt.Errorf("HTTP request failed: %w", err)

@@ -1,8 +1,11 @@
 package genai
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/openai/openai-go"
 )
@@ -141,6 +144,81 @@ func TestUnmarshalMessageRobustFutureRoles(t *testing.T) {
 			}
 			if result == (openai.ChatCompletionMessageParamUnion{}) {
 				t.Errorf("Future role '%s' should produce valid message", role)
+			}
+		})
+	}
+}
+
+func TestGetEffectiveTimeout(t *testing.T) {
+	// Create a mock HTTPMemory instance
+	m := &HTTPMemory{
+		httpClient: &http.Client{Timeout: 60 * time.Second},
+	}
+
+	tests := []struct {
+		name           string
+		ctx            context.Context
+		defaultTimeout time.Duration
+		expectedMin    time.Duration
+		expectedMax    time.Duration
+		description    string
+	}{
+		{
+			name:           "context with 5 minute deadline - should use ~90%",
+			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 5*time.Minute); return ctx }(),
+			defaultTimeout: 60 * time.Second,
+			expectedMin:    4*time.Minute + 20*time.Second, // 90% of 5 min = 4.5 min, allow some tolerance
+			expectedMax:    5 * time.Minute,
+			description:    "Should use ~90% of context deadline when longer than default",
+		},
+		{
+			name:           "context with 30 second deadline - should use default",
+			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 30*time.Second); return ctx }(),
+			defaultTimeout: 60 * time.Second,
+			expectedMin:    60 * time.Second,
+			expectedMax:    60 * time.Second,
+			description:    "Should use default when context deadline is shorter",
+		},
+		{
+			name:           "context with 10 minute deadline - should cap at 5 min",
+			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 10*time.Minute); return ctx }(),
+			defaultTimeout: 60 * time.Second,
+			expectedMin:    4*time.Minute + 50*time.Second, // 90% of 10 min = 9 min, but capped at 5 min
+			expectedMax:    5 * time.Minute,
+			description:    "Should cap at 5 minutes maximum",
+		},
+		{
+			name:           "context without deadline - should use default",
+			ctx:            context.Background(),
+			defaultTimeout: 60 * time.Second,
+			expectedMin:    60 * time.Second,
+			expectedMax:    60 * time.Second,
+			description:    "Should use default when no deadline",
+		},
+		{
+			name:           "context with very short deadline - should enforce minimum",
+			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 2*time.Second); return ctx }(),
+			defaultTimeout: 60 * time.Second,
+			expectedMin:    5 * time.Second,
+			expectedMax:    60 * time.Second, // Should use default (longer)
+			description:    "Should enforce minimum 5 seconds but use default if longer",
+		},
+		{
+			name:           "context with 2 minute deadline - should use context-based",
+			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 2*time.Minute); return ctx }(),
+			defaultTimeout: 60 * time.Second,
+			expectedMin:    100 * time.Second, // 90% of 2 min = 108 sec, allow tolerance
+			expectedMax:    2 * time.Minute,
+			description:    "Should use context-based timeout when longer than default",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := m.getEffectiveTimeout(tt.ctx, tt.defaultTimeout)
+			if result < tt.expectedMin || result > tt.expectedMax {
+				t.Errorf("Expected timeout between %v and %v, got %v. %s",
+					tt.expectedMin, tt.expectedMax, result, tt.description)
 			}
 		})
 	}

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	DefaultTimeoutSeconds = 30 // Default timeout in seconds
+	DefaultTimeoutSeconds = 60 // Default timeout in seconds
 	ContentTypeJSON       = "application/json"
 	MessagesEndpoint      = "/messages"
 	CompletionEndpoint    = "/stream/%s/complete"
