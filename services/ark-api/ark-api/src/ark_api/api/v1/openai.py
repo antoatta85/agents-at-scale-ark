@@ -118,27 +118,33 @@ async def proxy_streaming_response(streaming_url: str):
                         raise ValueError("'error' field must be an object")
                     
                     if "message" not in error_obj or not isinstance(error_obj["message"], str):
-                        raise ValueError("'error.message' must be a string")
+                        raise ValueError("'error.message' field missing or invalid")
                     
-                    error_message = error_obj["message"]
-                    error_type = error_obj.get("type", "server_error")
-                    error_code = error_obj.get("code", "server_error")
+                    if "type" not in error_obj or not isinstance(error_obj["type"], str):
+                        raise ValueError("'error.type' field missing or invalid")
+                    
+                    # Use the error structure from response, with status code added
+                    error_data: StreamingErrorResponse = {
+                        "error": {
+                            "status": response.status_code,
+                            "message": error_obj["message"],
+                            "type": error_obj["type"],
+                            "code": error_obj.get("code", "server_error"),
+                        }
+                    }
                 except (json.JSONDecodeError, ValueError, KeyError) as e:
-                    # If we can't parse the expected structure, use default error
-                    logger.warning(f"Failed to parse error response: {e}, using default error message")
-                    error_message = f"{response.status_code} {response.reason_phrase}"
-                    error_type = "server_error"
-                    error_code = "server_error"
+                    # If we can't parse the expected structure, create a default error
+                    logger.warning(f"Failed to parse error response structure: {e}, using default error format")
+                    error_data: StreamingErrorResponse = {
+                        "error": {
+                            "status": response.status_code,
+                            "message": f"{response.status_code} {response.reason_phrase}",
+                            "type": "server_error",
+                            "code": "server_error",
+                        }
+                    }
 
                 # Forward the error response as an SSE error event
-                error_data: StreamingErrorResponse = {
-                    "error": {
-                        "status": response.status_code,
-                        "message": error_message,
-                        "type": error_type,
-                        "code": error_code,
-                    }
-                }
                 yield f"data: {json.dumps(error_data)}\n\n"
                 return  # Streaming failed, exit generator
             # Use aiter_lines() for line-by-line streaming without buffering
