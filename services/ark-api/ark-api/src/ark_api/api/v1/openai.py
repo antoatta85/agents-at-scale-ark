@@ -103,30 +103,40 @@ async def proxy_streaming_response(streaming_url: str):
     async with httpx.AsyncClient(timeout=timeout) as client:
         async with client.stream("GET", streaming_url) as response:
             if response.status_code != 200:
-                # Try to extract error message from response body
-                error_message = f"{response.status_code} {response.reason_phrase}"
+                # Read error response with expected structure
+                # We control the error format, so read it directly and fail if invalid
                 try:
                     response_text = await response.aread()
                     response_json = json.loads(response_text.decode("utf-8"))
-                    if isinstance(response_json, dict) and "error" in response_json:
-                        if (
-                            isinstance(response_json["error"], dict)
-                            and "message" in response_json["error"]
-                        ):
-                            error_message = response_json["error"]["message"]
-                        elif isinstance(response_json["error"], str):
-                            error_message = response_json["error"]
-                except Exception:
-                    # If we can't parse the response, use the default message
-                    pass
+                    
+                    # Expected structure: {"error": {"message": "...", "type": "...", "code": "..."}}
+                    if not isinstance(response_json, dict) or "error" not in response_json:
+                        raise ValueError("Response missing 'error' field")
+                    
+                    error_obj = response_json["error"]
+                    if not isinstance(error_obj, dict):
+                        raise ValueError("'error' field must be an object")
+                    
+                    if "message" not in error_obj or not isinstance(error_obj["message"], str):
+                        raise ValueError("'error.message' must be a string")
+                    
+                    error_message = error_obj["message"]
+                    error_type = error_obj.get("type", "server_error")
+                    error_code = error_obj.get("code", "server_error")
+                except (json.JSONDecodeError, ValueError, KeyError) as e:
+                    # If we can't parse the expected structure, use default error
+                    logger.warning(f"Failed to parse error response: {e}, using default error message")
+                    error_message = f"{response.status_code} {response.reason_phrase}"
+                    error_type = "server_error"
+                    error_code = "server_error"
 
                 # Forward the error response as an SSE error event
                 error_data: StreamingErrorResponse = {
                     "error": {
                         "status": response.status_code,
                         "message": error_message,
-                        "type": "server_error",
-                        "code": "server_error",
+                        "type": error_type,
+                        "code": error_code,
                     }
                 }
                 yield f"data: {json.dumps(error_data)}\n\n"
