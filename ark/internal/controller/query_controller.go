@@ -24,7 +24,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
-	"mckinsey.com/ark/internal/annotations"
 	"mckinsey.com/ark/internal/genai"
 	"mckinsey.com/ark/internal/telemetry"
 )
@@ -193,18 +192,6 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 
 	queryTracker.Complete("resolved")
 
-	// Set A2A contextID annotation if present, update metadata first before status
-	if contextID := tokenCollector.GetA2AContextID(); contextID != "" {
-		if obj.Annotations == nil {
-			obj.Annotations = make(map[string]string)
-		}
-		obj.Annotations[annotations.A2AContextID] = contextID
-		if err := r.Update(opCtx, &obj); err != nil {
-			log.Error(err, "failed to update query annotations with A2A contextID")
-		}
-	}
-
-	// Now set status fields after metadata update
 	obj.Status.Responses = responses
 
 	tokenSummary := tokenCollector.GetTokenSummary()
@@ -212,6 +199,13 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 		PromptTokens:     tokenSummary.PromptTokens,
 		CompletionTokens: tokenSummary.CompletionTokens,
 		TotalTokens:      tokenSummary.TotalTokens,
+	}
+
+	if contextID := tokenCollector.GetA2AContextID(); contextID != "" {
+		if obj.Status.A2A == nil {
+			obj.Status.A2A = &arkv1alpha1.A2AMetadata{}
+		}
+		obj.Status.A2A.ContextID = contextID
 	}
 
 	// Set overall query status based on whether any targets failed

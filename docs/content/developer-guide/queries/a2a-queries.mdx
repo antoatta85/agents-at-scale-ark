@@ -75,7 +75,11 @@ The A2ATask will show phase `completed` with the message history and artifacts f
 
 ## Stateful Messages
 
-A2A servers respond to messages with a `contextId`. This ID is stored in the `ark.mckinsey.com/a2a-context-id` annotation in the query. This annotation can then be set on provide continuity across a set of interactions, as per the [A2A Protocol - Group Related Interations documentation](https://a2a-protocol.org/latest/topics/life-of-a-task/#group-related-interactions).
+A2A servers respond to messages with a `contextId`. ARK stores this ID in the query's `status.a2a.contextId` field. To provide continuity across a set of interactions, set the `ark.mckinsey.com/a2a-context-id` annotation when creating queries, as per the [A2A Protocol - Group Related Interactions documentation](https://a2a-protocol.org/latest/topics/life-of-a-task/#group-related-interactions).
+
+The pattern:
+- **Input**: Set `ark.mckinsey.com/a2a-context-id` annotation when creating a query
+- **Output**: Read context ID from `status.a2a.contextId` after query completes
 
 The `message-counter-agent` can be used to test this functionality. Send an initial message:
 
@@ -101,8 +105,8 @@ kubectl wait --for=condition=Completed query/count-messages --timeout=30s
 kubectl get query count-messages -o jsonpath='{.status.responses[0].content}'
 # 1 message(s) recieved
 
-# Extract the context ID
-CONTEXT_ID=$(kubectl get query count-messages -o jsonpath='{.metadata.annotations.ark\.mckinsey\.com/a2a-context-id}')
+# Extract the context ID from status
+CONTEXT_ID=$(kubectl get query count-messages -o jsonpath='{.status.a2a.contextId}')
 echo "Context ID: ${CONTEXT_ID}"
 ```
 

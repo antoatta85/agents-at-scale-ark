@@ -76,12 +76,12 @@ status:
 
 ### Spec
 
-- **queryRef** (required, Ark): Reference to the originating Query resource
+- **queryRef** (required, Ark): Reference to the originating Query resource. The Query's `status.a2a.taskId` field references this A2ATask.
   - **name**: Name of the Query resource
   - **namespace**: Namespace of the Query resource (optional)
   - **responseTarget**: Target name to match against query responses (optional)
 - **taskId** (required, A2A protocol): Unique identifier for the task
-- **contextId** (optional, A2A protocol): Context or session identifier for grouped tasks
+- **contextId** (optional, A2A protocol): Context or session identifier for grouped tasks. Matches the Query's `status.a2a.contextId` field.
 - **input** (optional, A2A protocol): Input text or prompt for the task
 - **parameters** (optional, A2A protocol): Key-value parameters for task execution
 - **priority** (optional, A2A protocol): Task priority (default: 0)
