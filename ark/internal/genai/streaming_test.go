@@ -81,7 +81,7 @@ func TestWrapChunkWithMetadata(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := tt.setupContext()
-			result := WrapChunkWithMetadata(ctx, tt.chunk, tt.modelName)
+			result := WrapChunkWithMetadata(ctx, tt.chunk, tt.modelName, nil)
 
 			if !tt.expectWrapped {
 				// Should return chunk as-is

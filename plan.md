@@ -3,9 +3,19 @@
 ## Overview
 Move A2A context ID and task ID from Query annotations to Query status to fix the reconciliation loop anti-pattern. Controller currently calls `r.Update()` to set annotations, which increments generation and triggers unnecessary reconciliation.
 
+## Progress
+
+✅ Phase 1: Query CRD changes (completed)
+✅ Phase 2: Query controller updates (completed)
+✅ Phase 5: Documentation updates (completed - a2a-queries.mdx, query.mdx, a2atask.mdx)
+⏳ Phase 3: ark-api updates (pending)
+⏳ Phase 4: ark-cli updates (pending)
+⏳ Phase 6: Tests (pending)
+⏳ Phase 7: Deprecation comments (pending)
+
 ## Implementation Phases
 
-### Phase 1: Add Status Fields to Query CRD
+### Phase 1: Add Status Fields to Query CRD ✅
 
 **Files to modify:**
 1. `ark/api/v1alpha1/query_types.go` - Add A2A metadata struct to QueryStatus

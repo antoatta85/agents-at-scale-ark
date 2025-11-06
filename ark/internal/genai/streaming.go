@@ -26,12 +26,25 @@ import (
 
 // StreamMetadata contains ARK-specific metadata for streaming chunks
 type StreamMetadata struct {
-	Query   string `json:"query,omitempty"`
+	// Query name - included in all chunks to identify the query
+	Query string `json:"query,omitempty"`
+	// Session ID - included in all chunks for session tracking
 	Session string `json:"session,omitempty"`
-	Target  string `json:"target,omitempty"`
-	Team    string `json:"team,omitempty"`
-	Agent   string `json:"agent,omitempty"`
-	Model   string `json:"model,omitempty"`
+	// Target identifies the original query target (e.g., "team/my-team")
+	// Included in all chunks to disambiguate responses from different targets
+	Target string `json:"target,omitempty"`
+	// Team name for team queries
+	// Included in all chunks to disambiguate responses from different team members
+	Team string `json:"team,omitempty"`
+	// Agent name for agent responses
+	// Included in all chunks to disambiguate responses from different agents
+	Agent string `json:"agent,omitempty"`
+	// Model name being used
+	// Included in all chunks to identify which model generated the response
+	Model string `json:"model,omitempty"`
+	// QueryStatus contains complete query status including phase, responses, tokenUsage, duration, and A2A metadata
+	// Only populated in the final completion chunk, not during streaming
+	QueryStatus *arkv1alpha1.QueryStatus `json:"queryStatus,omitempty"`
 }
 
 // ChunkWithMetadata wraps an OpenAI chunk with ARK metadata
@@ -41,7 +54,8 @@ type ChunkWithMetadata struct {
 }
 
 // WrapChunkWithMetadata adds ARK metadata to a streaming chunk
-func WrapChunkWithMetadata(ctx context.Context, chunk *openai.ChatCompletionChunk, modelName string) interface{} {
+// If query is provided, includes complete query status in metadata (for final chunk only)
+func WrapChunkWithMetadata(ctx context.Context, chunk *openai.ChatCompletionChunk, modelName string, query *arkv1alpha1.Query) interface{} {
 	// Build metadata from context
 	metadata := &StreamMetadata{}
 
@@ -62,12 +76,24 @@ func WrapChunkWithMetadata(ctx context.Context, chunk *openai.ChatCompletionChun
 		metadata.Model = modelName
 	}
 
-	// Add query and session IDs
+	// Add query and session IDs from context
 	if queryID := getQueryID(ctx); queryID != "" {
 		metadata.Query = queryID
 	}
 	if sessionID := getSessionID(ctx); sessionID != "" {
 		metadata.Session = sessionID
+	}
+
+	// If query is provided, include complete status (final chunk only)
+	if query != nil {
+		metadata.QueryStatus = &query.Status
+		// Override query name and session from query object if present
+		if query.Name != "" {
+			metadata.Query = query.Name
+		}
+		if query.Spec.SessionId != "" {
+			metadata.Session = query.Spec.SessionId
+		}
 	}
 
 	// If no metadata, return chunk as-is for backward compatibility

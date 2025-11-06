@@ -135,7 +135,7 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 			},
 		}
 
-		chunkWithMeta := WrapChunkWithMetadata(ctx, chunk, modelID)
+		chunkWithMeta := WrapChunkWithMetadata(ctx, chunk, modelID, nil)
 		if err := eventStream.StreamChunk(ctx, chunkWithMeta); err != nil {
 			log.Error(err, "failed to send A2A response chunk to event stream")
 		}

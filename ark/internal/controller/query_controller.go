@@ -213,18 +213,23 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	_ = r.updateStatus(opCtx, &obj, queryStatus)
 
 	duration := &metav1.Duration{Duration: time.Since(startTime)}
-	r.finalizeEventStream(opCtx, eventStream)
+	r.finalizeEventStream(opCtx, eventStream, &obj)
 	_ = r.updateStatusWithDuration(opCtx, &obj, queryStatus, duration)
 }
 
-// finalizeEventStream sends the completion message to the event stream and
-// closes its connection.
-func (r *QueryReconciler) finalizeEventStream(ctx context.Context, eventStream genai.EventStreamInterface) {
+// finalizeEventStream sends a final chunk with complete query status, then closes the stream
+func (r *QueryReconciler) finalizeEventStream(ctx context.Context, eventStream genai.EventStreamInterface, query *arkv1alpha1.Query) {
 	if eventStream == nil {
 		return
 	}
 
 	log := logf.FromContext(ctx)
+
+	// Send final chunk with complete query status including A2A metadata
+	finalChunk := genai.WrapChunkWithMetadata(ctx, nil, "", query)
+	if err := eventStream.StreamChunk(ctx, finalChunk); err != nil {
+		log.Error(err, "Failed to stream final completion chunk with query status")
+	}
 
 	// Notify event stream that streaming is complete. This ensures that
 	// clients connected to the stream receive the completion event and
