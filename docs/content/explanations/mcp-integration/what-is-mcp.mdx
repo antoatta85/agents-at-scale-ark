@@ -1,0 +1,80 @@
+---
+title: "What is MCP?"
+description: "Introduction to the Model Context Protocol and its role in Ark"
+---
+
+# What is MCP?
+
+The Model Context Protocol (MCP) is a standardized protocol for connecting AI agents to external tools and data sources.
+
+## MCP Overview
+
+MCP provides:
+- **Standardized Interface**: Common protocol for tool integration
+- **Tool Discovery**: Agents can discover available tools
+- **Server Management**: External servers manage tools
+- **Protocol-Based**: Language and framework agnostic
+
+## Why MCP?
+
+Before MCP, tool integration was:
+- Ad-hoc and inconsistent
+- Tightly coupled to specific agents
+- Difficult to discover and reuse
+- Hard to manage at scale
+
+MCP solves these by:
+- Standardizing tool interfaces
+- Enabling tool discovery
+- Decoupling tools from agents
+- Supporting multiple protocols
+
+## MCP Architecture
+
+```
+Agent → MCP Client → MCP Server → Tools
+```
+
+- **Agents**: Use tools via MCP
+- **MCP Client**: Ark's MCP integration
+- **MCP Server**: External tool provider
+- **Tools**: Actual capabilities
+
+## MCP Servers
+
+MCP servers provide:
+- Tool definitions
+- Tool execution
+- Resource access
+- Prompt templates
+
+## MCP in Ark
+
+Ark integrates MCP through:
+- **MCPServer Resources**: Connect to MCP servers
+- **Tool Discovery**: Automatically discover tools
+- **Protocol Support**: Standard MCP protocol
+- **Service Integration**: ark-mcp service handles connections
+
+## Benefits
+
+- **Reusability**: Tools can be used by multiple agents
+- **Discovery**: Agents find tools automatically
+- **Standardization**: Consistent tool interface
+- **Extensibility**: Easy to add new tools
+- **Isolation**: Tools run in separate services
+
+## Common MCP Servers
+
+- **Filesystem MCP**: File operations
+- **Database MCP**: Database queries
+- **API MCP**: REST API wrappers
+- **Custom MCP**: Your own servers
+
+## Getting Started
+
+1. Deploy an MCP server
+2. Create an MCPServer resource
+3. Tools are automatically available
+4. Agents can use tools via references
+

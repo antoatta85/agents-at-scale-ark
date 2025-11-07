@@ -1,0 +1,126 @@
+---
+title: "Core Resource Model"
+description: "Understanding Ark's fundamental resources and how they relate"
+---
+
+# Core Resource Model
+
+Ark's architecture is built around a set of core resources that work together to create agentic systems.
+
+## Resource Hierarchy
+
+```
+Models
+  ↓
+Agents (use Models, Tools)
+  ↓
+Teams (use Agents)
+  ↓
+Queries (target Agents or Teams)
+```
+
+## Core Resources
+
+### Models
+
+Define AI model configurations and connections.
+
+- Specify model providers (OpenAI, Anthropic, etc.)
+- Configure API endpoints and authentication
+- Set model parameters (temperature, max tokens, etc.)
+
+### Agents
+
+Represent individual AI agents with specific capabilities.
+
+- Reference models for AI capabilities
+- Attach tools for external actions
+- Configure prompts and behavior
+- Define memory and context management
+
+### Teams
+
+Orchestrate multiple agents working together.
+
+- Define team members (agents or other teams)
+- Choose coordination strategies (sequential, round-robin, etc.)
+- Configure communication patterns
+- Set execution limits and timeouts
+
+### Queries
+
+Represent user interactions and agent executions.
+
+- Target agents or teams
+- Provide input and context
+- Track execution status
+- Store responses and results
+
+### Tools
+
+Define capabilities agents can use.
+
+- REST API integrations
+- MCP server connections
+- Custom function definitions
+- Parameter schemas and validation
+
+### MCPServers
+
+Connect to Model Context Protocol servers.
+
+- External tool providers
+- Standardized tool discovery
+- Protocol-based integration
+
+### Memory
+
+Persistent storage for agent state.
+
+- Conversation history
+- Agent memory and context
+- Long-term knowledge storage
+
+### Evaluators
+
+Services for testing and validation.
+
+- Evaluation criteria definition
+- Automated testing
+- Performance scoring
+
+## Resource Relationships
+
+Resources reference each other using Kubernetes references:
+
+```yaml
+# Agent references a Model
+spec:
+  modelRef:
+    name: default-model
+
+# Team references Agents
+spec:
+  members:
+    - name: agent-1
+      agentRef:
+        name: researcher-agent
+```
+
+## Resource Lifecycle
+
+1. **Creation**: Resources are created via kubectl or API
+2. **Validation**: Ark controller validates configuration
+3. **Reconciliation**: Controller ensures desired state
+4. **Execution**: Resources are used during query execution
+5. **Updates**: Changes trigger reconciliation
+6. **Deletion**: Cleanup of associated resources
+
+## Benefits of Resource Model
+
+- **Declarative**: Define desired state, not implementation
+- **Composable**: Build complex systems from simple resources
+- **Observable**: All resources are Kubernetes objects with status
+- **Testable**: Resources can be validated independently
+- **Versionable**: Track changes through Git
+

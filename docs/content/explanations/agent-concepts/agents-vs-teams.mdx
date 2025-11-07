@@ -1,0 +1,92 @@
+---
+title: "Agents vs Teams"
+description: "Understanding when to use individual agents versus multi-agent teams"
+---
+
+# Agents vs Teams
+
+Understanding when to use a single agent versus a team of agents is crucial for building effective agentic systems.
+
+## Single Agents
+
+Use a single agent when:
+
+- **Simple Tasks**: The task can be completed by one agent
+- **Specialized Work**: One agent has all required capabilities
+- **Low Complexity**: No need for coordination or handoffs
+- **Cost Efficiency**: Minimize token usage and compute
+
+### Example Use Cases
+
+- Answering questions
+- Generating content
+- Simple data processing
+- Single-step tool execution
+
+## Multi-Agent Teams
+
+Use teams when:
+
+- **Complex Workflows**: Tasks require multiple steps or stages
+- **Specialized Roles**: Different agents have different expertise
+- **Parallel Processing**: Multiple agents can work simultaneously
+- **Quality Assurance**: One agent validates another's work
+
+### Example Use Cases
+
+- Research and analysis workflows
+- Code review and testing
+- Multi-stage content creation
+- Complex problem solving
+
+## Team Strategies
+
+### Sequential
+
+Agents execute one after another, passing results forward.
+
+**Use when**: Workflows have clear stages or dependencies.
+
+### Round-Robin
+
+Agents take turns handling requests.
+
+**Use when**: Load balancing or equal participation is needed.
+
+### Graph-Based
+
+Agents are organized in a graph with conditional routing.
+
+**Use when**: Complex decision-making and routing is required.
+
+### Selector
+
+A selector agent chooses which agent to use.
+
+**Use when**: Dynamic agent selection based on context.
+
+## Decision Framework
+
+Ask these questions:
+
+1. **Can one agent do it?** → Use single agent
+2. **Does it need multiple steps?** → Use team
+3. **Do steps depend on each other?** → Sequential team
+4. **Can steps run in parallel?** → Graph or round-robin
+5. **Is dynamic selection needed?** → Selector strategy
+
+## Cost Considerations
+
+- **Single Agent**: Lower token usage, simpler execution
+- **Teams**: Higher token usage, more complex but more capable
+
+Balance capability needs with cost constraints.
+
+## Best Practices
+
+- Start with a single agent
+- Add teams when complexity requires it
+- Use specialized agents for specific tasks
+- Monitor token usage and optimize
+- Test both approaches for your use case
+

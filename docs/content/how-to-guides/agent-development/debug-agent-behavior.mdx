@@ -1,0 +1,72 @@
+---
+title: "Debug Agent Behavior"
+description: "How to debug and troubleshoot agent issues"
+---
+
+# Debug Agent Behavior
+
+This guide helps you debug agent behavior and resolve issues.
+
+## Check Agent Status
+
+```bash
+# List all agents
+kubectl get agents
+
+# Get detailed agent information
+kubectl describe agent <agent-name>
+
+# View agent configuration
+kubectl get agent <agent-name> -o yaml
+```
+
+## Review Agent Logs
+
+```bash
+# View agent logs
+kubectl logs -l app=<agent-name>
+
+# Follow logs in real-time
+kubectl logs -f -l app=<agent-name>
+```
+
+## Verify Agent Configuration
+
+- Check model references are correct
+- Verify tool references exist
+- Confirm prompt configuration
+- Validate resource limits
+
+## Test Agent Execution
+
+```bash
+# Create a test query
+kubectl apply -f test-query.yaml
+
+# Monitor query execution
+kubectl get queries -w
+
+# View query results
+kubectl get query <query-name> -o yaml
+```
+
+## Common Issues
+
+### Agent Not Ready
+
+- Check model is available
+- Verify tool connections
+- Review agent configuration
+- Check resource limits
+
+### Agent Errors
+
+- Review error messages
+- Check agent logs
+- Verify inputs
+- Test with simple queries
+
+## Getting More Help
+
+See the [Troubleshooting Guide](../../community/getting-help/troubleshooting) for more help.
+

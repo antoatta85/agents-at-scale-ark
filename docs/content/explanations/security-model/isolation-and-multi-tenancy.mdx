@@ -1,0 +1,89 @@
+---
+title: "Isolation and Multi-Tenancy"
+description: "How Ark isolates resources and supports multiple tenants"
+---
+
+# Isolation and Multi-Tenancy
+
+Ark provides strong isolation between tenants and workloads to ensure security and reliability.
+
+## Multi-Tenancy Overview
+
+Multi-tenancy allows:
+- Multiple users on shared infrastructure
+- Resource isolation
+- Security boundaries
+- Independent operation
+
+## Isolation Mechanisms
+
+### Namespace Isolation
+
+Kubernetes namespaces provide:
+- Resource separation
+- Network isolation
+- Access control
+- Resource quotas
+
+### Network Policies
+
+Control network traffic:
+- Pod-to-pod communication
+- Ingress and egress rules
+- Service mesh integration
+
+### Resource Limits
+
+Control resource usage:
+- CPU limits
+- Memory limits
+- Storage quotas
+- Rate limiting
+
+### Security Contexts
+
+Pod security policies:
+- User IDs
+- Capabilities
+- SELinux/AppArmor
+- Read-only filesystems
+
+## Tenant Model
+
+Each tenant has:
+- **Namespace**: Isolated resource space
+- **Resources**: Agents, teams, queries
+- **Access Control**: RBAC policies
+- **Quotas**: Resource limits
+
+## Isolation Benefits
+
+### Security
+
+- Prevent data leakage
+- Enforce access control
+- Isolate failures
+- Audit access
+
+### Reliability
+
+- Isolate failures
+- Prevent resource exhaustion
+- Independent scaling
+- Fault tolerance
+
+### Cost Efficiency
+
+- Shared infrastructure
+- Resource optimization
+- Cost allocation
+- Efficient utilization
+
+## Best Practices
+
+- **Use Namespaces**: Separate tenants by namespace
+- **Set Quotas**: Limit resource usage
+- **Network Policies**: Control network access
+- **Monitor Usage**: Track resource consumption
+- **Regular Audits**: Verify isolation
+

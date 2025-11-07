@@ -1,0 +1,63 @@
+---
+title: "Authentication Concepts"
+description: "How Ark handles authentication and identity"
+---
+
+# Authentication Concepts
+
+Understanding authentication is crucial for securing your Ark deployment.
+
+## Authentication Overview
+
+Authentication verifies:
+- Who is making requests
+- What credentials they have
+- Whether they are authorized
+
+## Authentication Methods
+
+### API Keys
+
+Simple key-based authentication:
+- Service-to-service communication
+- CLI tool access
+- Automated systems
+
+### OAuth 2.0
+
+Standard authorization framework:
+- User authentication
+- Third-party integrations
+- Token-based access
+
+### Kubernetes Service Accounts
+
+Native Kubernetes authentication:
+- Pod-to-pod communication
+- Service mesh integration
+- RBAC integration
+
+## Authentication Flow
+
+1. **Request**: Client makes authenticated request
+2. **Validation**: Ark validates credentials
+3. **Identity**: Ark determines identity
+4. **Authorization**: Ark checks permissions
+5. **Execution**: Request proceeds if authorized
+
+## Multi-Tenancy
+
+Ark supports multiple tenants:
+- Isolated namespaces
+- Per-tenant authentication
+- Resource isolation
+- Access control
+
+## Best Practices
+
+- **Use Strong Credentials**: Secure API keys and tokens
+- **Rotate Regularly**: Update credentials periodically
+- **Limit Scope**: Minimum required permissions
+- **Monitor Access**: Track authentication attempts
+- **Fail Securely**: Deny by default
+

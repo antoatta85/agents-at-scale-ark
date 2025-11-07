@@ -1,0 +1,93 @@
+---
+title: "Common Errors"
+description: "Common error messages and their solutions"
+---
+
+# Common Errors
+
+Reference guide for common error messages and how to resolve them.
+
+## Resource Errors
+
+### "Resource not found"
+
+**Cause:** Referenced resource doesn't exist
+
+**Solution:** Create the resource or fix the reference
+
+### "Invalid resource reference"
+
+**Cause:** Resource reference is incorrect
+
+**Solution:** Verify reference name and namespace
+
+## Configuration Errors
+
+### "Invalid configuration"
+
+**Cause:** Resource configuration has errors
+
+**Solution:** Check YAML syntax and required fields
+
+### "Missing required field"
+
+**Cause:** Required configuration field is missing
+
+**Solution:** Add the required field to configuration
+
+## Execution Errors
+
+### "Agent not ready"
+
+**Cause:** Agent is not in ready state
+
+**Solution:** Check agent status and resolve issues
+
+### "Model connection failed"
+
+**Cause:** Can't connect to AI model
+
+**Solution:** Verify model credentials and endpoint
+
+### "Tool execution failed"
+
+**Cause:** Tool call failed
+
+**Solution:** Check tool configuration and connectivity
+
+## Network Errors
+
+### "Connection timeout"
+
+**Cause:** Network connection timed out
+
+**Solution:** Check network connectivity and firewall rules
+
+### "Service unavailable"
+
+**Cause:** Required service is not available
+
+**Solution:** Verify service is running and accessible
+
+## Authentication Errors
+
+### "Authentication failed"
+
+**Cause:** Invalid credentials
+
+**Solution:** Verify API keys and authentication configuration
+
+### "Unauthorized access"
+
+**Cause:** Insufficient permissions
+
+**Solution:** Check RBAC configuration and permissions
+
+## Getting Help
+
+For more help with errors:
+- Check the [Troubleshooting Guide](./troubleshooting)
+- Review error logs: `kubectl logs`
+- Check events: `kubectl get events`
+- Search GitHub Issues
+

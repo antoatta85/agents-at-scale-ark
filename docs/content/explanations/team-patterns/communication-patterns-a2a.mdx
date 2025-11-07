@@ -1,0 +1,78 @@
+---
+title: "Communication Patterns (A2A)"
+description: "How agents communicate with each other using the Agent-to-Agent protocol"
+---
+
+# Communication Patterns (A2A)
+
+The Agent-to-Agent (A2A) protocol enables agents to communicate and coordinate with each other.
+
+## A2A Overview
+
+A2A provides:
+- **Standardized Protocol**: Common communication format
+- **Service Discovery**: Agents find each other
+- **Message Passing**: Structured message exchange
+- **Coordination**: Team member coordination
+
+## Communication Flow
+
+1. **Agent Initiates**: Agent decides to communicate
+2. **Service Discovery**: Find target agent service
+3. **Message Sent**: Structured message transmitted
+4. **Agent Receives**: Target agent receives message
+5. **Response Generated**: Agent processes and responds
+6. **Response Returned**: Response sent back
+
+## Message Types
+
+### Query Messages
+
+Agents query other agents:
+- Request information
+- Ask for help
+- Delegate tasks
+
+### Response Messages
+
+Agents respond to queries:
+- Provide information
+- Return results
+- Acknowledge requests
+
+### Event Messages
+
+Agents notify each other:
+- Status updates
+- Completion notifications
+- Error reports
+
+## A2A Servers
+
+A2A servers handle:
+- Message routing
+- Service discovery
+- Protocol translation
+- Error handling
+
+## Benefits
+
+- **Decoupling**: Agents don't need direct connections
+- **Scalability**: Handle many agent communications
+- **Reliability**: Built-in retry and error handling
+- **Observability**: Track all communications
+
+## Use Cases
+
+- Team coordination
+- Agent delegation
+- Multi-agent workflows
+- Distributed agent systems
+
+## Best Practices
+
+- Use A2A for agent-to-agent communication
+- Keep messages structured and clear
+- Handle errors gracefully
+- Monitor communication patterns
+

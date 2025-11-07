@@ -1,0 +1,68 @@
+---
+title: "Team Strategies Explained"
+description: "Understanding different team coordination strategies and when to use them"
+---
+
+# Team Strategies Explained
+
+Team strategies determine how multiple agents coordinate and communicate when working together.
+
+## Sequential Strategy
+
+Agents execute one after another in a fixed order.
+
+**Use when:**
+- Workflows have clear stages
+- Each step depends on the previous
+- Linear processing is required
+
+**Example:** Research → Analysis → Creation
+
+## Round-Robin Strategy
+
+Agents take turns handling requests in rotation.
+
+**Use when:**
+- Load balancing is needed
+- Equal participation is desired
+- Requests are independent
+
+**Example:** Customer support agents sharing workload
+
+## Graph-Based Strategy
+
+Agents are organized in a graph with conditional routing.
+
+**Use when:**
+- Complex decision-making is needed
+- Conditional workflows
+- Dynamic routing required
+
+**Example:** Multi-path analysis with branching logic
+
+## Selector Strategy
+
+A selector agent chooses which agent to use for each request.
+
+**Use when:**
+- Dynamic agent selection
+- Context-dependent routing
+- Specialized agent selection
+
+**Example:** Routing requests to specialized experts
+
+## Choosing a Strategy
+
+Consider:
+- **Workflow Structure**: Linear or branching?
+- **Dependencies**: Do steps depend on each other?
+- **Parallelism**: Can steps run simultaneously?
+- **Decision Making**: Is routing dynamic?
+
+## Best Practices
+
+- Start simple with sequential
+- Use round-robin for load balancing
+- Use graph for complex workflows
+- Use selector for dynamic routing
+

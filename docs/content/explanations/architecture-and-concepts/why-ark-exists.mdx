@@ -1,0 +1,58 @@
+---
+title: "Why Ark Exists"
+description: "Understanding the problems Ark solves and when to use it"
+---
+
+# Why Ark Exists
+
+Ark was created to solve specific challenges in building and operating agentic AI systems at scale.
+
+## The Problem
+
+Building production-ready agentic systems involves many complex challenges:
+
+- **Orchestration Complexity**: Coordinating multiple agents, tools, and services
+- **State Management**: Persisting conversations and agent memory across sessions
+- **Resource Management**: Managing compute resources, costs, and scaling
+- **Observability**: Understanding what agents are doing and why
+- **Reliability**: Handling failures, retries, and error recovery
+- **Security**: Isolating agents, managing access, and protecting data
+
+## What Ark Provides
+
+Ark addresses these challenges by providing:
+
+- **Kubernetes-Native Platform**: Leverages Kubernetes for orchestration, scaling, and resource management
+- **Declarative Configuration**: Define agents, teams, and tools as code using CRDs
+- **Built-in Evaluation**: Test and validate agent behavior systematically
+- **Standardized Patterns**: Proven patterns for common agentic use cases
+- **Production-Ready**: Designed for reliability, observability, and security from the start
+
+## When to Use Ark
+
+Ark is ideal when you need to:
+
+- Deploy agents to production environments
+- Coordinate multiple agents working together
+- Manage agent lifecycles at scale
+- Integrate with existing Kubernetes infrastructure
+- Build reliable, observable agentic systems
+
+## When Not to Use Ark
+
+Consider alternatives if you:
+
+- Only need simple, single-agent use cases
+- Prefer serverless or managed platforms
+- Don't have Kubernetes infrastructure
+- Need rapid prototyping without production concerns
+
+## Comparison to Alternatives
+
+Ark differs from frameworks like LangGraph or Autogen by:
+
+- **Kubernetes-Native**: Built for production Kubernetes deployments
+- **Declarative**: Configuration-driven rather than code-driven
+- **Evaluation-First**: Built-in evaluation and testing capabilities
+- **Multi-Tenant**: Designed for shared infrastructure and isolation
+

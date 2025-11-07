@@ -1,0 +1,84 @@
+---
+title: "Authorization and RBAC"
+description: "How Ark controls access to resources using role-based access control"
+---
+
+# Authorization and RBAC
+
+Authorization determines what authenticated users can do in Ark.
+
+## Authorization Overview
+
+Authorization answers:
+- What resources can users access?
+- What actions can they perform?
+- What data can they see?
+
+## RBAC Model
+
+Role-Based Access Control (RBAC) provides:
+- **Roles**: Collections of permissions
+- **Users**: Individuals or services
+- **Bindings**: Connect users to roles
+
+## Ark RBAC
+
+Ark uses Kubernetes RBAC:
+- Standard Kubernetes roles
+- Custom Ark roles
+- Namespace-scoped permissions
+- Cluster-scoped permissions
+
+## Common Roles
+
+### End User
+
+Can:
+- Create queries
+- View own resources
+- Execute agents
+
+Cannot:
+- Modify agents
+- Access other users' resources
+- Administer system
+
+### Agent Builder
+
+Can:
+- Create and modify agents
+- Create teams
+- Configure tools
+
+Cannot:
+- Modify system configuration
+- Access other tenants
+- Deploy infrastructure
+
+### Platform Engineer
+
+Can:
+- Deploy Ark
+- Configure infrastructure
+- Manage system resources
+
+Cannot:
+- Access user data
+- Modify user resources
+- Bypass security
+
+## Namespace Isolation
+
+Resources are isolated by namespace:
+- Each tenant has a namespace
+- Resources cannot cross namespaces
+- Access is namespace-scoped
+
+## Best Practices
+
+- **Principle of Least Privilege**: Minimum required permissions
+- **Regular Audits**: Review permissions periodically
+- **Separate Environments**: Different permissions for dev/prod
+- **Monitor Access**: Track authorization decisions
+- **Document Policies**: Clear access policies
+

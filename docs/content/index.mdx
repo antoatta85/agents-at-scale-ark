@@ -4,7 +4,7 @@ sidebarTitle: Introduction
 
 # Ark - Agentic Runtime for Kubernetes
 
-ARK is an Kubernetes-based platform that provides a runtime and enables management and orchestration of AI agents and their resources. It provides custom resource definitions (CRDs) and services to handle:
+ARK is a Kubernetes-based platform that provides a runtime and enables management and orchestration of AI agents and their resources. It provides custom resource definitions (CRDs) and services to handle:
 
 - AI model configurations
 - Autonomous agents
@@ -13,8 +13,6 @@ ARK is an Kubernetes-based platform that provides a runtime and enables manageme
 - Memory persistence
 - Performance evaluation
 
-Follow the [Quickstart](./quickstart.mdx) guide to install Ark locally.
-
 > [!NOTE]
 >
 > The Agents at Scale - Agentic platform and runtime for Kubernetes ("Ark") Technical Preview should **not** be run without reading the [Disclaimer](./disclaimer.mdx), which covers key risk topics.
@@ -22,6 +20,42 @@ Follow the [Quickstart](./quickstart.mdx) guide to install Ark locally.
 > We are transitioning this project to our open-source repository. During this process we will be moving documentation URLs, artifact registries, etc. Some builds, artifacts and pipelines may be impacted.
 
 Build, deploy and operate agentic solutions using proven patterns and practices that are reliable for complex distributed systems.
+
+## Choose Your Path
+
+Ark serves different personas with distinct needs. Choose the path that matches your role:
+
+### 🎯 End Users
+**I want to understand agentic patterns and use pre-built agents**
+
+- Start with: [Quickstart](./quickstart.mdx)
+- Learn: [Tutorials](./tutorials)
+- Use: [How-to Guides - Agent Development](./how-to-guides/agent-development)
+- Understand: [Explanations - Agent Concepts](./explanations/agent-concepts)
+
+### 🛠️ Agent Builders
+**I want to build my first agent and create custom agents**
+
+- Start with: [Build Your First Agent](./tutorials/build-your-first-agent)
+- Learn: [Tutorials](./tutorials)
+- Build: [How-to Guides - Agent Development](./how-to-guides/agent-development)
+- Understand: [Explanations](./explanations)
+
+### 🚀 Platform Engineers
+**I want to deploy and operate Ark in production**
+
+- Start with: [Deploy to Kubernetes](./tutorials/deploy-to-kubernetes)
+- Deploy: [How-to Guides - Operations](./how-to-guides/operations)
+- Understand: [Explanations - Architecture](./explanations/architecture-and-concepts)
+- Reference: [Reference Documentation](./reference)
+
+### 💻 Contributors
+**I want to contribute to Ark and extend the platform**
+
+- Start with: [Development Setup](./community/contributing/development-setup)
+- Develop: [How-to Guides - Development](./how-to-guides/development)
+- Contribute: [Contributing Guide](./community/contributing/contributing-guide)
+- Understand: [Design Principles](./explanations/design-principles)
 
 ## Key Features
 
@@ -33,43 +67,29 @@ Build, deploy and operate agentic solutions using proven patterns and practices 
 - Multi-agent coordination
 - Custom headers support (for e.g. request tracing, custom metadata)
 
-
 ## Architecture
 
 ![High-level architecture diagram](./images/high-level-architecture.png)
 
-## Core Resources
+Learn more about Ark's architecture in the [Architecture and Concepts](./explanations/architecture-and-concepts) section.
 
-- [**Models**](./user-guide/models/): Configure and connect to AI models. 
-- [**Agents**](./user-guide/agents/): Create autonomous AI agents with specific capabilities and tools
-- [**Teams**](./user-guide/teams/): Orchestrate multiple agents working together with coordination strategies
-- [**Queries**](./user-guide/queries/): Execute prompts and manage conversations with agents or teams
-- [**Tools**](./user-guide/tools/): Define custom tools and MCP tool references for agents
-- [**MCPServers**](./user-guide/tools/): Configure Model Context Protocol servers for external integrations
-- **Memory**: Persistent storage for agent conversations and state
-- **Evaluator**: Services for assessing and scoring agent performance
-- **Evaluation**: Define evaluation configurations and results
-- **ExecutionEngine**: Specialized runtimes for different agent frameworks
-- **A2AServer**: Agent-to-agent communication services
+## Documentation Structure
 
-## MCP Servers
+Our documentation follows the Diataxis framework:
 
-- **filesystem-mcp**: File system operations and management
+- **[Tutorials](./tutorials)**: Step-by-step learning paths
+- **[How-to Guides](./how-to-guides)**: Task-oriented problem solving
+- **[Explanations](./explanations)**: Understanding concepts and design decisions
+- **[Reference](./reference)**: Technical specifications and APIs
+- **[Examples](./examples)**: Sample code and configurations
+- **[Community](./community)**: Getting help and contributing
 
-## Services
+## Quick Links
 
-- **ark-api**: REST API for managing ARK resources
-- **ark-api-a2a**: Agent-to-agent communication gateway
-- **ark-dashboard**: Web-based management interface
-- **ark-mcp**: MCP server integration service
-- **ark-evaluator**: Holistic evaluation and scoring service
-- **localhost-gateway**: Local development gateway (only on local)
-- **ark-cluster-memory**: Memory storage with streaming support
-
-## Sample Services
-
-- **langfuse**: Observability and tracing service
-- **executor-langchain**: LangChain agent execution engine
+- [Quickstart Guide](./quickstart.mdx) - Get started in minutes
+- [Why Ark Exists](./explanations/architecture-and-concepts/why-ark-exists) - Understand the problems Ark solves
+- [Kubernetes-Native Design](./explanations/architecture-and-concepts/kubernetes-native-design) - Learn why Kubernetes
+- [Core Resources](./explanations/architecture-and-concepts/core-resource-model) - Understand Ark's resource model
 
 ## Credits
 

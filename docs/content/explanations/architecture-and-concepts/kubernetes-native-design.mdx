@@ -1,0 +1,85 @@
+---
+title: "Kubernetes-Native Design"
+description: "Why Ark uses Kubernetes and what benefits this provides"
+---
+
+# Kubernetes-Native Design
+
+Ark is built on Kubernetes to leverage its proven capabilities for managing distributed systems.
+
+## Why Kubernetes?
+
+Kubernetes provides essential capabilities that agentic systems need:
+
+- **Orchestration**: Automatically schedule and manage agent workloads
+- **Scaling**: Scale agents up and down based on demand
+- **Resource Management**: Control CPU, memory, and other resources
+- **Service Discovery**: Agents can find and communicate with each other
+- **Configuration Management**: Declarative configuration with ConfigMaps and Secrets
+- **Health Monitoring**: Built-in health checks and automatic recovery
+- **Multi-Tenancy**: Isolate different users and workloads
+
+## Benefits of Kubernetes-Native Architecture
+
+### Declarative Configuration
+
+Define your entire agentic system as YAML manifests:
+
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: my-agent
+spec:
+  # Agent configuration
+```
+
+### Automatic Lifecycle Management
+
+Kubernetes handles:
+- Starting and stopping agents
+- Restarting failed agents
+- Updating agent configurations
+- Rolling out changes safely
+
+### Resource Isolation
+
+Each agent runs in its own pod with:
+- Isolated compute resources
+- Network policies for security
+- Storage volumes for persistence
+- Resource limits and requests
+
+### Observability
+
+Kubernetes provides:
+- Log aggregation
+- Metrics collection
+- Event tracking
+- Distributed tracing support
+
+## CRD-Based Architecture
+
+Ark uses Custom Resource Definitions (CRDs) to extend Kubernetes with agentic concepts:
+
+- **Agents**: Represent individual AI agents
+- **Teams**: Represent multi-agent orchestrations
+- **Queries**: Represent user interactions
+- **Tools**: Represent agent capabilities
+- **Models**: Represent AI model configurations
+
+This approach provides:
+- Native Kubernetes integration
+- Standard tooling support (kubectl, Helm, etc.)
+- Declarative management
+- GitOps compatibility
+
+## Integration with Kubernetes Ecosystem
+
+Ark works seamlessly with:
+- **Helm**: Package and deploy Ark applications
+- **Kustomize**: Manage environment-specific configurations
+- **ArgoCD/Flux**: GitOps deployment workflows
+- **Prometheus/Grafana**: Monitoring and alerting
+- **Istio/Linkerd**: Service mesh for advanced networking
+

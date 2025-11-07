@@ -1,0 +1,148 @@
+---
+title: "Troubleshooting"
+description: "Common issues and how to resolve them"
+---
+
+# Troubleshooting
+
+This guide helps you diagnose and resolve common issues with Ark.
+
+## Installation Issues
+
+### Ark installation fails
+
+**Symptoms:** `ark install` command fails
+
+**Solutions:**
+- Verify Kubernetes cluster is running: `kubectl cluster-info`
+- Check cluster resources: `kubectl top nodes`
+- Review installation logs
+- Ensure Helm is installed: `helm version`
+
+### Dependencies missing
+
+**Symptoms:** Installation warns about missing dependencies
+
+**Solutions:**
+- Install required dependencies (cert-manager, gateway-api)
+- Or disable with environment variables: `ENABLE_CERT_MANAGER=false`
+
+## Agent Issues
+
+### Agent not responding
+
+**Symptoms:** Queries to agent timeout or fail
+
+**Solutions:**
+- Check agent status: `kubectl get agents`
+- Verify agent configuration: `kubectl describe agent <name>`
+- Check model is ready: `kubectl get models`
+- Review agent logs: `kubectl logs -l app=<agent-name>`
+
+### Agent errors
+
+**Symptoms:** Agent returns errors or fails
+
+**Solutions:**
+- Check agent configuration for errors
+- Verify model credentials are correct
+- Review agent logs for details
+- Check resource limits
+
+## Query Issues
+
+### Query not completing
+
+**Symptoms:** Query stays in "Running" state
+
+**Solutions:**
+- Check query status: `kubectl describe query <name>`
+- Verify target agent/team exists
+- Check for timeout settings
+- Review controller logs
+
+### Query fails
+
+**Symptoms:** Query status shows "Failed"
+
+**Solutions:**
+- Check query events: `kubectl get events --field-selector involvedObject.name=<query-name>`
+- Verify input format is correct
+- Check agent/team is ready
+- Review error messages in query status
+
+## Team Issues
+
+### Team not coordinating
+
+**Symptoms:** Team members don't communicate
+
+**Solutions:**
+- Verify team strategy is correct
+- Check team member references
+- Verify A2A server is running
+- Review team configuration
+
+### Team execution fails
+
+**Symptoms:** Team queries fail or timeout
+
+**Solutions:**
+- Check all team members are ready
+- Verify team strategy configuration
+- Check for circular dependencies
+- Review team logs
+
+## Tool Issues
+
+### Tool not available
+
+**Symptoms:** Agent can't find tool
+
+**Solutions:**
+- Verify tool resource exists: `kubectl get tools`
+- Check tool is ready: `kubectl describe tool <name>`
+- Verify tool references in agent
+- Check MCP server connection if using MCP tools
+
+### Tool execution fails
+
+**Symptoms:** Tool calls fail
+
+**Solutions:**
+- Check tool configuration
+- Verify tool endpoint is accessible
+- Check authentication credentials
+- Review tool logs
+
+## Model Issues
+
+### Model connection fails
+
+**Symptoms:** Can't connect to AI model
+
+**Solutions:**
+- Verify model credentials
+- Check API endpoint is correct
+- Verify network connectivity
+- Check API rate limits
+
+### Model not responding
+
+**Symptoms:** Model API calls timeout
+
+**Solutions:**
+- Check model service status
+- Verify API key is valid
+- Check rate limits
+- Review model configuration
+
+## Getting More Help
+
+If you're still experiencing issues:
+
+1. Check the [FAQ](./faq)
+2. Review [Reference Documentation](../reference)
+3. Search [GitHub Issues](https://github.com/mckinsey/agents-at-scale-ark/issues)
+4. Ask for help in community channels
+

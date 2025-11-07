@@ -1,0 +1,130 @@
+---
+title: "Why MCP in Ark?"
+description: "How MCP fits into Ark's architecture and design philosophy"
+---
+
+# Why MCP in Ark?
+
+Ark uses MCP to provide a standardized, extensible way for agents to access external tools and capabilities.
+
+## Design Alignment
+
+MCP aligns with Ark's design principles:
+
+### Open Standards
+
+MCP is an open protocol, supporting Ark's commitment to open source technologies.
+
+### Extensibility
+
+MCP enables easy extension of agent capabilities without modifying core Ark code.
+
+### Decoupling
+
+MCP decouples tools from agents, allowing independent development and deployment.
+
+### Standardization
+
+MCP provides a consistent interface for all tools, regardless of implementation.
+
+## Architecture Benefits
+
+### Tool Isolation
+
+Tools run in separate MCP servers:
+- Isolated failures
+- Independent scaling
+- Security boundaries
+- Resource management
+
+### Tool Discovery
+
+Agents automatically discover available tools:
+- No manual configuration
+- Dynamic tool availability
+- Version management
+- Capability negotiation
+
+### Multi-Tenancy
+
+MCP supports multi-tenant tool access:
+- Shared tool servers
+- Per-tenant isolation
+- Access control
+- Resource limits
+
+## Integration Points
+
+### MCPServer Resource
+
+Kubernetes-native resource for MCP servers:
+- Declarative configuration
+- Lifecycle management
+- Status tracking
+- Health monitoring
+
+### Tool References
+
+Agents reference MCP tools:
+- Simple tool selection
+- Automatic discovery
+- Type safety
+- Validation
+
+### ark-mcp Service
+
+Ark's MCP integration service:
+- Protocol handling
+- Connection management
+- Tool routing
+- Error handling
+
+## Use Cases
+
+### External Integrations
+
+Connect to external services:
+- APIs
+- Databases
+- File systems
+- Cloud services
+
+### Custom Tools
+
+Build custom capabilities:
+- Business logic
+- Specialized operations
+- Internal services
+- Domain-specific tools
+
+### Tool Sharing
+
+Share tools across agents:
+- Reusable capabilities
+- Consistent interfaces
+- Centralized management
+- Version control
+
+## Comparison to Direct Tools
+
+### MCP Tools
+
+- Standardized protocol
+- Server-managed
+- Automatic discovery
+- Isolated execution
+
+### Direct Tools
+
+- Custom implementation
+- Agent-coupled
+- Manual configuration
+- In-process execution
+
+## Best Practices
+
+- Use MCP for external tools
+- Use direct tools for simple, agent-specific needs
+- Prefer MCP for reusable tools
+- Consider MCP for complex tools
+

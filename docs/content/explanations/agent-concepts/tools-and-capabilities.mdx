@@ -1,0 +1,118 @@
+---
+title: "Tools and Capabilities"
+description: "How agents use tools to extend their capabilities beyond language"
+---
+
+# Tools and Capabilities
+
+Tools enable agents to interact with the world beyond language, extending their capabilities significantly.
+
+## What Are Tools?
+
+Tools are functions agents can call to:
+- Access external APIs
+- Perform computations
+- Interact with systems
+- Execute actions
+
+## Tool Types
+
+### REST API Tools
+
+Connect to HTTP-based services:
+- Web APIs
+- Microservices
+- External platforms
+- Cloud services
+
+### MCP Tools
+
+Model Context Protocol tools:
+- Standardized tool discovery
+- Protocol-based integration
+- External tool providers
+- Server-managed tools
+
+### Custom Functions
+
+Define custom capabilities:
+- Business logic
+- Data transformations
+- Internal services
+- Specialized operations
+
+## Tool Schema
+
+Tools define their interface:
+
+```yaml
+spec:
+  schema:
+    type: object
+    properties:
+      query:
+        type: string
+        description: "Search query"
+```
+
+## Tool Execution
+
+When agents use tools:
+
+1. **Agent Decides**: Agent determines tool is needed
+2. **Tool Called**: Agent invokes tool with parameters
+3. **Tool Executes**: Tool performs action
+4. **Result Returned**: Tool returns result to agent
+5. **Agent Continues**: Agent uses result in response
+
+## Tool Discovery
+
+Agents discover available tools through:
+- Direct tool references
+- MCP server connections
+- Tool registries
+- Dynamic discovery
+
+## Best Practices
+
+- **Keep Tools Focused**: Each tool should do one thing well
+- **Validate Inputs**: Ensure tool parameters are correct
+- **Handle Errors**: Tools should fail gracefully
+- **Document Tools**: Clear descriptions help agents use them
+- **Test Tools**: Verify tools work independently
+
+## Tool Security
+
+Consider security when using tools:
+- Validate inputs
+- Sanitize outputs
+- Control access
+- Monitor usage
+- Rate limit calls
+
+## Tool Patterns
+
+### Search Tools
+
+Enable agents to search:
+- Web search
+- Database queries
+- Document search
+- Knowledge bases
+
+### Action Tools
+
+Enable agents to perform actions:
+- Create resources
+- Update systems
+- Send notifications
+- Trigger workflows
+
+### Analysis Tools
+
+Enable agents to analyze:
+- Data processing
+- Code analysis
+- Content analysis
+- Performance metrics
+

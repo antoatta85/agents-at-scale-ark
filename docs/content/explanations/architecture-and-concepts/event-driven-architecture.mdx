@@ -1,0 +1,96 @@
+---
+title: "Event-Driven Architecture"
+description: "How Ark uses events to coordinate agent execution and provide observability"
+---
+
+# Event-Driven Architecture
+
+Ark uses an event-driven architecture to coordinate agent execution and provide comprehensive observability.
+
+## Event Model
+
+Ark emits events at key points in the agent lifecycle:
+
+- **Query Started**: When a query begins execution
+- **Agent Invoked**: When an agent is called
+- **Tool Executed**: When a tool is used
+- **Response Generated**: When an agent produces output
+- **Query Completed**: When execution finishes
+- **Errors**: When failures occur
+
+## Event Benefits
+
+### Observability
+
+Events provide visibility into:
+- What agents are doing
+- When actions occur
+- How long operations take
+- What errors occur
+
+### Debugging
+
+Events help debug issues by:
+- Tracing execution flow
+- Identifying failure points
+- Understanding timing
+- Correlating related actions
+
+### Evaluation
+
+Events enable evaluation by:
+- Capturing agent behavior
+- Recording inputs and outputs
+- Tracking performance metrics
+- Supporting automated testing
+
+## Event Types
+
+### Query Events
+
+Track query lifecycle:
+- Query created
+- Query started
+- Query completed
+- Query failed
+
+### Agent Events
+
+Track agent execution:
+- Agent invoked
+- Agent thinking
+- Agent responding
+- Agent completed
+
+### Tool Events
+
+Track tool usage:
+- Tool called
+- Tool executing
+- Tool completed
+- Tool failed
+
+### Team Events
+
+Track team coordination:
+- Team started
+- Member selected
+- Handoff occurred
+- Team completed
+
+## Event Storage
+
+Events are stored in:
+- Kubernetes Events API
+- Query status fields
+- Observability services (Langfuse, Phoenix)
+- Cluster memory for streaming
+
+## Event-Driven Evaluation
+
+Events enable event-based evaluation:
+- Capture agent behavior automatically
+- Evaluate without modifying agents
+- Test in production safely
+- Track performance over time
+

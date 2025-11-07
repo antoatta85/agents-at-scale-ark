@@ -1,0 +1,110 @@
+---
+title: "Memory and State"
+description: "How agents remember context and maintain state across interactions"
+---
+
+# Memory and State
+
+Understanding how agents maintain memory and state is essential for building effective agentic systems.
+
+## Types of Memory
+
+### Conversation Memory
+
+Stores the history of interactions:
+- Previous queries and responses
+- Context from earlier in the conversation
+- User preferences and settings
+
+### Agent Memory
+
+Stores agent-specific information:
+- Learned facts and knowledge
+- User-specific data
+- Long-term context
+
+### Team Memory
+
+Shared memory across team members:
+- Shared context
+- Handoff information
+- Team state
+
+## Memory Storage
+
+### Cluster Memory
+
+Ark's built-in memory service:
+- Persistent storage
+- Streaming support
+- Query-based retrieval
+- Automatic cleanup
+
+### External Storage
+
+Connect to external systems:
+- Vector databases
+- Traditional databases
+- File systems
+- Cloud storage
+
+## State Management
+
+### Stateless Agents
+
+Agents that don't maintain state between queries:
+- Each query is independent
+- No memory between sessions
+- Simpler but less capable
+
+### Stateful Agents
+
+Agents that maintain state:
+- Remember previous interactions
+- Build context over time
+- More capable but more complex
+
+## Memory Patterns
+
+### Context Window Management
+
+- Limit context size to manage costs
+- Summarize old conversations
+- Externalize large content
+- Retrieve on demand
+
+### Memory Retrieval
+
+- Query-based retrieval
+- Semantic search
+- Time-based filtering
+- Relevance ranking
+
+## Best Practices
+
+- **Externalize Large Content**: Store in external systems, retrieve when needed
+- **Summarize History**: Compress old conversations
+- **Set TTLs**: Automatically expire old memory
+- **Use Memory Selectively**: Only store what's needed
+- **Monitor Memory Usage**: Track storage and costs
+
+## Memory Configuration
+
+Configure memory in agents:
+
+```yaml
+spec:
+  memory:
+    enabled: true
+    ttl: "7d"
+    maxSize: "10MB"
+```
+
+## Memory and Evaluation
+
+Memory affects evaluation:
+- Test with and without memory
+- Verify memory retrieval
+- Check context accuracy
+- Monitor memory usage
+

@@ -1,10 +1,11 @@
 export default {
   index: 'Introduction',
   quickstart: 'Quickstart',
-  'user-guide': 'User Guide',
-  'developer-guide': "Developer Guide",
-  'operations-guide': 'Operations Guide',
+  tutorials: 'Tutorials',
+  'how-to-guides': 'How-to Guides',
+  explanations: 'Explanations',
   reference: 'Reference',
-  marketplace: 'Marketplace',
+  examples: 'Examples & Samples',
+  community: 'Community',
   disclaimer: 'Disclaimer'
 }

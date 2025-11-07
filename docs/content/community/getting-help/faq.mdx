@@ -1,0 +1,89 @@
+---
+title: "Frequently Asked Questions"
+description: "Common questions and answers about Ark"
+---
+
+# Frequently Asked Questions
+
+## General Questions
+
+### What is Ark?
+
+Ark is a Kubernetes-based platform for building and operating agentic AI systems at scale.
+
+### Who is Ark for?
+
+Ark serves multiple personas:
+- **End Users**: Use pre-built agents
+- **Agent Builders**: Create custom agents
+- **Platform Engineers**: Deploy and operate Ark
+- **Contributors**: Extend Ark
+
+### Is Ark open source?
+
+Yes, Ark is open source and available on GitHub.
+
+## Installation Questions
+
+### What are the system requirements?
+
+- Kubernetes cluster (local or remote)
+- At least 2 CPU and 4 GiB RAM
+- kubectl and Helm installed
+
+### Can I run Ark locally?
+
+Yes, Ark can run on local Kubernetes clusters like Minikube, Kind, or Docker Desktop.
+
+### How do I install Ark?
+
+Use the Ark CLI: `ark install`
+
+See the [Quickstart](../quickstart) guide for details.
+
+## Usage Questions
+
+### How do I create an agent?
+
+Define an Agent resource using the Agent CRD. See the [Agent Guide](../how-to-guides/agent-development/create-and-configure-agents) for details.
+
+### How do agents communicate?
+
+Agents communicate using the Agent-to-Agent (A2A) protocol. See [Communication Patterns](../explanations/team-patterns/communication-patterns-a2a) for details.
+
+### How do I add tools to agents?
+
+Create Tool resources or connect MCP servers. See [Tools Guide](../how-to-guides/tools-and-integration/create-tools-and-mcp-servers) for details.
+
+## Technical Questions
+
+### Why Kubernetes?
+
+Kubernetes provides orchestration, scaling, and resource management essential for production agentic systems.
+
+### How does evaluation work?
+
+Ark supports event-based evaluation. See [Evaluation Philosophy](../explanations/evaluation-philosophy/why-evaluate-agents) for details.
+
+### What is MCP?
+
+Model Context Protocol - a standardized protocol for connecting agents to external tools. See [What is MCP](../explanations/mcp-integration/what-is-mcp) for details.
+
+## Troubleshooting
+
+### Agents not responding?
+
+Check agent status: `kubectl get agents`
+Verify model is ready: `kubectl get models`
+Check controller logs: `kubectl logs -n ark-system deployment/ark-controller-manager`
+
+### Queries not completing?
+
+Check query status: `kubectl describe query <query-name>`
+Verify agent/team status: `kubectl get agents,teams`
+View events: `kubectl get events`
+
+### Need more help?
+
+See the [Troubleshooting Guide](../reference/troubleshooting) or reach out on GitHub.
+
