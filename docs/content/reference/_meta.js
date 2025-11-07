@@ -1,11 +1,10 @@
 export default {
-  'ark-apis': 'Ark APIs',
-  contributors: 'Contributors',
-  crds: 'Custom Resource Definitions',
-  evaluations: 'Evaluations',
-  'query-execution': 'Query Execution Flow',
-  relationships: 'Resource Relationships',
-  resources: 'Resources',
-  'upgrading': 'Upgrading',
-  troubleshooting: 'Troubleshooting'
-}
+  'api-reference': 'API Reference',
+  'resource-specifications': 'Resource Specifications',
+  'cli-reference': 'CLI Reference',
+  'configuration': 'Configuration',
+  'event-types': 'Event Types',
+  'compatible-models': 'Compatible Models',
+  'resource-relationships': 'Resource Relationships',
+  'glossary': 'Glossary',
+};
