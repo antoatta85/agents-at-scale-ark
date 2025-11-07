@@ -165,7 +165,7 @@ func TestGetEffectiveTimeout(t *testing.T) {
 	}{
 		{
 			name:           "context with 5 minute deadline - should use ~90%",
-			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 5*time.Minute); return ctx }(),
+			ctx:            func() context.Context { ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute); defer cancel(); return ctx }(),
 			defaultTimeout: 60 * time.Second,
 			expectedMin:    4*time.Minute + 20*time.Second, // 90% of 5 min = 4.5 min, allow some tolerance
 			expectedMax:    5 * time.Minute,
@@ -173,7 +173,7 @@ func TestGetEffectiveTimeout(t *testing.T) {
 		},
 		{
 			name:           "context with 30 second deadline - should use default",
-			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 30*time.Second); return ctx }(),
+			ctx:            func() context.Context { ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second); defer cancel(); return ctx }(),
 			defaultTimeout: 60 * time.Second,
 			expectedMin:    60 * time.Second,
 			expectedMax:    60 * time.Second,
@@ -181,7 +181,7 @@ func TestGetEffectiveTimeout(t *testing.T) {
 		},
 		{
 			name:           "context with 10 minute deadline - should cap at 5 min",
-			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 10*time.Minute); return ctx }(),
+			ctx:            func() context.Context { ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute); defer cancel(); return ctx }(),
 			defaultTimeout: 60 * time.Second,
 			expectedMin:    4*time.Minute + 50*time.Second, // 90% of 10 min = 9 min, but capped at 5 min
 			expectedMax:    5 * time.Minute,
@@ -197,7 +197,7 @@ func TestGetEffectiveTimeout(t *testing.T) {
 		},
 		{
 			name:           "context with very short deadline - should enforce minimum",
-			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 2*time.Second); return ctx }(),
+			ctx:            func() context.Context { ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second); defer cancel(); return ctx }(),
 			defaultTimeout: 60 * time.Second,
 			expectedMin:    5 * time.Second,
 			expectedMax:    60 * time.Second, // Should use default (longer)
@@ -205,7 +205,7 @@ func TestGetEffectiveTimeout(t *testing.T) {
 		},
 		{
 			name:           "context with 2 minute deadline - should use context-based",
-			ctx:            func() context.Context { ctx, _ := context.WithTimeout(context.Background(), 2*time.Minute); return ctx }(),
+			ctx:            func() context.Context { ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute); defer cancel(); return ctx }(),
 			defaultTimeout: 60 * time.Second,
 			expectedMin:    100 * time.Second, // 90% of 2 min = 108 sec, allow tolerance
 			expectedMax:    2 * time.Minute,
