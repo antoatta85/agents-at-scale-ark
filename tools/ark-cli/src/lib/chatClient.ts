@@ -1,4 +1,5 @@
 import {ArkApiClient, QueryTarget} from './arkApiClient.js';
+import type {QueryStatus} from './types.js';
 
 // Re-export QueryTarget for compatibility
 export {QueryTarget};
@@ -23,6 +24,7 @@ export interface ArkMetadata {
   model?: string;
   query?: string;
   target?: string;
+  queryStatus?: QueryStatus;
 }
 
 export class ChatClient {
@@ -69,7 +71,7 @@ export class ChatClient {
           break;
         }
 
-        const delta = chunk.choices[0]?.delta;
+        const delta = chunk.choices?.[0]?.delta;
         // Extract ARK metadata if present
         const arkMetadata = (chunk as any).ark as ArkMetadata | undefined;
 

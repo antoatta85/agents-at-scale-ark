@@ -55,12 +55,12 @@ spec:
           status:
             (length(responses)): 1
             (contains(responses[0].content, '1 message(s) received')): true
-    # Verify A2A servers always set contextId annotation in responses and extract it
+    # Verify A2A servers always set contextId in status and extract it
     - script:
         content: |
-          CONTEXT_ID=$(kubectl get query message-counter-first -n $NAMESPACE -o jsonpath='{.metadata.annotations.ark\.mckinsey\.com/a2a-context-id}')
+          CONTEXT_ID=$(kubectl get query message-counter-first -n $NAMESPACE -o jsonpath='{.status.a2a.contextId}')
           if [ -z "$CONTEXT_ID" ]; then
-            echo "ERROR: contextId annotation not set"
+            echo "ERROR: contextId not set in status"
             exit 1
           fi
           echo "$CONTEXT_ID"

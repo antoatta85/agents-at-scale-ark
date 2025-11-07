@@ -421,6 +421,10 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 				}(),
 				Namespace: namespace,
 			},
+			A2AServerRef: arkv1alpha1.A2AServerRef{
+				Name:      a2aServerName,
+				Namespace: namespace,
+			},
 		},
 		Status: arkv1alpha1.A2ATaskStatus{
 			Phase: ConvertA2AStateToPhase(string(task.Status.State)),
