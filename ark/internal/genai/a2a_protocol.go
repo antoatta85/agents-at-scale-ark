@@ -12,12 +12,14 @@ import (
 )
 
 const (
-	PhasePending   = "pending"
-	PhaseAssigned  = "assigned"
-	PhaseRunning   = "running"
-	PhaseCompleted = "completed"
-	PhaseFailed    = "failed"
-	PhaseCancelled = "cancelled"
+	PhasePending       = "pending"
+	PhaseAssigned      = "assigned"
+	PhaseRunning       = "running"
+	PhaseInputRequired = "input-required"
+	PhaseAuthRequired  = "auth-required"
+	PhaseCompleted     = "completed"
+	PhaseFailed        = "failed"
+	PhaseCancelled     = "cancelled"
 )
 
 // ConvertA2AStateToPhase converts A2A protocol task states to Ark K8s A2ATask phases
@@ -27,6 +29,10 @@ func ConvertA2AStateToPhase(state string) string {
 		return PhaseAssigned
 	case "working":
 		return PhaseRunning
+	case "input-required":
+		return PhaseInputRequired
+	case "auth-required":
+		return PhaseAuthRequired
 	case "completed":
 		return PhaseCompleted
 	case "failed":
@@ -35,8 +41,6 @@ func ConvertA2AStateToPhase(state string) string {
 		return PhaseCancelled
 	case "rejected":
 		return PhaseFailed
-	case "input-required", "auth-required":
-		return PhaseRunning
 	default:
 		return PhaseRunning
 	}

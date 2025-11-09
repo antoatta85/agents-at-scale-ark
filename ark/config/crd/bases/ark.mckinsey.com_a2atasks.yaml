@@ -442,11 +442,13 @@ spec:
                 default: pending
                 description: |-
                   Phase indicates the current Kubernetes lifecycle stage of the task.
-                  Possible values: pending, assigned, running, completed, failed, cancelled.
+                  Possible values: pending, assigned, running, input-required, auth-required, completed, failed, cancelled.
                 enum:
                 - pending
                 - assigned
                 - running
+                - input-required
+                - auth-required
                 - completed
                 - failed
                 - cancelled
