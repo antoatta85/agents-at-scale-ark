@@ -20,6 +20,13 @@ const (
 	PhaseCompleted     = "completed"
 	PhaseFailed        = "failed"
 	PhaseCancelled     = "cancelled"
+	PhaseUnknown       = "unknown"
+)
+
+const (
+	PartKindText = "text"
+	PartKindData = "data"
+	PartKindFile = "file"
 )
 
 // ConvertA2AStateToPhase converts A2A protocol task states to Ark K8s A2ATask phases
@@ -42,7 +49,7 @@ func ConvertA2AStateToPhase(state string) string {
 	case "rejected":
 		return PhaseFailed
 	default:
-		return PhaseRunning
+		return PhaseUnknown
 	}
 }
 
@@ -55,17 +62,17 @@ func convertPartFromProtocol(part interface{}) arkv1alpha1.A2ATaskPart {
 	switch p := part.(type) {
 	case *protocol.TextPart:
 		return arkv1alpha1.A2ATaskPart{
-			Kind: "text",
+			Kind: PartKindText,
 			Text: p.Text,
 		}
 	case *protocol.DataPart:
 		return arkv1alpha1.A2ATaskPart{
-			Kind: "data",
+			Kind: PartKindData,
 			Data: fmt.Sprintf("%v", p.Data),
 		}
 	case *protocol.FilePart:
 		taskPart := arkv1alpha1.A2ATaskPart{
-			Kind: "file",
+			Kind: PartKindFile,
 		}
 		if fileWithURI, ok := p.File.(*protocol.FileWithURI); ok {
 			taskPart.URI = fileWithURI.URI
@@ -82,7 +89,7 @@ func convertPartFromProtocol(part interface{}) arkv1alpha1.A2ATaskPart {
 		return taskPart
 	default:
 		return arkv1alpha1.A2ATaskPart{
-			Kind: "text",
+			Kind: PartKindText,
 			Text: "unknown part type",
 		}
 	}

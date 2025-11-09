@@ -151,10 +151,10 @@ type A2ATaskSpec struct {
 // Combines Kubernetes lifecycle tracking with A2A protocol task data.
 type A2ATaskStatus struct {
 	// Phase indicates the current Kubernetes lifecycle stage of the task.
-	// Possible values: pending, assigned, running, input-required, auth-required, completed, failed, cancelled.
+	// Possible values: pending, assigned, running, input-required, auth-required, completed, failed, cancelled, unknown.
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="pending"
-	// +kubebuilder:validation:Enum=pending;assigned;running;input-required;auth-required;completed;failed;cancelled
+	// +kubebuilder:validation:Enum=pending;assigned;running;input-required;auth-required;completed;failed;cancelled;unknown
 	Phase string `json:"phase,omitempty"`
 	// Conditions represent the latest available observations of the task's state.
 	// The Completed condition indicates whether the task is no longer running.
