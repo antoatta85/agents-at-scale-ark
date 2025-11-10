@@ -9,12 +9,12 @@ spec:
   config:
     azure:
       baseUrl:
-        value: ($azure.url)
+        value: ($provider.url)
       apiKey:
         valueFrom:
           secretKeyRef:
-            name: default-model-token
+            name: test-model-token
             key: token
       apiVersion:
-        value: "2024-12-01-preview"
+        value: ($provider.apiVersion)
 
