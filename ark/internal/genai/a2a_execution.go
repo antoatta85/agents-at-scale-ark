@@ -95,17 +95,8 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 			},
 		})
 
-		if eventStream != nil {
-			modelID := fmt.Sprintf("agent/%s", agentName)
-			chunk := StreamingError{}
-			chunk.Error.Message = err.Error()
-			chunk.Error.Type = "server_error"
-			chunk.Error.Code = "a2a_execution_failed"
-			chunkWithMeta := WrapErrorWithMetadata(ctx, &chunk, modelID)
-			if streamErr := eventStream.StreamChunk(ctx, chunkWithMeta); streamErr != nil {
-				log.Error(streamErr, "failed to send A2A error chunk to event stream")
-			}
-		}
+		modelID := fmt.Sprintf("agent/%s", agentName)
+		StreamError(ctx, eventStream, err, "a2a_execution_failed", modelID)
 
 		return nil, err
 	}

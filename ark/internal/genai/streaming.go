@@ -103,6 +103,22 @@ func WrapErrorWithMetadata(ctx context.Context, streamingError *StreamingError, 
 	}
 }
 
+// StreamError streams an error to the event stream if available.
+// This is a helper function to avoid code duplication when streaming errors.
+func StreamError(ctx context.Context, eventStream EventStreamInterface, err error, errorCode, modelName string) {
+	if eventStream == nil {
+		return
+	}
+	errorChunk := StreamingError{}
+	errorChunk.Error.Message = err.Error()
+	errorChunk.Error.Type = "server_error"
+	errorChunk.Error.Code = errorCode
+	errorChunkWithMeta := WrapErrorWithMetadata(ctx, &errorChunk, modelName)
+	if streamErr := eventStream.StreamChunk(ctx, errorChunkWithMeta); streamErr != nil {
+		logf.FromContext(ctx).Error(streamErr, "failed to send error chunk to event stream")
+	}
+}
+
 // WrapChunkWithMetadata adds ARK metadata to a streaming chunk
 func WrapChunkWithMetadata(ctx context.Context, chunk *openai.ChatCompletionChunk, modelName string) interface{} {
 	metadata := buildMetadata(ctx, modelName)
