@@ -143,8 +143,10 @@ func (v *ModelValidator) validateOpenAIConfig(ctx context.Context, model *arkv1a
 	if err := v.validateValueSource(ctx, &model.Spec.Config.OpenAI.BaseURL, model.GetNamespace(), "spec.config.openai.baseUrl"); err != nil {
 		return err
 	}
-	if err := v.validateValueSource(ctx, &model.Spec.Config.OpenAI.APIKey, model.GetNamespace(), "spec.config.openai.apiKey"); err != nil {
-		return err
+	if model.Spec.Config.OpenAI.APIKey != nil {
+		if err := v.validateValueSource(ctx, model.Spec.Config.OpenAI.APIKey, model.GetNamespace(), "spec.config.openai.apiKey"); err != nil {
+			return err
+		}
 	}
 
 	_, err := v.Resolver.ResolveValueSource(ctx, model.Spec.Config.OpenAI.BaseURL, model.GetNamespace())

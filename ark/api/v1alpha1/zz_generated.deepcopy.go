@@ -8,7 +8,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -1264,7 +1264,11 @@ func (in *ModelStatus) DeepCopy() *ModelStatus {
 func (in *OpenAIModelConfig) DeepCopyInto(out *OpenAIModelConfig) {
 	*out = *in
 	in.BaseURL.DeepCopyInto(&out.BaseURL)
-	in.APIKey.DeepCopyInto(&out.APIKey)
+	if in.APIKey != nil {
+		in, out := &in.APIKey, &out.APIKey
+		*out = new(ValueSource)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Headers != nil {
 		in, out := &in.Headers, &out.Headers
 		*out = make([]Header, len(*in))

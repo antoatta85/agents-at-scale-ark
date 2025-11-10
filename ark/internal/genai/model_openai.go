@@ -18,9 +18,12 @@ func loadOpenAIConfig(ctx context.Context, resolver *common.ValueSourceResolver,
 		return fmt.Errorf("failed to resolve OpenAI baseURL: %w", err)
 	}
 
-	apiKey, err := resolver.ResolveValueSource(ctx, config.APIKey, namespace)
-	if err != nil {
-		return fmt.Errorf("failed to resolve OpenAI apiKey: %w", err)
+	apiKey := ""
+	if config.APIKey != nil {
+		apiKey, err = resolver.ResolveValueSource(ctx, *config.APIKey, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to resolve OpenAI apiKey: %w", err)
+		}
 	}
 
 	headers, err := resolveModelHeaders(ctx, resolver.Client, config.Headers, namespace)

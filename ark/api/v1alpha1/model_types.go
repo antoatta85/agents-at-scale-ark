@@ -34,8 +34,8 @@ type AzureModelConfig struct {
 type OpenAIModelConfig struct {
 	// +kubebuilder:validation:Required
 	BaseURL ValueSource `json:"baseUrl"`
-	// +kubebuilder:validation:Required
-	APIKey ValueSource `json:"apiKey"`
+	// +kubebuilder:validation:Optional
+	APIKey *ValueSource `json:"apiKey,omitempty"`
 	// +kubebuilder:validation:Optional
 	Headers []Header `json:"headers,omitempty"`
 	// +kubebuilder:validation:Optional

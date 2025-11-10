@@ -264,8 +264,11 @@ func (op *OpenAIProvider) createClient(ctx context.Context) openai.Client {
 
 	options := []option.RequestOption{
 		option.WithBaseURL(op.BaseURL),
-		option.WithAPIKey(op.APIKey),
 		option.WithHTTPClient(httpClient),
+	}
+
+	if op.APIKey != "" {
+		options = append(options, option.WithAPIKey(op.APIKey))
 	}
 
 	options = applyHeadersToOptions(ctx, op.Headers, options, op.Model)

@@ -49,7 +49,7 @@ var _ = Describe("Model Controller", func() {
 								BaseURL: arkv1alpha1.ValueSource{
 									Value: "https://api.openai.com/v1",
 								},
-								APIKey: arkv1alpha1.ValueSource{
+								APIKey: &arkv1alpha1.ValueSource{
 									Value: "test-key",
 								},
 							},

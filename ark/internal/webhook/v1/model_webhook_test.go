@@ -55,7 +55,7 @@ var _ = Describe("Model Webhook", func() {
 						BaseURL: arkv1alpha1.ValueSource{
 							Value: "https://api.openai.com",
 						},
-						APIKey: arkv1alpha1.ValueSource{
+						APIKey: &arkv1alpha1.ValueSource{
 							Value: "sk-test-key",
 						},
 					},
@@ -107,7 +107,7 @@ var _ = Describe("Model Webhook", func() {
 
 	Context("When validating models with Secret references", func() {
 		It("Should fail when referenced Secret does not exist", func() {
-			model.Spec.Config.OpenAI.APIKey = arkv1alpha1.ValueSource{
+			model.Spec.Config.OpenAI.APIKey = &arkv1alpha1.ValueSource{
 				ValueFrom: &arkv1alpha1.ValueFromSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -138,7 +138,7 @@ var _ = Describe("Model Webhook", func() {
 			}
 			Expect(validator.Client.Create(ctx, secret)).To(Succeed())
 
-			model.Spec.Config.OpenAI.APIKey = arkv1alpha1.ValueSource{
+			model.Spec.Config.OpenAI.APIKey = &arkv1alpha1.ValueSource{
 				ValueFrom: &arkv1alpha1.ValueFromSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -169,7 +169,7 @@ var _ = Describe("Model Webhook", func() {
 			}
 			Expect(validator.Client.Create(ctx, secret)).To(Succeed())
 
-			model.Spec.Config.OpenAI.APIKey = arkv1alpha1.ValueSource{
+			model.Spec.Config.OpenAI.APIKey = &arkv1alpha1.ValueSource{
 				ValueFrom: &arkv1alpha1.ValueFromSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{

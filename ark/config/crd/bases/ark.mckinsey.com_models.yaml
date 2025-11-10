@@ -1476,7 +1476,6 @@ spec:
                           type: object
                         type: object
                     required:
-                    - apiKey
                     - baseUrl
                     type: object
                 type: object
