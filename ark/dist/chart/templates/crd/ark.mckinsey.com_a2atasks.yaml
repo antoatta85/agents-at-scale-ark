@@ -21,20 +21,14 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.phase
-      name: Phase
-      type: string
-    - jsonPath: .spec.taskId
-      name: Task ID
-      type: string
-    - jsonPath: .spec.contextId
-      name: Context ID
-      type: string
     - jsonPath: .spec.queryRef.name
       name: Query
       type: string
-    - jsonPath: .status.assignedAgent.name
-      name: Assigned Agent
+    - jsonPath: .spec.agentRef.name
+      name: Agent
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -80,6 +74,18 @@ spec:
                     type: string
                 required:
                 - name
+                type: object
+              agentRef:
+                description: AgentRef references the agent executing this task.
+                properties:
+                  name:
+                    description: Name of the Agent resource.
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace where the Agent resource is located.
+                      If empty, defaults to the same namespace as the A2ATask.
+                    type: string
                 type: object
               contextId:
                 description: ContextID links this task to an A2A conversation context
@@ -139,6 +145,7 @@ spec:
                 type: string
             required:
             - a2aServerRef
+            - agentRef
             - queryRef
             - taskId
             type: object
@@ -219,19 +226,6 @@ spec:
                   - parts
                   type: object
                 type: array
-              assignedAgent:
-                description: AssignedAgent references the agent that executed or is
-                  executing this task.
-                properties:
-                  name:
-                    description: Name of the Agent resource.
-                    type: string
-                  namespace:
-                    description: |-
-                      Namespace where the Agent resource is located.
-                      If empty, defaults to the same namespace as the A2ATask.
-                    type: string
-                type: object
               completionTime:
                 description: CompletionTime records when task execution finished (success
                   or failure).
@@ -448,14 +442,17 @@ spec:
                 default: pending
                 description: |-
                   Phase indicates the current Kubernetes lifecycle stage of the task.
-                  Possible values: pending, assigned, running, completed, failed, cancelled.
+                  Possible values: pending, assigned, running, input-required, auth-required, completed, failed, cancelled, unknown.
                 enum:
                 - pending
                 - assigned
                 - running
+                - input-required
+                - auth-required
                 - completed
                 - failed
                 - cancelled
+                - unknown
                 type: string
               protocolMetadata:
                 additionalProperties:

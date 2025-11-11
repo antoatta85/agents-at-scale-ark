@@ -186,6 +186,7 @@ func (in *A2ATaskSpec) DeepCopyInto(out *A2ATaskSpec) {
 	*out = *in
 	out.QueryRef = in.QueryRef
 	out.A2AServerRef = in.A2AServerRef
+	out.AgentRef = in.AgentRef
 	if in.Parameters != nil {
 		in, out := &in.Parameters, &out.Parameters
 		*out = make(map[string]string, len(*in))
@@ -229,11 +230,6 @@ func (in *A2ATaskStatus) DeepCopyInto(out *A2ATaskStatus) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
-	}
-	if in.AssignedAgent != nil {
-		in, out := &in.AssignedAgent, &out.AssignedAgent
-		*out = new(AgentRef)
-		**out = **in
 	}
 	if in.StartTime != nil {
 		in, out := &in.StartTime, &out.StartTime

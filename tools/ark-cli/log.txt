@@ -1,0 +1,249 @@
+[2025-11-11T12:08:23.443Z] ChatUI: About to send message: {}
+[2025-11-11T12:08:23.446Z] sendMessage called: {}
+[2025-11-11T12:08:23.448Z] No a2aContextId in config
+[2025-11-11T12:08:23.552Z] Chunk received with A2A context: {"contextId":"5d77e10e-8b85-4ee8-acf0-60e52abb4a44","hasContent":false,"hasDelta":false}
+[2025-11-11T12:08:23.553Z] Final chunk with metadata only, calling onChunk
+[2025-11-11T12:08:23.554Z] ChatUI: Setting A2A context ID: "5d77e10e-8b85-4ee8-acf0-60e52abb4a44"
+[2025-11-11T12:08:23.554Z] ChatUI: Ref updated: "5d77e10e-8b85-4ee8-acf0-60e52abb4a44"
+[2025-11-11T12:08:23.899Z] ChatUI: About to send message: {"refValue":"5d77e10e-8b85-4ee8-acf0-60e52abb4a44","stateValue":"5d77e10e-8b85-4ee8-acf0-60e52abb4a44"}
+[2025-11-11T12:08:23.900Z] sendMessage called: {"a2aContextId":"5d77e10e-8b85-4ee8-acf0-60e52abb4a44"}
+[2025-11-11T12:08:23.901Z] Adding metadata with contextId: "5d77e10e-8b85-4ee8-acf0-60e52abb4a44"
+[2025-11-11T12:08:24.011Z] Chunk received with A2A context: {"contextId":"8e15c13e-6f3f-451a-8fc0-0f63a6e104a4","hasContent":false,"hasDelta":false}
+[2025-11-11T12:08:24.012Z] Final chunk with metadata only, calling onChunk
+[2025-11-11T12:08:24.012Z] ChatUI: Setting A2A context ID: "8e15c13e-6f3f-451a-8fc0-0f63a6e104a4"
+[2025-11-11T12:08:24.013Z] ChatUI: Ref updated: "8e15c13e-6f3f-451a-8fc0-0f63a6e104a4"
+[2025-11-11T12:08:24.393Z] ChatUI: About to send message: {"refValue":"8e15c13e-6f3f-451a-8fc0-0f63a6e104a4","stateValue":"8e15c13e-6f3f-451a-8fc0-0f63a6e104a4"}
+[2025-11-11T12:08:24.394Z] sendMessage called: {"a2aContextId":"8e15c13e-6f3f-451a-8fc0-0f63a6e104a4"}
+[2025-11-11T12:08:24.395Z] Adding metadata with contextId: "8e15c13e-6f3f-451a-8fc0-0f63a6e104a4"
+[2025-11-11T12:08:24.488Z] Chunk received with A2A context: {"contextId":"e317fb1b-a522-47a3-bf45-b56b9589e1f1","hasContent":false,"hasDelta":false}
+[2025-11-11T12:08:24.489Z] Final chunk with metadata only, calling onChunk
+[2025-11-11T12:08:24.490Z] ChatUI: Setting A2A context ID: "e317fb1b-a522-47a3-bf45-b56b9589e1f1"
+[2025-11-11T12:08:24.490Z] ChatUI: Ref updated: "e317fb1b-a522-47a3-bf45-b56b9589e1f1"
+[2025-11-11T12:40:40.635Z] ChatUI: About to send message: {}
+[2025-11-11T12:40:40.637Z] sendMessage called: {}
+[2025-11-11T12:40:40.637Z] No a2aContextId in config
+[2025-11-11T12:40:40.830Z] Chunk received with A2A context: {"contextId":"5034492c-ec08-4a4d-8e52-d4f62e3ecdb0","hasContent":false,"hasDelta":true}
+[2025-11-11T12:40:40.831Z] ChatUI: Setting A2A context ID: "5034492c-ec08-4a4d-8e52-d4f62e3ecdb0"
+[2025-11-11T12:40:40.832Z] ChatUI: Ref updated: "5034492c-ec08-4a4d-8e52-d4f62e3ecdb0"
+[2025-11-11T12:40:41.361Z] ChatUI: About to send message: {"refValue":"5034492c-ec08-4a4d-8e52-d4f62e3ecdb0","stateValue":"5034492c-ec08-4a4d-8e52-d4f62e3ecdb0"}
+[2025-11-11T12:40:41.363Z] sendMessage called: {"a2aContextId":"5034492c-ec08-4a4d-8e52-d4f62e3ecdb0"}
+[2025-11-11T12:40:41.364Z] Adding metadata with contextId: "5034492c-ec08-4a4d-8e52-d4f62e3ecdb0"
+[2025-11-11T12:40:41.592Z] Chunk received with A2A context: {"contextId":"f7b19f2c-5c48-46df-b2ab-7cbe6db19ba4","hasContent":false,"hasDelta":true}
+[2025-11-11T12:40:41.593Z] ChatUI: Setting A2A context ID: "f7b19f2c-5c48-46df-b2ab-7cbe6db19ba4"
+[2025-11-11T12:40:41.593Z] ChatUI: Ref updated: "f7b19f2c-5c48-46df-b2ab-7cbe6db19ba4"
+[2025-11-11T12:40:41.994Z] ChatUI: About to send message: {"refValue":"f7b19f2c-5c48-46df-b2ab-7cbe6db19ba4","stateValue":"f7b19f2c-5c48-46df-b2ab-7cbe6db19ba4"}
+[2025-11-11T12:40:41.996Z] sendMessage called: {"a2aContextId":"f7b19f2c-5c48-46df-b2ab-7cbe6db19ba4"}
+[2025-11-11T12:40:41.998Z] Adding metadata with contextId: "f7b19f2c-5c48-46df-b2ab-7cbe6db19ba4"
+[2025-11-11T12:40:42.100Z] Chunk received with A2A context: {"contextId":"63ce8863-aca8-4058-9714-5d9d2dcac5e8","hasContent":false,"hasDelta":true}
+[2025-11-11T12:40:42.101Z] ChatUI: Setting A2A context ID: "63ce8863-aca8-4058-9714-5d9d2dcac5e8"
+[2025-11-11T12:40:42.101Z] ChatUI: Ref updated: "63ce8863-aca8-4058-9714-5d9d2dcac5e8"
+[2025-11-11T12:52:04.884Z] ChatUI: About to send message: {"refValue":"63ce8863-aca8-4058-9714-5d9d2dcac5e8","stateValue":"63ce8863-aca8-4058-9714-5d9d2dcac5e8"}
+[2025-11-11T12:52:04.885Z] sendMessage called: {"a2aContextId":"63ce8863-aca8-4058-9714-5d9d2dcac5e8"}
+[2025-11-11T12:52:04.887Z] Adding metadata with contextId: "63ce8863-aca8-4058-9714-5d9d2dcac5e8"
+[2025-11-11T12:52:05.098Z] Chunk received with A2A context: {"contextId":"beb1a675-89c3-4ad1-9025-13e928262e93","hasContent":false,"hasDelta":true}
+[2025-11-11T12:52:05.099Z] ChatUI: Setting A2A context ID: "beb1a675-89c3-4ad1-9025-13e928262e93"
+[2025-11-11T12:52:05.100Z] ChatUI: Ref updated: "beb1a675-89c3-4ad1-9025-13e928262e93"
+[2025-11-11T12:52:05.680Z] ChatUI: About to send message: {"refValue":"beb1a675-89c3-4ad1-9025-13e928262e93","stateValue":"beb1a675-89c3-4ad1-9025-13e928262e93"}
+[2025-11-11T12:52:05.681Z] sendMessage called: {"a2aContextId":"beb1a675-89c3-4ad1-9025-13e928262e93"}
+[2025-11-11T12:52:05.682Z] Adding metadata with contextId: "beb1a675-89c3-4ad1-9025-13e928262e93"
+[2025-11-11T12:52:05.783Z] Chunk received with A2A context: {"contextId":"68ec6449-0eaf-42cb-b91b-ac02011b50dc","hasContent":false,"hasDelta":true}
+[2025-11-11T12:52:05.784Z] ChatUI: Setting A2A context ID: "68ec6449-0eaf-42cb-b91b-ac02011b50dc"
+[2025-11-11T12:52:05.784Z] ChatUI: Ref updated: "68ec6449-0eaf-42cb-b91b-ac02011b50dc"
+[2025-11-11T12:52:25.137Z] ChatUI: About to send message: {}
+[2025-11-11T12:52:25.143Z] sendMessage called: {}
+[2025-11-11T12:52:25.152Z] No a2aContextId in config
+[2025-11-11T12:52:25.271Z] Chunk received with A2A context: {"contextId":"e208f0ba-f543-4317-abfc-d5b75fe0bd2a","hasContent":false,"hasDelta":true}
+[2025-11-11T12:52:25.271Z] ChatUI: Setting A2A context ID: "e208f0ba-f543-4317-abfc-d5b75fe0bd2a"
+[2025-11-11T12:52:25.272Z] ChatUI: Ref updated: "e208f0ba-f543-4317-abfc-d5b75fe0bd2a"
+[2025-11-11T12:52:26.513Z] ChatUI: About to send message: {"refValue":"e208f0ba-f543-4317-abfc-d5b75fe0bd2a","stateValue":"e208f0ba-f543-4317-abfc-d5b75fe0bd2a"}
+[2025-11-11T12:52:26.514Z] sendMessage called: {"a2aContextId":"e208f0ba-f543-4317-abfc-d5b75fe0bd2a"}
+[2025-11-11T12:52:26.515Z] Adding metadata with contextId: "e208f0ba-f543-4317-abfc-d5b75fe0bd2a"
+[2025-11-11T12:52:26.625Z] Chunk received with A2A context: {"contextId":"962f1144-3bf5-485b-a5e7-09ca98cdf8ea","hasContent":false,"hasDelta":true}
+[2025-11-11T12:52:26.627Z] ChatUI: Setting A2A context ID: "962f1144-3bf5-485b-a5e7-09ca98cdf8ea"
+[2025-11-11T12:52:26.628Z] ChatUI: Ref updated: "962f1144-3bf5-485b-a5e7-09ca98cdf8ea"
+[2025-11-11T12:52:27.360Z] ChatUI: About to send message: {"refValue":"962f1144-3bf5-485b-a5e7-09ca98cdf8ea","stateValue":"962f1144-3bf5-485b-a5e7-09ca98cdf8ea"}
+[2025-11-11T12:52:27.362Z] sendMessage called: {"a2aContextId":"962f1144-3bf5-485b-a5e7-09ca98cdf8ea"}
+[2025-11-11T12:52:27.363Z] Adding metadata with contextId: "962f1144-3bf5-485b-a5e7-09ca98cdf8ea"
+[2025-11-11T12:52:27.469Z] Chunk received with A2A context: {"contextId":"1ad3646c-7404-43d7-91e2-2747107fe02c","hasContent":false,"hasDelta":true}
+[2025-11-11T12:52:27.470Z] ChatUI: Setting A2A context ID: "1ad3646c-7404-43d7-91e2-2747107fe02c"
+[2025-11-11T12:52:27.470Z] ChatUI: Ref updated: "1ad3646c-7404-43d7-91e2-2747107fe02c"
+[2025-11-11T12:55:51.578Z] ChatUI: About to send message: {"refValue":"1ad3646c-7404-43d7-91e2-2747107fe02c","stateValue":"1ad3646c-7404-43d7-91e2-2747107fe02c"}
+[2025-11-11T12:55:51.579Z] sendMessage called: {"a2aContextId":"1ad3646c-7404-43d7-91e2-2747107fe02c"}
+[2025-11-11T12:55:51.580Z] Adding metadata with contextId: "1ad3646c-7404-43d7-91e2-2747107fe02c"
+[2025-11-11T12:55:51.790Z] Chunk received with A2A context: {"contextId":"ec5e8c86-86a3-47b2-b81e-fcb2f208dc4e","hasContent":false,"hasDelta":true}
+[2025-11-11T12:55:51.790Z] ChatUI: Setting A2A context ID: "ec5e8c86-86a3-47b2-b81e-fcb2f208dc4e"
+[2025-11-11T12:55:51.792Z] ChatUI: Ref updated: "ec5e8c86-86a3-47b2-b81e-fcb2f208dc4e"
+[2025-11-11T12:55:51.979Z] ChatUI: About to send message: {"refValue":"ec5e8c86-86a3-47b2-b81e-fcb2f208dc4e","stateValue":"ec5e8c86-86a3-47b2-b81e-fcb2f208dc4e"}
+[2025-11-11T12:55:51.980Z] sendMessage called: {"a2aContextId":"ec5e8c86-86a3-47b2-b81e-fcb2f208dc4e"}
+[2025-11-11T12:55:51.981Z] Adding metadata with contextId: "ec5e8c86-86a3-47b2-b81e-fcb2f208dc4e"
+[2025-11-11T12:55:52.077Z] Chunk received with A2A context: {"contextId":"dcad036d-2dd0-4369-a0ad-5700a8e774ea","hasContent":false,"hasDelta":true}
+[2025-11-11T12:55:52.078Z] ChatUI: Setting A2A context ID: "dcad036d-2dd0-4369-a0ad-5700a8e774ea"
+[2025-11-11T12:55:52.078Z] ChatUI: Ref updated: "dcad036d-2dd0-4369-a0ad-5700a8e774ea"
+[2025-11-11T12:55:52.360Z] ChatUI: About to send message: {"refValue":"dcad036d-2dd0-4369-a0ad-5700a8e774ea","stateValue":"dcad036d-2dd0-4369-a0ad-5700a8e774ea"}
+[2025-11-11T12:55:52.361Z] sendMessage called: {"a2aContextId":"dcad036d-2dd0-4369-a0ad-5700a8e774ea"}
+[2025-11-11T12:55:52.362Z] Adding metadata with contextId: "dcad036d-2dd0-4369-a0ad-5700a8e774ea"
+[2025-11-11T12:55:52.449Z] Chunk received with A2A context: {"contextId":"47e7c0b3-160d-45a2-add9-6ba344f2535f","hasContent":false,"hasDelta":true}
+[2025-11-11T12:55:52.449Z] ChatUI: Setting A2A context ID: "47e7c0b3-160d-45a2-add9-6ba344f2535f"
+[2025-11-11T12:55:52.449Z] ChatUI: Ref updated: "47e7c0b3-160d-45a2-add9-6ba344f2535f"
+[2025-11-11T12:55:53.180Z] ChatUI: About to send message: {"refValue":"47e7c0b3-160d-45a2-add9-6ba344f2535f","stateValue":"47e7c0b3-160d-45a2-add9-6ba344f2535f"}
+[2025-11-11T12:55:53.181Z] sendMessage called: {"a2aContextId":"47e7c0b3-160d-45a2-add9-6ba344f2535f"}
+[2025-11-11T12:55:53.182Z] Adding metadata with contextId: "47e7c0b3-160d-45a2-add9-6ba344f2535f"
+[2025-11-11T12:55:53.283Z] Chunk received with A2A context: {"contextId":"0ec86b76-8fd3-48a2-a681-b1f0317fabb7","hasContent":false,"hasDelta":true}
+[2025-11-11T12:55:53.284Z] ChatUI: Setting A2A context ID: "0ec86b76-8fd3-48a2-a681-b1f0317fabb7"
+[2025-11-11T12:55:53.285Z] ChatUI: Ref updated: "0ec86b76-8fd3-48a2-a681-b1f0317fabb7"
+[2025-11-11T12:55:53.629Z] ChatUI: About to send message: {"refValue":"0ec86b76-8fd3-48a2-a681-b1f0317fabb7","stateValue":"0ec86b76-8fd3-48a2-a681-b1f0317fabb7"}
+[2025-11-11T12:55:53.630Z] sendMessage called: {"a2aContextId":"0ec86b76-8fd3-48a2-a681-b1f0317fabb7"}
+[2025-11-11T12:55:53.632Z] Adding metadata with contextId: "0ec86b76-8fd3-48a2-a681-b1f0317fabb7"
+[2025-11-11T12:55:53.743Z] Chunk received with A2A context: {"contextId":"c5cb1c9a-65b5-4904-98a4-22073db3b389","hasContent":false,"hasDelta":true}
+[2025-11-11T12:55:53.743Z] ChatUI: Setting A2A context ID: "c5cb1c9a-65b5-4904-98a4-22073db3b389"
+[2025-11-11T12:55:53.744Z] ChatUI: Ref updated: "c5cb1c9a-65b5-4904-98a4-22073db3b389"
+[2025-11-11T12:55:54.069Z] ChatUI: About to send message: {"refValue":"c5cb1c9a-65b5-4904-98a4-22073db3b389","stateValue":"c5cb1c9a-65b5-4904-98a4-22073db3b389"}
+[2025-11-11T12:55:54.070Z] sendMessage called: {"a2aContextId":"c5cb1c9a-65b5-4904-98a4-22073db3b389"}
+[2025-11-11T12:55:54.070Z] Adding metadata with contextId: "c5cb1c9a-65b5-4904-98a4-22073db3b389"
+[2025-11-11T12:55:54.234Z] Chunk received with A2A context: {"contextId":"85777301-484c-4384-aa37-a4cd77ec575f","hasContent":false,"hasDelta":true}
+[2025-11-11T12:55:54.238Z] ChatUI: Setting A2A context ID: "85777301-484c-4384-aa37-a4cd77ec575f"
+[2025-11-11T12:55:54.240Z] ChatUI: Ref updated: "85777301-484c-4384-aa37-a4cd77ec575f"
+[2025-11-11T12:55:54.485Z] ChatUI: About to send message: {"refValue":"85777301-484c-4384-aa37-a4cd77ec575f","stateValue":"85777301-484c-4384-aa37-a4cd77ec575f"}
+[2025-11-11T12:55:54.486Z] sendMessage called: {"a2aContextId":"85777301-484c-4384-aa37-a4cd77ec575f"}
+[2025-11-11T12:55:54.487Z] Adding metadata with contextId: "85777301-484c-4384-aa37-a4cd77ec575f"
+[2025-11-11T12:55:54.994Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T12:55:54.995Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T12:55:54.996Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.000Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:10.001Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:10.001Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.209Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:10.211Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.212Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.412Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:10.413Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:10.413Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.500Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:10.501Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.501Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.838Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:10.839Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:10.839Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.972Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:10.973Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:10.973Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:11.239Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:11.239Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:11.240Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:11.333Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:11.333Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:11.334Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:11.618Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:11.619Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:11.619Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:11.712Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:11.712Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:11.713Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.008Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:12.008Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:12.009Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.103Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:12.104Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.104Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.437Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:12.438Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:12.438Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.527Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:12.527Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.528Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.871Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:12.871Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:12.871Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.962Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:12.962Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:12.962Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:14.359Z] ChatUI: About to send message: {"refValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","stateValue":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:14.359Z] sendMessage called: {"a2aContextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"}
+[2025-11-11T13:03:14.360Z] Adding metadata with contextId: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:14.451Z] Chunk received with A2A context: {"contextId":"6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:14.452Z] ChatUI: Setting A2A context ID: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:14.452Z] ChatUI: Ref updated: "6b0d8dcf-d7a2-4c0b-b7fe-cbb693257d6f"
+[2025-11-11T13:03:58.516Z] ChatUI: About to send message: {}
+[2025-11-11T13:03:58.518Z] sendMessage called: {}
+[2025-11-11T13:03:58.518Z] No a2aContextId in config
+[2025-11-11T13:03:58.780Z] Chunk received with A2A context: {"contextId":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:58.781Z] ChatUI: Setting A2A context ID: "fb9349bd-2d97-48f7-958e-fa9d2c1e7732"
+[2025-11-11T13:03:58.781Z] ChatUI: Ref updated: "fb9349bd-2d97-48f7-958e-fa9d2c1e7732"
+[2025-11-11T13:03:58.911Z] ChatUI: About to send message: {"refValue":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732","stateValue":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732"}
+[2025-11-11T13:03:58.911Z] sendMessage called: {"a2aContextId":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732"}
+[2025-11-11T13:03:58.911Z] Adding metadata with contextId: "fb9349bd-2d97-48f7-958e-fa9d2c1e7732"
+[2025-11-11T13:03:58.998Z] Chunk received with A2A context: {"contextId":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:58.999Z] ChatUI: Setting A2A context ID: "fb9349bd-2d97-48f7-958e-fa9d2c1e7732"
+[2025-11-11T13:03:58.999Z] ChatUI: Ref updated: "fb9349bd-2d97-48f7-958e-fa9d2c1e7732"
+[2025-11-11T13:03:59.774Z] ChatUI: About to send message: {"refValue":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732","stateValue":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732"}
+[2025-11-11T13:03:59.775Z] sendMessage called: {"a2aContextId":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732"}
+[2025-11-11T13:03:59.776Z] Adding metadata with contextId: "fb9349bd-2d97-48f7-958e-fa9d2c1e7732"
+[2025-11-11T13:03:59.866Z] Chunk received with A2A context: {"contextId":"fb9349bd-2d97-48f7-958e-fa9d2c1e7732","hasContent":false,"hasDelta":true}
+[2025-11-11T13:03:59.866Z] ChatUI: Setting A2A context ID: "fb9349bd-2d97-48f7-958e-fa9d2c1e7732"
+[2025-11-11T13:03:59.866Z] ChatUI: Ref updated: "fb9349bd-2d97-48f7-958e-fa9d2c1e7732"
+[2025-11-11T13:04:10.285Z] ChatUI: About to send message: {}
+[2025-11-11T13:04:10.286Z] sendMessage called: {}
+[2025-11-11T13:04:10.286Z] No a2aContextId in config
+[2025-11-11T13:04:13.397Z] Chunk received with A2A context: {"contextId":"6024bd81-598b-47f7-b6f1-4b4d8aaaf27b","hasContent":false,"hasDelta":true}
+[2025-11-11T13:04:13.398Z] ChatUI: Setting A2A context ID: "6024bd81-598b-47f7-b6f1-4b4d8aaaf27b"
+[2025-11-11T13:04:13.399Z] ChatUI: Ref updated: "6024bd81-598b-47f7-b6f1-4b4d8aaaf27b"
+[2025-11-11T13:54:40.786Z] ChatUI: About to send message: {"refValue":"6024bd81-598b-47f7-b6f1-4b4d8aaaf27b","stateValue":"6024bd81-598b-47f7-b6f1-4b4d8aaaf27b"}
+[2025-11-11T13:54:40.787Z] sendMessage called: {"a2aContextId":"6024bd81-598b-47f7-b6f1-4b4d8aaaf27b"}
+[2025-11-11T13:54:40.787Z] Adding metadata with contextId: "6024bd81-598b-47f7-b6f1-4b4d8aaaf27b"
+[2025-11-11T13:54:55.596Z] ChatUI: About to send message: {}
+[2025-11-11T13:54:55.597Z] sendMessage called: {}
+[2025-11-11T13:54:55.598Z] No a2aContextId in config
+[2025-11-11T13:55:02.171Z] ChatUI: About to send message: {}
+[2025-11-11T13:55:02.172Z] sendMessage called: {}
+[2025-11-11T13:55:02.173Z] No a2aContextId in config
+[2025-11-11T13:55:11.189Z] ChatUI: About to send message: {}
+[2025-11-11T13:55:11.190Z] sendMessage called: {}
+[2025-11-11T13:55:11.192Z] No a2aContextId in config
+[2025-11-11T14:17:01.863Z] ChatUI: About to send message: {}
+[2025-11-11T14:17:01.865Z] sendMessage called: {}
+[2025-11-11T14:17:01.867Z] No a2aContextId in config
+[2025-11-11T14:17:21.766Z] ChatUI: About to send message: {}
+[2025-11-11T14:17:21.767Z] sendMessage called: {}
+[2025-11-11T14:17:21.768Z] No a2aContextId in config
+[2025-11-11T14:47:11.112Z] ChatUI: About to send message: {}
+[2025-11-11T14:47:11.113Z] sendMessage called: {}
+[2025-11-11T14:47:11.113Z] No a2aContextId in config
+[2025-11-11T14:47:11.787Z] ChatUI: About to send message: {}
+[2025-11-11T14:47:11.788Z] sendMessage called: {}
+[2025-11-11T14:47:11.788Z] No a2aContextId in config
+[2025-11-11T14:47:17.087Z] ChatUI: About to send message: {}
+[2025-11-11T14:47:17.088Z] sendMessage called: {}
+[2025-11-11T14:47:17.089Z] No a2aContextId in config
+[2025-11-11T14:55:40.022Z] ChatUI: About to send message: {}
+[2025-11-11T14:55:40.025Z] sendMessage called: {}
+[2025-11-11T14:55:40.026Z] No a2aContextId in config
+[2025-11-11T14:55:40.233Z] Chunk received with A2A context: {"contextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022","hasContent":false,"hasDelta":true}
+[2025-11-11T14:55:40.234Z] ChatUI: Setting A2A context ID: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:40.234Z] ChatUI: Ref updated: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:42.618Z] ChatUI: About to send message: {"refValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022","stateValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:42.619Z] sendMessage called: {"a2aContextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:42.620Z] Adding metadata with contextId: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:42.708Z] Chunk received with A2A context: {"contextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022","hasContent":false,"hasDelta":true}
+[2025-11-11T14:55:42.709Z] ChatUI: Setting A2A context ID: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:42.709Z] ChatUI: Ref updated: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:46.863Z] ChatUI: About to send message: {"refValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022","stateValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:46.864Z] sendMessage called: {"a2aContextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:46.865Z] Adding metadata with contextId: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:51.896Z] Non-streaming response received with A2A context: {"contextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:51.897Z] ChatUI: Setting A2A context ID: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:51.898Z] ChatUI: Ref updated: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:52.878Z] ChatUI: About to send message: {"refValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022","stateValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:52.879Z] sendMessage called: {"a2aContextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:52.879Z] Adding metadata with contextId: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:57.899Z] Non-streaming response received with A2A context: {"contextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:57.900Z] ChatUI: Setting A2A context ID: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:57.901Z] ChatUI: Ref updated: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:55:59.887Z] ChatUI: About to send message: {"refValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022","stateValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:59.888Z] sendMessage called: {"a2aContextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:55:59.888Z] Adding metadata with contextId: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:56:04.905Z] Non-streaming response received with A2A context: {"contextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T14:56:04.906Z] ChatUI: Setting A2A context ID: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T14:56:04.906Z] ChatUI: Ref updated: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"
+[2025-11-11T15:34:51.207Z] ChatUI: About to send message: {"refValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022","stateValue":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T15:34:51.208Z] sendMessage called: {"a2aContextId":"8ace31dc-e89b-46d1-9b1a-1e79788d3022"}
+[2025-11-11T15:34:51.208Z] Adding metadata with contextId: "8ace31dc-e89b-46d1-9b1a-1e79788d3022"

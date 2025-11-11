@@ -53,6 +53,23 @@ type ChunkWithMetadata struct {
 	Ark *StreamMetadata `json:"ark,omitempty"`
 }
 
+func NewContentChunk(id, model, content string) *openai.ChatCompletionChunk {
+	return &openai.ChatCompletionChunk{
+		ID:      id,
+		Object:  "chat.completion.chunk",
+		Created: time.Now().Unix(),
+		Model:   model,
+		Choices: []openai.ChatCompletionChunkChoice{
+			{
+				Index: 0,
+				Delta: openai.ChatCompletionChunkChoiceDelta{
+					Content: content,
+				},
+			},
+		},
+	}
+}
+
 // WrapChunkWithMetadata adds ARK metadata to a streaming chunk
 // If query is provided, includes complete query status in metadata (for final chunk only)
 func WrapChunkWithMetadata(ctx context.Context, chunk *openai.ChatCompletionChunk, modelName string, query *arkv1alpha1.Query) interface{} {

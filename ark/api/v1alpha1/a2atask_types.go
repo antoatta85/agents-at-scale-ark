@@ -113,6 +113,9 @@ type A2ATaskSpec struct {
 	// A2AServerRef references the A2AServer to poll for task status updates.
 	// +kubebuilder:validation:Required
 	A2AServerRef A2AServerRef `json:"a2aServerRef"`
+	// AgentRef references the agent executing this task.
+	// +kubebuilder:validation:Required
+	AgentRef AgentRef `json:"agentRef"`
 	// TaskID is the unique identifier from the A2A protocol.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
@@ -160,9 +163,6 @@ type A2ATaskStatus struct {
 	// The Completed condition indicates whether the task is no longer running.
 	// +kubebuilder:validation:Optional
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
-	// AssignedAgent references the agent that executed or is executing this task.
-	// +kubebuilder:validation:Optional
-	AssignedAgent *AgentRef `json:"assignedAgent,omitempty"`
 	// StartTime records when task execution began.
 	// +kubebuilder:validation:Optional
 	StartTime *metav1.Time `json:"startTime,omitempty"`
@@ -201,11 +201,9 @@ type A2ATaskStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="Task ID",type=string,JSONPath=`.spec.taskId`
-// +kubebuilder:printcolumn:name="Context ID",type=string,JSONPath=`.spec.contextId`
 // +kubebuilder:printcolumn:name="Query",type=string,JSONPath=`.spec.queryRef.name`
-// +kubebuilder:printcolumn:name="Assigned Agent",type=string,JSONPath=`.status.assignedAgent.name`
+// +kubebuilder:printcolumn:name="Agent",type=string,JSONPath=`.spec.agentRef.name`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 type A2ATask struct {

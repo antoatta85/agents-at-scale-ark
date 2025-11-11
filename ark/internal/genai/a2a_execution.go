@@ -30,13 +30,13 @@ func NewA2AExecutionEngine(k8sClient client.Client, recorder EventEmitter) *A2AE
 }
 
 // Execute executes a query against an A2A agent
-func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace string, annotations map[string]string, userInput Message, eventStream EventStreamInterface) ([]Message, error) {
+func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace string, agentAnnotations map[string]string, contextID string, userInput Message, eventStream EventStreamInterface) ([]Message, error) {
 	log := logf.FromContext(ctx)
 	log.Info("executing A2A agent", "agent", agentName)
 
 	a2aTracker := NewOperationTracker(e.recorder, ctx, "A2ACall", agentName, map[string]string{
-		"a2aServer":  annotations[arkann.A2AServerName],
-		"serverAddr": annotations[arkann.A2AServerAddress],
+		"a2aServer":  agentAnnotations[arkann.A2AServerName],
+		"serverAddr": agentAnnotations[arkann.A2AServerAddress],
 		"queryId":    getQueryID(ctx),
 		"sessionId":  getSessionID(ctx),
 		"protocol":   "a2a-jsonrpc",
@@ -44,13 +44,13 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 	})
 
 	// Get the A2A server address from annotations
-	a2aAddress, hasAddress := annotations[arkann.A2AServerAddress]
+	a2aAddress, hasAddress := agentAnnotations[arkann.A2AServerAddress]
 	if !hasAddress {
 		return nil, fmt.Errorf("A2A agent missing %s annotation", arkann.A2AServerAddress)
 	}
 
 	// Get the A2AServer name from annotations
-	a2aServerName, hasServerName := annotations[arkann.A2AServerName]
+	a2aServerName, hasServerName := agentAnnotations[arkann.A2AServerName]
 	if !hasServerName {
 		return nil, fmt.Errorf("A2A agent missing %s annotation", arkann.A2AServerName)
 	}
@@ -67,10 +67,14 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 		content = userInput.OfUser.Content.OfString.Value
 	}
 
+	if contextID != "" {
+		log.Info("A2A context ID from query", "contextId", contextID)
+	}
+
 	// Execute A2A agent with event recording
 	queryName := getQueryName(ctx)
 	tokenCollector, _ := e.recorder.(*TokenUsageCollector)
-	response, err := ExecuteA2AAgent(ctx, e.client, a2aAddress, a2aServer.Spec.Headers, namespace, content, agentName, queryName, nil, &a2aServer, tokenCollector)
+	response, err := ExecuteA2AAgent(ctx, e.client, a2aAddress, a2aServer.Spec.Headers, namespace, content, agentName, queryName, contextID, nil, &a2aServer, tokenCollector)
 	if err != nil {
 		a2aTracker.Fail(err)
 		e.recorder.EmitEvent(ctx, "Warning", "A2AExecutionFailed", BaseEvent{

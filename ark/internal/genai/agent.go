@@ -90,7 +90,8 @@ func (a *Agent) executeWithExecutionEngine(ctx context.Context, userInput Messag
 
 func (a *Agent) executeWithA2AExecutionEngine(ctx context.Context, userInput Message, eventStream EventStreamInterface) ([]Message, error) {
 	a2aEngine := NewA2AExecutionEngine(a.client, a.Recorder)
-	return a2aEngine.Execute(ctx, a.Name, a.Namespace, a.Annotations, userInput, eventStream)
+	contextID := GetA2AContextID(ctx)
+	return a2aEngine.Execute(ctx, a.Name, a.Namespace, a.Annotations, contextID, userInput, eventStream)
 }
 
 func (a *Agent) prepareMessages(ctx context.Context, userInput Message, history []Message) ([]Message, error) {

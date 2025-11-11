@@ -1,5 +1,6 @@
 import {ArkApiClient, QueryTarget} from './arkApiClient.js';
 import type {QueryStatus} from './types.js';
+import {log} from './debug.js';
 
 // Re-export QueryTarget for compatibility
 export {QueryTarget};
@@ -7,6 +8,7 @@ export {QueryTarget};
 export interface ChatConfig {
   streamingEnabled: boolean;
   currentTarget?: QueryTarget;
+  a2aContextId?: string;
 }
 
 export interface ToolCall {
@@ -54,11 +56,24 @@ export class ChatClient {
   ): Promise<string> {
     const shouldStream = config.streamingEnabled && !!onChunk;
 
-    const params = {
+    const params: any = {
       model: targetId,
       messages: messages,
       signal: signal,
     };
+
+    // Add A2A context ID if present
+    log('sendMessage called', {a2aContextId: config.a2aContextId});
+    if (config.a2aContextId) {
+      log('Adding metadata with contextId', config.a2aContextId);
+      params.metadata = {
+        queryAnnotations: JSON.stringify({
+          'ark.mckinsey.com/a2a-context-id': config.a2aContextId,
+        }),
+      };
+    } else {
+      log('No a2aContextId in config');
+    }
 
     if (shouldStream) {
       let fullResponse = '';
@@ -75,13 +90,20 @@ export class ChatClient {
         // Extract ARK metadata if present
         const arkMetadata = (chunk as any).ark as ArkMetadata | undefined;
 
-        // Handle regular content
+        if (arkMetadata?.queryStatus?.a2a?.contextId) {
+          log('Chunk received with A2A context', {
+            contextId: arkMetadata.queryStatus.a2a.contextId,
+            hasContent: !!delta?.content,
+            hasDelta: !!delta,
+          });
+        }
+
         const content = delta?.content || '';
         if (content) {
           fullResponse += content;
-          if (onChunk) {
-            onChunk(content, undefined, arkMetadata);
-          }
+        }
+        if (onChunk) {
+          onChunk(content, undefined, arkMetadata);
         }
 
         // Handle tool calls
@@ -120,6 +142,13 @@ export class ChatClient {
       const response = await this.arkApiClient.createChatCompletion(params);
       const message = response.choices[0]?.message;
       const content = message?.content || '';
+      const arkMetadata = (response as any).ark as ArkMetadata | undefined;
+
+      if (arkMetadata?.queryStatus?.a2a?.contextId) {
+        log('Non-streaming response received with A2A context', {
+          contextId: arkMetadata.queryStatus.a2a.contextId,
+        });
+      }
 
       // Handle tool calls in non-streaming mode
       if (message?.tool_calls && message.tool_calls.length > 0) {
@@ -134,13 +163,13 @@ export class ChatClient {
 
         // Send tool calls first
         if (onChunk) {
-          onChunk('', toolCalls);
+          onChunk('', toolCalls, arkMetadata);
         }
       }
 
       // Send content after tool calls
       if (content && onChunk) {
-        onChunk(content);
+        onChunk(content, undefined, arkMetadata);
       }
 
       return content;

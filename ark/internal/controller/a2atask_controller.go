@@ -127,10 +127,7 @@ func (r *A2ATaskReconciler) createA2AClient(ctx context.Context, a2aTask *arkv1a
 		return nil, fmt.Errorf("A2AServer %v has no resolved address", serverKey)
 	}
 
-	agentName := a2aTask.Spec.A2AServerRef.Name
-	if a2aTask.Status.AssignedAgent != nil {
-		agentName = a2aTask.Status.AssignedAgent.Name
-	}
+	agentName := a2aTask.Spec.AgentRef.Name
 
 	return genai.CreateA2AClient(ctx, r.Client, a2aServerAddress, a2aServer.Spec.Headers, serverNamespace, agentName, r.Recorder, a2aTask)
 }

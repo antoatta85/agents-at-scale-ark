@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 import uuid
@@ -23,6 +24,8 @@ from ...constants.annotations import STREAMING_ENABLED_ANNOTATION
 
 router = APIRouter(prefix="/openai/v1", tags=["OpenAI"])
 logger = logging.getLogger(__name__)
+
+logger.info("OpenAI API module loaded - queryAnnotations support enabled")
 
 # Constants
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -54,6 +57,7 @@ class ChatCompletionRequest(BaseModel):
     temperature: float = 1.0
     max_tokens: Optional[int] = None
     stream: bool = False
+    metadata: Optional[dict] = None  # Supports queryAnnotations: JSON string of K8s annotations
 
 
 
@@ -79,6 +83,7 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletion:
     messages = request.messages
 
     logger.info(f"Received chat completion request for model: {model}")
+    logger.info(f"Request metadata: {request.metadata}")
 
     target = parse_model_to_query_target(model)
     query_name = f"openai-query-{uuid.uuid4().hex[:8]}"
@@ -86,13 +91,27 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletion:
     # Get the current namespace
     namespace = get_namespace()
 
+    # Build metadata for the query resource
+    metadata = {"name": query_name, "namespace": namespace}
+
+    # Parse queryAnnotations if provided
+    if request.metadata and "queryAnnotations" in request.metadata:
+        try:
+            logger.info(f"Parsing queryAnnotations: {request.metadata['queryAnnotations']}")
+            query_annotations = json.loads(request.metadata["queryAnnotations"])
+            if "annotations" not in metadata:
+                metadata["annotations"] = {}
+            metadata["annotations"].update(query_annotations)
+            logger.info(f"Applied annotations: {query_annotations}")
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"Failed to parse queryAnnotations: {e}")
+
     # If the user has requested a streaming response as per the OpenAI completions spec,
     # enable streaming on the query by adding the streaming annotation
-    metadata = {"name": query_name, "namespace": namespace}
     if request.stream:
-        metadata["annotations"] = {
-            STREAMING_ENABLED_ANNOTATION: "true"
-        }
+        if "annotations" not in metadata:
+            metadata["annotations"] = {}
+        metadata["annotations"][STREAMING_ENABLED_ANNOTATION] = "true"
 
     try:
         # Create the QueryV1alpha1 object with type="messages"

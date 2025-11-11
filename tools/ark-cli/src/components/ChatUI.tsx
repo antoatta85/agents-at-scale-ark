@@ -13,6 +13,7 @@ import {
   ToolCall,
   ArkMetadata,
 } from '../lib/chatClient.js';
+import {log} from '../lib/debug.js';
 import {ArkApiClient} from '../lib/arkApiClient.js';
 import {ArkApiProxy} from '../lib/arkApiProxy.js';
 import {AgentSelector} from '../ui/AgentSelector.js';
@@ -144,6 +145,12 @@ const ChatUI: React.FC<ChatUIProps> = ({
     streamingEnabled: config?.chat?.streaming ?? true,
     currentTarget: undefined,
   });
+
+  // Track A2A context ID for conversation continuity
+  const [a2aContextId, setA2aContextId] = React.useState<string | undefined>(
+    undefined
+  );
+  const a2aContextIdRef = React.useRef<string | undefined>(undefined);
 
   const chatClientRef = React.useRef<ChatClient | undefined>(undefined);
 
@@ -401,11 +408,15 @@ const ChatUI: React.FC<ChatUIProps> = ({
       // Clear all messages
       setMessages([]);
 
+      // Clear A2A context ID
+      setA2aContextId(undefined);
+      a2aContextIdRef.current = undefined;
+
       // Add system message to show the reset
       const systemMessage: SystemMessage = {
         id: generateMessageId(),
         type: 'system',
-        content: 'Message history cleared',
+        content: 'Message history and A2A context cleared',
         timestamp: new Date(),
         command: '/reset',
       };
@@ -549,11 +560,25 @@ const ChatUI: React.FC<ChatUIProps> = ({
       }
 
       // Send message and get response with abort signal
+      // Use ref to get the latest context ID, not the stale state from closure
+      log('ChatUI: About to send message', {
+        refValue: a2aContextIdRef.current,
+        stateValue: a2aContextId,
+      });
       const fullResponse = await chatClientRef.current.sendMessage(
         target.id,
         apiMessages,
-        chatConfig,
+        {...chatConfig, a2aContextId: a2aContextIdRef.current},
         (chunk: string, toolCalls?: ToolCall[], arkMetadata?: ArkMetadata) => {
+          // Extract A2A context ID from metadata if present
+          if (arkMetadata?.queryStatus?.a2a?.contextId) {
+            const contextId = arkMetadata.queryStatus.a2a.contextId;
+            log('ChatUI: Setting A2A context ID', contextId);
+            setA2aContextId(contextId);
+            a2aContextIdRef.current = contextId;
+            log('ChatUI: Ref updated', a2aContextIdRef.current);
+          }
+
           // Update message progressively as chunks arrive
           setMessages((prev) => {
             const newMessages = [...prev];

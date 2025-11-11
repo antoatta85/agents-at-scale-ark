@@ -78,9 +78,8 @@ func DiscoverA2AAgentsWithRecorder(ctx context.Context, k8sClient client.Client,
 }
 
 // ExecuteA2AAgent executes a task on an A2A agent with optional K8s event recording, query context, and token collection
-func ExecuteA2AAgent(ctx context.Context, k8sClient client.Client, address string, headers []arkv1prealpha1.Header, namespace, input, agentName, queryName string, recorder record.EventRecorder, obj client.Object, tokenCollector *TokenUsageCollector) (string, error) {
+func ExecuteA2AAgent(ctx context.Context, k8sClient client.Client, address string, headers []arkv1prealpha1.Header, namespace, input, agentName, queryName, contextID string, recorder record.EventRecorder, obj client.Object, tokenCollector *TokenUsageCollector) (string, error) {
 	rpcURL := strings.TrimSuffix(address, "/")
-	logf.FromContext(ctx).Info("calling A2A server", "url", rpcURL)
 
 	// Create and configure A2A client
 	a2aClient, err := CreateA2AClient(ctx, k8sClient, rpcURL, headers, namespace, agentName, recorder, obj)
@@ -89,7 +88,7 @@ func ExecuteA2AAgent(ctx context.Context, k8sClient client.Client, address strin
 	}
 
 	// Execute agent and get response
-	return executeA2AAgentMessage(ctx, k8sClient, a2aClient, input, agentName, rpcURL, namespace, queryName, recorder, obj, tokenCollector)
+	return executeA2AAgentMessage(ctx, k8sClient, a2aClient, input, agentName, rpcURL, namespace, queryName, contextID, recorder, obj, tokenCollector)
 }
 
 // CreateA2AClient creates and configures A2A client with header resolution and injection
@@ -118,10 +117,19 @@ func CreateA2AClient(ctx context.Context, k8sClient client.Client, rpcURL string
 }
 
 // executeA2AAgentMessage sends message to A2A agent and processes response
-func executeA2AAgentMessage(ctx context.Context, k8sClient client.Client, a2aClient *a2aclient.A2AClient, input, agentName, rpcURL, namespace, queryName string, recorder record.EventRecorder, obj client.Object, tokenCollector *TokenUsageCollector) (string, error) {
-	message := protocol.NewMessage(protocol.MessageRoleUser, []protocol.Part{
-		protocol.NewTextPart(input),
-	})
+func executeA2AAgentMessage(ctx context.Context, k8sClient client.Client, a2aClient *a2aclient.A2AClient, input, agentName, rpcURL, namespace, queryName, contextID string, recorder record.EventRecorder, obj client.Object, tokenCollector *TokenUsageCollector) (string, error) {
+	log := logf.FromContext(ctx)
+	var message protocol.Message
+	if contextID != "" {
+		log.Info("Sending A2A message with context", "contextId", contextID)
+		message = protocol.NewMessageWithContext(protocol.MessageRoleUser, []protocol.Part{
+			protocol.NewTextPart(input),
+		}, nil, &contextID)
+	} else {
+		message = protocol.NewMessage(protocol.MessageRoleUser, []protocol.Part{
+			protocol.NewTextPart(input),
+		})
+	}
 
 	blocking := true
 	params := protocol.SendMessageParams{
@@ -197,8 +205,13 @@ func extractResponseFromMessageResult(ctx context.Context, k8sClient client.Clie
 		text := extractTextFromParts(r.Parts)
 		return text, nil
 	case *protocol.Task:
-		if tokenCollector != nil && r.ContextID != "" {
-			tokenCollector.SetA2AContextID(r.ContextID)
+		if tokenCollector != nil {
+			if r.ContextID != "" {
+				tokenCollector.SetA2AContextID(r.ContextID)
+			}
+			if r.ID != "" {
+				tokenCollector.SetA2ATaskID(r.ID)
+			}
 		}
 
 		text, err := extractTextFromTask(r)
@@ -411,7 +424,8 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 			Annotations: annotations,
 		},
 		Spec: arkv1alpha1.A2ATaskSpec{
-			TaskID: task.ID,
+			TaskID:    task.ID,
+			ContextID: task.ContextID,
 			QueryRef: arkv1alpha1.QueryRef{
 				Name: func() string {
 					if queryName != "" {
@@ -425,13 +439,13 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 				Name:      a2aServerName,
 				Namespace: namespace,
 			},
-		},
-		Status: arkv1alpha1.A2ATaskStatus{
-			Phase: ConvertA2AStateToPhase(string(task.Status.State)),
-			AssignedAgent: &arkv1alpha1.AgentRef{
+			AgentRef: arkv1alpha1.AgentRef{
 				Name:      agentName,
 				Namespace: namespace,
 			},
+		},
+		Status: arkv1alpha1.A2ATaskStatus{
+			Phase: ConvertA2AStateToPhase(string(task.Status.State)),
 		},
 	}
 

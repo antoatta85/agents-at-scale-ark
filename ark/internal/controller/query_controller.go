@@ -24,6 +24,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
+	"mckinsey.com/ark/internal/annotations"
 	"mckinsey.com/ark/internal/genai"
 	"mckinsey.com/ark/internal/telemetry"
 )
@@ -207,6 +208,12 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 		}
 		obj.Status.A2A.ContextID = contextID
 	}
+	if taskID := tokenCollector.GetA2ATaskID(); taskID != "" {
+		if obj.Status.A2A == nil {
+			obj.Status.A2A = &arkv1alpha1.A2AMetadata{}
+		}
+		obj.Status.A2A.TaskID = taskID
+	}
 
 	// Set overall query status based on whether any targets failed
 	queryStatus := r.determineQueryStatus(responses)
@@ -225,8 +232,9 @@ func (r *QueryReconciler) finalizeEventStream(ctx context.Context, eventStream g
 
 	log := logf.FromContext(ctx)
 
-	// Send final chunk with complete query status including A2A metadata
-	finalChunk := genai.WrapChunkWithMetadata(ctx, nil, "", query)
+	// Send final chunk with empty content delta but complete query status in metadata
+	emptyChunk := genai.NewContentChunk("chatcmpl-final", query.Name, "")
+	finalChunk := genai.WrapChunkWithMetadata(ctx, emptyChunk, "", query)
 	if err := eventStream.StreamChunk(ctx, finalChunk); err != nil {
 		log.Error(err, "Failed to stream final completion chunk with query status")
 	}
@@ -598,6 +606,11 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	queryID := string(query.UID)
 	sessionID := query.Spec.SessionId
 	ctx = genai.WithQueryContext(ctx, queryID, sessionID, query.Name)
+
+	// Add A2A context ID to context if present in query annotations
+	if a2aContextID, ok := query.Annotations[annotations.A2AContextID]; ok && a2aContextID != "" {
+		ctx = genai.WithA2AContextID(ctx, a2aContextID)
+	}
 
 	// Add execution metadata for streaming
 	targetString := fmt.Sprintf("%s/%s", target.Type, target.Name)
