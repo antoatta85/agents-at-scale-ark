@@ -344,17 +344,23 @@ export const chatService = {
     targetName: string,
     sessionId?: string,
   ): AsyncGenerator<Record<string, unknown>, void, unknown> {
-    // Create the query with streaming enabled
-    const query = await this.submitChatQuery(
-      messages,
-      targetType,
-      targetName,
-      sessionId,
-      true, // enableStreaming
-    );
+    // Use OpenAI-compatible endpoint with streaming
+    // Format the model as "type/name" (e.g., "agent/my-agent")
+    const model = `${targetType}/${targetName}`;
 
-    // Connect to the streaming endpoint
-    const response = await fetch(`/api/v1/queries/${query.name}/stream`);
+    // Connect to the OpenAI streaming endpoint
+    const response = await fetch('/api/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+        metadata: sessionId ? { sessionId } : undefined,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to connect to stream: ${response.statusText}`);

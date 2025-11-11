@@ -50,12 +50,21 @@ async function middleware(request: NextRequest) {
       backendHeaders.set('Authorization', `Bearer ${token.access_token}`);
     }
 
-    // Rewrite to backend with auth headers on REQUEST (not response)
-    // This ensures OIDC tokens are never exposed to the frontend
-    return NextResponse.rewrite(targetUrl, {
-      request: {
-        headers: backendHeaders,
-      },
+    // Use fetch() with streaming instead of NextResponse.rewrite() to preserve streaming
+    // NextResponse.rewrite() buffers the entire response, breaking SSE streams
+    const backendResponse = await fetch(targetUrl, {
+      method: request.method,
+      headers: backendHeaders,
+      body: request.body,
+      // @ts-expect-error - duplex is required for streaming but not in TypeScript types
+      duplex: 'half',
+    });
+
+    // Return the response with preserved headers and streaming body
+    return new NextResponse(backendResponse.body, {
+      status: backendResponse.status,
+      statusText: backendResponse.statusText,
+      headers: backendResponse.headers,
     });
   }
 
