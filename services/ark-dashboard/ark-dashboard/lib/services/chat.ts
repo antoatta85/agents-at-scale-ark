@@ -149,8 +149,10 @@ export const chatService = {
     targetType: string,
     targetName: string,
     sessionId?: string,
+    enableStreaming?: boolean,
   ): Promise<QueryDetailResponse> {
-    const queryRequest = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const queryRequest: any = {
       name: `chat-query-${generateUUID()}`,
       type: 'messages',
       // Use OpenAI ChatCompletionMessageParam which supports multimodal content
@@ -162,9 +164,20 @@ export const chatService = {
         },
       ],
       sessionId,
-    } as unknown as QueryCreateRequest;
+    };
 
-    return await this.createQuery(queryRequest);
+    // Add streaming annotation if enabled
+    if (enableStreaming) {
+      queryRequest.metadata = {
+        annotations: {
+          'ark.mckinsey.com/streaming-enabled': 'true',
+        },
+      };
+    }
+
+    return await this.createQuery(
+      queryRequest as unknown as QueryCreateRequest,
+    );
   },
 
   async getChatHistory(sessionId: string): Promise<QueryDetailResponse[]> {
@@ -191,6 +204,14 @@ export const chatService = {
         const bTime = parseInt(b.name.split('-').pop() || '0');
         return aTime - bTime;
       });
+  },
+
+  async *getStream(input: string): AsyncGenerator<string, void, unknown> {
+    for (const c of input) {
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 200));
+      yield c;
+    }
   },
 
   async getQueryResult(queryName: string): Promise<ChatResponse> {
@@ -273,5 +294,107 @@ export const chatService = {
     return () => {
       stopped = true;
     };
+  },
+
+  /**
+   * Parse a Server-Sent Events (SSE) chunk line
+   * @param line - SSE line in format "data: {json}" or "data: [DONE]"
+   * @returns Parsed JSON object or null for [DONE] marker, empty lines, or invalid data
+   */
+  parseSSEChunk(line: string): Record<string, unknown> | null {
+    const trimmedLine = line.trim();
+
+    // Return null for empty lines
+    if (!trimmedLine) {
+      return null;
+    }
+
+    // Check if line starts with "data:"
+    if (!trimmedLine.startsWith('data:')) {
+      return null;
+    }
+
+    // Extract the data after "data:"
+    const data = trimmedLine.substring(5).trim();
+
+    // Check for [DONE] marker
+    if (data === '[DONE]') {
+      return null;
+    }
+
+    // Try to parse JSON
+    try {
+      return JSON.parse(data) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Stream chat response using Server-Sent Events
+   * @param messages - Chat messages to send
+   * @param targetType - Type of target (agent, model, team)
+   * @param targetName - Name of the target
+   * @param sessionId - Optional session ID
+   * @yields Parsed SSE chunks containing response data
+   */
+  async *streamChatResponse(
+    messages: ChatCompletionMessageParam[],
+    targetType: string,
+    targetName: string,
+    sessionId?: string,
+  ): AsyncGenerator<Record<string, unknown>, void, unknown> {
+    // Create the query with streaming enabled
+    const query = await this.submitChatQuery(
+      messages,
+      targetType,
+      targetName,
+      sessionId,
+      true, // enableStreaming
+    );
+
+    // Connect to the streaming endpoint
+    const response = await fetch(`/api/v1/queries/${query.name}/stream`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to connect to stream: ${response.statusText}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body available for streaming');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+
+        // Split by double newline (SSE event separator)
+        const lines = buffer.split('\n\n');
+
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || '';
+
+        // Process complete lines
+        for (const line of lines) {
+          const chunk = this.parseSSEChunk(line);
+          if (chunk) {
+            yield chunk;
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
   },
 };
