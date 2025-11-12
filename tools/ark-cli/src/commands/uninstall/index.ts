@@ -10,6 +10,7 @@ import {
   isMarketplaceService,
   extractMarketplaceServiceName,
   getMarketplaceService,
+  getAllMarketplaceServices,
 } from '../../marketplaceServices.js';
 
 async function uninstallService(service: ArkService, verbose: boolean = false) {
@@ -50,8 +51,10 @@ async function uninstallArk(
       if (!service) {
         output.error(`marketplace service '${marketplaceServiceName}' not found`);
         output.info('available marketplace services:');
-        output.info('  marketplace/phoenix');
-        output.info('  marketplace/langfuse');
+        const marketplaceServices = getAllMarketplaceServices();
+        for (const serviceName of Object.keys(marketplaceServices)) {
+          output.info(`  marketplace/${serviceName}`);
+        }
         process.exit(1);
       }
 

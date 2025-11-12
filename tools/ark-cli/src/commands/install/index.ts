@@ -15,6 +15,7 @@ import {
   isMarketplaceService,
   extractMarketplaceServiceName,
   getMarketplaceService,
+  getAllMarketplaceServices,
 } from '../../marketplaceServices.js';
 import {printNextSteps} from '../../lib/nextSteps.js';
 import ora from 'ora';
@@ -76,8 +77,10 @@ export async function installArk(
       if (!service) {
         output.error(`marketplace service '${marketplaceServiceName}' not found`);
         output.info('available marketplace services:');
-        output.info('  marketplace/phoenix');
-        output.info('  marketplace/langfuse');
+        const marketplaceServices = getAllMarketplaceServices();
+        for (const serviceName of Object.keys(marketplaceServices)) {
+          output.info(`  marketplace/${serviceName}`);
+        }
         process.exit(1);
       }
 
