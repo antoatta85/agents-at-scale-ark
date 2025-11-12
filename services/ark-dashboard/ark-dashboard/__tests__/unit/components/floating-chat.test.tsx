@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FloatingChat from '@/components/floating-chat';
 import { chatService } from '@/lib/services';
 
-// Mock Next.js router
+// Mock Next.js router - used by ChatMessage component
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -14,6 +14,9 @@ vi.mock('next/navigation', () => ({
   }),
   usePathname: () => '/',
 }));
+
+// Mock scrollIntoView
+Element.prototype.scrollIntoView = vi.fn();
 
 // Mock the chat service
 vi.mock('@/lib/services', () => ({
@@ -33,9 +36,6 @@ describe('FloatingChat', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Mock scrollIntoView
-    Element.prototype.scrollIntoView = vi.fn();
   });
 
   describe('Display streaming chunks incrementally', () => {
@@ -61,11 +61,9 @@ describe('FloatingChat', () => {
 
       render(<FloatingChat {...defaultProps} />);
 
-      // Type a message
       const input = screen.getByPlaceholderText('Type your message...');
       await user.type(input, 'Hi there');
 
-      // Click send button
       const sendButton = screen.getByRole('button', { name: /send/i });
       await user.click(sendButton);
 

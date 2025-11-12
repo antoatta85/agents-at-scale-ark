@@ -206,14 +206,6 @@ export const chatService = {
       });
   },
 
-  async *getStream(input: string): AsyncGenerator<string, void, unknown> {
-    for (const c of input) {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 200));
-      yield c;
-    }
-  },
-
   async getQueryResult(queryName: string): Promise<ChatResponse> {
     try {
       const query = await this.getQuery(queryName);
@@ -367,7 +359,6 @@ export const chatService = {
     try {
       while (true) {
         const { done, value } = await reader.read();
-
         if (done) {
           break;
         }
