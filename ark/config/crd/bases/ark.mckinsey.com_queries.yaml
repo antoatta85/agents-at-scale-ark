@@ -384,19 +384,6 @@ spec:
             type: object
           status:
             properties:
-              a2a:
-                description: A2A contains A2A protocol-specific metadata including
-                  context and task identifiers
-                properties:
-                  contextId:
-                    description: ContextID is the A2A protocol context identifier
-                      for grouping related interactions
-                    type: string
-                  taskId:
-                    description: TaskID is the A2A protocol task identifier if this
-                      query created an A2ATask
-                    type: string
-                type: object
               conditions:
                 description: Conditions represent the latest available observations
                   of a query's state
@@ -470,6 +457,19 @@ spec:
                 items:
                   description: Response defines a response from a query target.
                   properties:
+                    a2a:
+                      description: A2A contains optional A2A protocol metadata (contextId,
+                        taskId)
+                      properties:
+                        contextId:
+                          description: ContextID from the A2A protocol when the target
+                            is an A2A agent
+                          type: string
+                        taskId:
+                          description: TaskID from the A2A protocol when the target
+                            is an A2A agent and a task was created
+                          type: string
+                      type: object
                     content:
                       type: string
                     phase:
