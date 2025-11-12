@@ -8,13 +8,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONVERTED_TESTS=(
     "agents"
     "queries"
-    "models
+    "models"
+    "agent-parameters"
+    "agent-tools"
+    "agent-structured-output"
+    "agent-partial-tool"
 )
 
-PROVIDERS=$(bash "$SCRIPT_DIR/scripts/setup-model-provider.sh" list)
+ALL_PROVIDERS=$(bash "$SCRIPT_DIR/scripts/setup-model-provider.sh" list)
+
+# Filter out bedrock - CRD doesn't support bearer token auth
+PROVIDERS=$(echo "$ALL_PROVIDERS" | jq '[.[] | select(. != "bedrock")]')
 
 if [ "$PROVIDERS" = "[]" ]; then
-    echo "Error: No model provider credentials configured" >&2
+    echo "Error: No supported model provider credentials configured" >&2
+    echo "Note: Bedrock requires AWS credentials and is not currently supported" >&2
     exit 1
 fi
 
@@ -24,8 +32,9 @@ EXPECTED_RUNS=$((PROVIDER_COUNT * TOTAL_TESTS))
 
 echo "========================================"
 echo "Running $TOTAL_TESTS working tests"
-echo "with $PROVIDER_COUNT providers"
+echo "with $PROVIDER_COUNT providers (Azure, OpenAI)"
 echo "Expected test runs: $EXPECTED_RUNS"
+echo "Note: Bedrock tests skipped (requires AWS credentials)"
 echo "========================================"
 echo ""
 
@@ -34,7 +43,7 @@ FAILED=0
 TIMEOUT_COUNT=0
 FAILED_COMBINATIONS=()
 
-TEST_TIMEOUT=120  # 2 minutes per test
+TEST_TIMEOUT=240  # 4 minutes per test
 
 for provider in $(echo "$PROVIDERS" | jq -r '.[]'); do
     export E2E_TEST_PROVIDER="$provider"

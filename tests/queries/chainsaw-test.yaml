@@ -39,7 +39,7 @@ spec:
             apiVersion: ark.mckinsey.com/v1alpha1
             kind: Model
             metadata:
-              name: test-model
+              name: default
             status:
               conditions:
               - type: ModelAvailable

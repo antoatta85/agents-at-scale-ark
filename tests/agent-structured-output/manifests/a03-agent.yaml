@@ -10,7 +10,7 @@ spec:
     Extract the requested information from the input text and return it in the specified JSON format.
     Be thorough in identifying named entities and provide accurate sentiment analysis.
   modelRef:
-    name: structured-output-test-model
+    name: test-model
   outputSchema:
     type: object
     properties:
