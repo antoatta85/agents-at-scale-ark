@@ -30,7 +30,7 @@ dependencies:
   # phoenix service for observability. phoenix has a hook to restart ark-controller to pick up its url
   # phoenix:
   #   git: https://github.com/mckinsey/agents-at-scale-marketplace
-  #   tag: phoenix-v0.1.2
+  #   tag: v0.1.1
   #   subPath: services/phoenix
   # langfuse service for observability. langfuse has a hook to restart ark-controller to pick up its url
   # langfuse:
