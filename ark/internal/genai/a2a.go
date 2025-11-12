@@ -93,6 +93,12 @@ func ExecuteA2AAgent(ctx context.Context, k8sClient client.Client, address strin
 
 // CreateA2AClient creates and configures A2A client with header resolution and injection
 func CreateA2AClient(ctx context.Context, k8sClient client.Client, rpcURL string, headers []arkv1prealpha1.Header, namespace, agentName string, recorder record.EventRecorder, obj client.Object) (*a2aclient.A2AClient, error) {
+	// Use context deadline if available, otherwise default
+	timeout := 5 * time.Minute
+	if deadline, ok := ctx.Deadline(); ok {
+		timeout = time.Until(deadline)
+	}
+
 	var clientOptions []a2aclient.Option
 	if len(headers) > 0 {
 		resolvedHeaders, err := resolveA2AHeaders(ctx, k8sClient, headers, namespace)
@@ -101,11 +107,14 @@ func CreateA2AClient(ctx context.Context, k8sClient client.Client, rpcURL string
 			return nil, err
 		}
 
-		httpClient := &http.Client{Timeout: 30 * time.Second}
+		httpClient := &http.Client{Timeout: timeout}
 		clientOptions = append(clientOptions, a2aclient.WithHTTPClient(httpClient))
 		clientOptions = append(clientOptions, a2aclient.WithHTTPReqHandler(&customA2ARequestHandler{
 			headers: resolvedHeaders,
 		}))
+	} else {
+		// No headers, but still need to set timeout via client options
+		clientOptions = append(clientOptions, a2aclient.WithTimeout(timeout))
 	}
 
 	a2aClient, err := a2aclient.NewA2AClient(rpcURL, clientOptions...)

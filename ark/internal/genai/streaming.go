@@ -26,24 +26,13 @@ import (
 
 // StreamMetadata contains ARK-specific metadata for streaming chunks
 type StreamMetadata struct {
-	// Query name - included in all chunks to identify the query
-	Query string `json:"query,omitempty"`
-	// Session ID - included in all chunks for session tracking
-	Session string `json:"session,omitempty"`
-	// Target identifies the original query target (e.g., "team/my-team")
-	// Included in all chunks to disambiguate responses from different targets
-	Target string `json:"target,omitempty"`
-	// Team name for team queries
-	// Included in all chunks to disambiguate responses from different team members
-	Team string `json:"team,omitempty"`
-	// Agent name for agent responses
-	// Included in all chunks to disambiguate responses from different agents
-	Agent string `json:"agent,omitempty"`
-	// Model name being used
-	// Included in all chunks to identify which model generated the response
-	Model string `json:"model,omitempty"`
-	// QueryStatus contains complete query status including phase, responses, tokenUsage, duration, and A2A metadata
-	// Only populated in the final completion chunk, not during streaming
+	Query       string                   `json:"query,omitempty"`
+	Session     string                   `json:"session,omitempty"`
+	Target      string                   `json:"target,omitempty"`
+	Team        string                   `json:"team,omitempty"`
+	Agent       string                   `json:"agent,omitempty"`
+	Model       string                   `json:"model,omitempty"`
+	Annotations map[string]string        `json:"annotations,omitempty"`
 	QueryStatus *arkv1alpha1.QueryStatus `json:"queryStatus,omitempty"`
 }
 
@@ -113,9 +102,11 @@ func WrapChunkWithMetadata(ctx context.Context, chunk *openai.ChatCompletionChun
 		}
 	}
 
-	// If no metadata, return chunk as-is for backward compatibility
-	if *metadata == (StreamMetadata{}) {
-		return chunk
+	// Add query annotations if present in context
+	if queryVal := ctx.Value(QueryContextKey); queryVal != nil {
+		if query, ok := queryVal.(*arkv1alpha1.Query); ok && len(query.Annotations) > 0 {
+			metadata.Annotations = query.Annotations
+		}
 	}
 
 	return ChunkWithMetadata{
