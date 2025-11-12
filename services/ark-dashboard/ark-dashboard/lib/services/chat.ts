@@ -2,6 +2,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/chat/completio
 
 import { apiClient } from '@/lib/api/client';
 import type { components } from '@/lib/api/generated/types';
+import { ARK_ANNOTATIONS } from '@/lib/constants/annotations';
 import { generateUUID } from '@/lib/utils/uuid';
 
 interface AxiosError extends Error {
@@ -151,8 +152,7 @@ export const chatService = {
     sessionId?: string,
     enableStreaming?: boolean,
   ): Promise<QueryDetailResponse> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const queryRequest: any = {
+    const queryRequest: QueryCreateRequest = {
       name: `chat-query-${generateUUID()}`,
       type: 'messages',
       // Use OpenAI ChatCompletionMessageParam which supports multimodal content
@@ -170,14 +170,12 @@ export const chatService = {
     if (enableStreaming) {
       queryRequest.metadata = {
         annotations: {
-          'ark.mckinsey.com/streaming-enabled': 'true',
+          [ARK_ANNOTATIONS.STREAMING_ENABLED]: 'true',
         },
       };
     }
 
-    return await this.createQuery(
-      queryRequest as unknown as QueryCreateRequest,
-    );
+    return await this.createQuery(queryRequest);
   },
 
   async getChatHistory(sessionId: string): Promise<QueryDetailResponse[]> {
