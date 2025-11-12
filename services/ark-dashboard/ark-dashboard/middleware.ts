@@ -50,8 +50,8 @@ async function middleware(request: NextRequest) {
       backendHeaders.set('Authorization', `Bearer ${token.access_token}`);
     }
 
-    // Use fetch to proxy the request to the backend for full streaming support.
-    // NextResponse.rewrite does not support streaming responses properly, and buffers all the response
+    // Using fetch to proxy the request to the downstream server for full streaming support.
+    // NextResponse.rewrite buffers all the response before returning it, which makes streaming not working.
     const backendResponse = await fetch(targetUrl, {
       method: request.method,
       headers: backendHeaders,

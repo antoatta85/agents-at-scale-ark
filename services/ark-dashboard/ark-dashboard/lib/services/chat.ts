@@ -304,25 +304,19 @@ export const chatService = {
   parseSSEChunk(line: string): Record<string, unknown> | null {
     const trimmedLine = line.trim();
 
-    // Return null for empty lines
     if (!trimmedLine) {
       return null;
     }
 
-    // Check if line starts with "data:"
     if (!trimmedLine.startsWith('data:')) {
       return null;
     }
 
-    // Extract the data after "data:"
     const data = trimmedLine.substring(5).trim();
-
-    // Check for [DONE] marker
     if (data === '[DONE]') {
       return null;
     }
 
-    // Try to parse JSON
     try {
       return JSON.parse(data) as Record<string, unknown>;
     } catch {
@@ -344,11 +338,7 @@ export const chatService = {
     targetName: string,
     sessionId?: string,
   ): AsyncGenerator<Record<string, unknown>, void, unknown> {
-    // Use OpenAI-compatible endpoint with streaming
-    // Format the model as "type/name" (e.g., "agent/my-agent")
     const model = `${targetType}/${targetName}`;
-
-    // Connect to the OpenAI streaming endpoint
     const response = await fetch('/api/openai/v1/chat/completions', {
       method: 'POST',
       headers: {

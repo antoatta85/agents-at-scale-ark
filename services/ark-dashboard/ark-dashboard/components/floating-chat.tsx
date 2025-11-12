@@ -50,7 +50,6 @@ export default function FloatingChat({
   const [viewMode, setViewMode] = useState<'text' | 'markdown'>('markdown');
   const [sessionId] = useState(() => `session-${Date.now()}`);
   const inputRef = useRef<HTMLInputElement>(null);
-  // const stopPollingRef = useRef<(() => void) | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -61,13 +60,6 @@ export default function FloatingChat({
   useEffect(() => {
     // Focus input when chat opens
     setTimeout(() => inputRef.current?.focus(), 100);
-
-    // Cleanup: stop polling when component unmounts
-    // return () => {
-    //   if (stopPollingRef.current) {
-    //     stopPollingRef.current();
-    //   }
-    // };
   }, []);
 
   useEffect(() => {
@@ -81,50 +73,6 @@ export default function FloatingChat({
     // Scroll to bottom when messages change
     setTimeout(scrollToBottom, 100);
   }, [chatMessages]);
-
-  // const pollQueryStatus = async (queryName: string) => {
-  //   let pollingStopped = false;
-  //   stopPollingRef.current = () => {
-  //     pollingStopped = true;
-  //   };
-
-  //   while (!pollingStopped) {
-  //     try {
-  //       const result = await chatService.getQueryResult(queryName);
-
-  //       // Check if terminal state with response
-  //       if (result.terminal) {
-  //         let content = '';
-
-  //         if (result.status === 'done' && result.response) {
-  //           content = result.response;
-  //         } else if (result.status === 'error') {
-  //           content = result.response || 'Query failed';
-  //         } else if (result.status === 'unknown') {
-  //           content = 'Query status unknown';
-  //         }
-
-  //         setChatMessages(prev => [...prev, { role: 'assistant', content }]);
-
-  //         pollingStopped = true;
-  //         break;
-  //       }
-  //     } catch (err) {
-  //       console.error('Error polling query status:', err);
-
-  //       setChatMessages(prev => [
-  //         ...prev,
-  //         { role: 'assistant', content: 'Error while processing query' },
-  //       ]);
-
-  //       pollingStopped = true;
-  //     }
-
-  //     if (!pollingStopped) {
-  //       await new Promise(resolve => setTimeout(resolve, 1000));
-  //     }
-  //   }
-  // };
 
   const buildChatMessages = (
     messages: ChatCompletionMessageParam[],
@@ -157,7 +105,6 @@ export default function FloatingChat({
 
       let accumulatedContent = '';
 
-      // Stream the response
       for await (const chunk of chatService.streamChatResponse(
         messageArray,
         type,

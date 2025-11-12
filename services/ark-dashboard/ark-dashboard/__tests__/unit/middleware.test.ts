@@ -126,7 +126,6 @@ describe('middleware default export', () => {
         expires: '',
       };
 
-      // Mock fetch response
       const mockBody = new ReadableStream();
       const mockHeaders = new Headers({ 'content-type': 'application/json' });
       mockFetch.mockResolvedValueOnce({
@@ -139,13 +138,11 @@ describe('middleware default export', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (middleware as any)(request);
 
-      // Verify fetch was called with correct URL
       expect(mockFetch).toHaveBeenCalledWith(
         'https://backend-service:9000/v1/queries',
         expect.any(Object),
       );
 
-      // Verify request was configured correctly
       const callArgs = mockFetch.mock.calls[0];
       const fetchOptions = callArgs[1];
       expect(fetchOptions.method).toBe('GET');
@@ -170,7 +167,6 @@ describe('middleware default export', () => {
         expires: '',
       };
 
-      // Mock fetch response
       mockFetch.mockResolvedValueOnce({
         status: 200,
         statusText: 'OK',
@@ -198,7 +194,6 @@ describe('middleware default export', () => {
         expires: '',
       };
 
-      // Mock fetch response
       mockFetch.mockResolvedValueOnce({
         status: 201,
         statusText: 'Created',
@@ -209,7 +204,6 @@ describe('middleware default export', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (middleware as any)(request);
 
-      // Verify fetch was called with the request body
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
@@ -247,7 +241,6 @@ describe('middleware default export', () => {
         expires: '',
       };
 
-      // Mock backend response with its own headers (without Authorization)
       const backendResponseHeaders = new Headers({
         'content-type': 'application/json',
         'x-backend-version': '1.0.0',
@@ -262,7 +255,7 @@ describe('middleware default export', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (middleware as any)(request);
 
-      // Verify Authorization was sent TO the backend (downstream)
+      // Verify Authorization was sent TO downstream server
       const callArgs = mockFetch.mock.calls[0];
       const backendRequestHeaders = callArgs[1].headers as Headers;
       expect(backendRequestHeaders.get('Authorization')).toBe(
@@ -274,8 +267,8 @@ describe('middleware default export', () => {
       expect(response.headers.get('x-backend-version')).toBe('1.0.0');
       expect(response.headers.get('content-type')).toBe('application/json');
 
-      // The key security property: Authorization header was only in the request TO the backend
-      // It's not in the response headers FROM the backend (backend doesn't echo it back)
+      // The key security property: Authorization header was only in the request TO the downstream server
+      // It's not in the response headers FROM the downstream server
       // This ensures tokens are never exposed to upstream (the browser/client)
       expect(backendResponseHeaders.get('Authorization')).toBeNull();
     });
