@@ -106,8 +106,6 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 		return nil, err
 	}
 
-	log.Info("A2A agent execution completed", "agent", agentName, "response_length", len(a2aResponse.Content))
-
 	// Emit success event
 	e.recorder.EmitEvent(ctx, "Normal", "A2AExecutionSuccess", BaseEvent{
 		Name: "A2AAgentExecutionCompleted",
