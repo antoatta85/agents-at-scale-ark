@@ -7,6 +7,9 @@ export default {
   reference: 'Reference',
   examples: 'Examples & Samples',
   community: 'Community',
-  marketplace: 'Marketplace',
-  disclaimer: 'Disclaimer',
+  marketplace: {
+    title: 'Marketplace',
+    href: 'https://mckinsey.github.io/agents-at-scale-marketplace'
+  },
+  disclaimer: 'Disclaimer'
 }
