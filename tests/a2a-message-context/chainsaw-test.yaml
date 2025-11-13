@@ -60,9 +60,14 @@ spec:
     # Verify A2A servers always set contextId in response and extract it
     - script:
         content: |
+          echo "=== Query Response Structure ==="
+          kubectl get query message-counter-first -n $NAMESPACE -o jsonpath='{.status.responses[0]}' | jq .
+          echo ""
+
           CONTEXT_ID=$(kubectl get query message-counter-first -n $NAMESPACE -o jsonpath='{.status.responses[0].a2a.contextId}')
           if [ -z "$CONTEXT_ID" ]; then
             echo "ERROR: contextId not set in response a2a metadata"
+            echo "This means the A2A agent (mock-llm) did not return a contextId in its response"
             exit 1
           fi
           printf '%s' "$CONTEXT_ID"
