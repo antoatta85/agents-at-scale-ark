@@ -410,6 +410,10 @@ func resolveA2AHeaders(ctx context.Context, k8sClient client.Client, headers []a
 func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *protocol.Task, agentName, namespace, queryName string, recorder record.EventRecorder, obj client.Object) error {
 	log := logf.FromContext(ctx)
 
+	if queryName == "" {
+		return fmt.Errorf("unable to determine A2A Task originating query")
+	}
+
 	var a2aServerAddress, a2aServerName string
 	if a2aServer, ok := obj.(*arkv1prealpha1.A2AServer); ok {
 		a2aServerName = a2aServer.Name
@@ -440,12 +444,7 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 			TaskID:    task.ID,
 			ContextID: task.ContextID,
 			QueryRef: arkv1alpha1.QueryRef{
-				Name: func() string {
-					if queryName != "" {
-						return queryName
-					}
-					return "auto-generated-query" // Fallback for backwards compatibility
-				}(),
+				Name:      queryName,
 				Namespace: namespace,
 			},
 			A2AServerRef: arkv1alpha1.A2AServerRef{
