@@ -420,11 +420,6 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 		a2aServerAddress = a2aServer.Status.LastResolvedAddress
 	}
 
-	labels := map[string]string{
-		"ark.mckinsey.com/task-id": task.ID,
-		"ark.mckinsey.com/agent":   agentName,
-	}
-
 	annotations := make(map[string]string)
 	if a2aServerAddress != "" {
 		annotations["ark.mckinsey.com/a2a-server-address"] = a2aServerAddress
@@ -437,7 +432,6 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        fmt.Sprintf("a2a-task-%s", task.ID),
 			Namespace:   namespace,
-			Labels:      labels,
 			Annotations: annotations,
 		},
 		Spec: arkv1alpha1.A2ATaskSpec{
