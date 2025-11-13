@@ -46,11 +46,24 @@ The following flags are extremely useful for troubleshooting test issues:
 - `--pause-on-failure`: stop the test execution on the first failure - don't delete resources
 - `--fail-fast`: abort immediately on first failure
 - `--skip-delete`: don't delete the test resources or namespace at the end of the run (makes it easier to inspect resources)
+- `--verbose`: show detaild logs
 
 As an example, to run the full suite and pause as soon as there is any failure and allow the operator to inspect resources:
 
 ```bash
 chainsaw test --config .chainsaw.yaml --selector '!evaluated' --pause-on-failure .
+```
+
+When tests fail, inspect the created resources:
+
+```bash
+# Check the most recently created chainsaw test namespace (these naespaces
+# always start with 'chainsaw-').
+kubectl get namespace --sort-by=.metadata.creationTimestamp
+
+# Check resources in test namespace, view logs, etc.
+kubectl get all -n chainsaw-test-namespace
+kubectl describe query -n chainsaw-test-namespace failed-query
 ```
 
 ## Developing New Tests
@@ -136,45 +149,6 @@ spec:
     apiKey: $E2E_TEST_AZURE_OPENAI_KEY
 ```
 
-### Test Organization
-
-Structure tests by component:
-- `tests/models/` - Core model resource tests
-- `services/{service}/test/` - Service-specific integration tests
-- `ark/test/e2e/` - Controller and webhook tests
-
-## Debugging Tests
-
-### Verbose Output
-
-Run chainsaw with verbose flags for debugging:
-
-```bash
-# Detailed output
-chainsaw test ./tests/models --verbose
-
-# Keep test namespaces for inspection
-chainsaw test ./tests/models --cleanup=false
-
-# Run specific test steps
-chainsaw test ./tests/models --test-dir=specific-test
-```
-
-### Inspecting Resources
-
-When tests fail, inspect the created resources:
-
-```bash
-# List namespaces created by chainsaw
-kubectl get ns | grep chainsaw
-
-# Check resources in test namespace
-kubectl get all -n chainsaw-test-namespace
-
-# View logs from failed pods
-kubectl logs -n chainsaw-test-namespace pod/failing-pod
-```
-
 ### Summarizing Chainsaw Test Results
 
 For a quick summary of your Chainsaw test results, you can use the provided `scripts/chainsaw_summary.py` script. This script reads a Chainsaw JSON report and prints a concise table showing which tests passed or failed.
@@ -217,21 +191,6 @@ Evaluation                | Score     | Evaluator
 chicago-weather-query     | 30       | evaluator-llm
 research-query            | 95       | evaluator-llm
 ```
-
-### Common Issues
-
-**Environment Variables Not Set**
-- Ensure all required env vars are exported before running tests
-- Use `env | grep TEST` to verify variables are set
-
-**Resource Not Ready**
-- Increase timeout in assertion files
-- Check controller logs for resource processing errors
-- Verify all dependencies are deployed
-
-**Test Namespace Conflicts**
-- Use unique test names to avoid namespace collisions
-- Clean up previous test runs with `--cleanup=true`
 
 ## Available Environment Variables for GitHub Actions
 
@@ -644,25 +603,6 @@ status:
 (evaluations[0].passed in [true, false]): true
 (status.phase in ['done', 'completed']): true
 ```
-
-## Additional Testing Approaches
-
-### Go-based E2E Tests
-
-For controller-specific testing, use the Go-based e2e tests:
-
-```bash
-cd ark/
-make setup-test-e2e  # Setup Kind cluster
-make test-e2e         # Run Ginkgo tests
-make cleanup-test-e2e # Cleanup
-```
-
-These tests validate:
-- Controller deployment and health
-- Webhook configuration and certificates
-- Custom resource processing
-- Metrics endpoints
 
 ## Next Steps
 
