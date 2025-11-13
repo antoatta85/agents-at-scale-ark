@@ -6,5 +6,7 @@ export default {
   explanations: 'Explanations',
   reference: 'Reference',
   examples: 'Examples & Samples',
-  community: 'Community'
+  community: 'Community',
+  marketplace: 'Marketplace',
+  disclaimer: 'Disclaimer',
 }

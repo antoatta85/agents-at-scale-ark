@@ -1,9 +1,9 @@
 export default {
-  'your-first-agent': '🌟 Your First Agent',
-  'build-a-multi-agent-team': 'Build A Multi Agent Team',
-  'add-custom-tools-with-mcp': 'Add Custom Tools With MCP',
-  'deploy-to-production': 'Deploy To Production',
-  'build-an-evaluation-pipeline': 'Build An Evaluation Pipeline',
-  'advanced-custom-resource-development': 'Advanced: Custom Resource Development',
+  'your-first-agent': 'Your First Agent',
+  'creating-and-managing-models': 'Creating And Managing Models',
+  'build-a-multi-agent-team': 'Creating And Managing Teams',
+  'add-custom-tools-with-mcp': 'Creating Tools And MCP Servers',
+  'creating-queries': 'Creating Queries',
+  'overrides': 'Overrides',
 };
 
