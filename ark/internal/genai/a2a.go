@@ -414,25 +414,15 @@ func handleA2ATaskResponse(ctx context.Context, k8sClient client.Client, task *p
 		return fmt.Errorf("unable to determine A2A Task originating query")
 	}
 
-	var a2aServerAddress, a2aServerName string
+	var a2aServerName string
 	if a2aServer, ok := obj.(*arkv1prealpha1.A2AServer); ok {
 		a2aServerName = a2aServer.Name
-		a2aServerAddress = a2aServer.Status.LastResolvedAddress
-	}
-
-	annotations := make(map[string]string)
-	if a2aServerAddress != "" {
-		annotations["ark.mckinsey.com/a2a-server-address"] = a2aServerAddress
-	}
-	if a2aServerName != "" {
-		annotations["ark.mckinsey.com/a2a-server-name"] = a2aServerName
 	}
 
 	a2aTask := &arkv1alpha1.A2ATask{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        fmt.Sprintf("a2a-task-%s", task.ID),
-			Namespace:   namespace,
-			Annotations: annotations,
+			Name:      fmt.Sprintf("a2a-task-%s", task.ID),
+			Namespace: namespace,
 		},
 		Spec: arkv1alpha1.A2ATaskSpec{
 			TaskID:    task.ID,
