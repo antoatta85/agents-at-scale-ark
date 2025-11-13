@@ -35,8 +35,14 @@ export E2E_TEST_AZURE_OPENAI_KEY=yourkey
 export E2E_TEST_AZURE_OPENAI_BASE_URL=yoururl
 
 # Run standard tests. Choose a specific path rather than '.' to run only a
-# specific scenario.
-chainsaw test --config .chainsaw.yaml --selector '!evaluated' .
+# specific scenario. Use selectors to skip tests that require more complex
+# dependencies:
+#   !evaluated - skip tests that require the evaluator setup / images
+#   !requires-images - skip tests that require additional images (filesystem mcp)
+chainsaw test --config .chainsaw.yaml \
+  --selector '!evaluated' \
+  --selector '!requires-images' \
+  ./
 ```
 
 ## Troubleshooting Tests
@@ -51,7 +57,11 @@ The following flags are extremely useful for troubleshooting test issues:
 As an example, to run the full suite and pause as soon as there is any failure and allow the operator to inspect resources:
 
 ```bash
-chainsaw test --config .chainsaw.yaml --selector '!evaluated' --pause-on-failure .
+chainsaw test --config .chainsaw.yaml \
+  --selector '!evaluated' \
+  --selector '!requires-images' \
+  --pause-on-failure \
+  ./
 ```
 
 When tests fail, inspect the created resources:
