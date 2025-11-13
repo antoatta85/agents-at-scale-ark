@@ -65,7 +65,7 @@ spec:
             echo "ERROR: contextId not set in response a2a metadata"
             exit 1
           fi
-          echo -n "$CONTEXT_ID"
+          printf '%s' "$CONTEXT_ID"
         env:
         - name: NAMESPACE
           value: ($namespace)
