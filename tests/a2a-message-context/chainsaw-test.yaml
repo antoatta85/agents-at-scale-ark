@@ -46,8 +46,9 @@ spec:
           status:
             (conditions[?type == 'Completed']):
             - status: 'True'
-    # Verify first response shows 1 message
+    # Verify first response shows 1 message (terminal state, fast check)
     - assert:
+        timeout: 1s
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
           kind: Query
@@ -95,8 +96,21 @@ spec:
           status:
             (conditions[?type == 'Completed']):
             - status: 'True'
-    # Verify second response shows 2 messages
+    # Debug: show actual response content
+    - script:
+        content: |
+          echo "=== Second Query Response ==="
+          kubectl get query message-counter-second -n $NAMESPACE -o jsonpath='{.status.responses[0].content}'
+          echo ""
+          echo "=== Second Query Context ID ==="
+          kubectl get query message-counter-second -n $NAMESPACE -o jsonpath='{.metadata.annotations.ark\.mckinsey\.com/a2a-context-id}'
+          echo ""
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+    # Verify second response shows 2 messages (terminal state, fast check)
     - assert:
+        timeout: 1s
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
           kind: Query
