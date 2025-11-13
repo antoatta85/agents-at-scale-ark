@@ -51,7 +51,6 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				log.Error(err, "unable to delete A2ATask after TTL expiry")
 				return ctrl.Result{}, err
 			}
-			log.Info("deleted A2ATask after TTL expiry", "ttl", a2aTask.Spec.TTL.Duration)
 			return ctrl.Result{}, nil
 		}
 	}
