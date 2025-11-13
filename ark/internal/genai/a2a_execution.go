@@ -80,10 +80,6 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 		content = userInput.OfUser.Content.OfString.Value
 	}
 
-	if contextID != "" {
-		log.Info("A2A context ID from query", "contextId", contextID)
-	}
-
 	// Execute A2A agent with event recording
 	queryName := getQueryName(ctx)
 	a2aResponse, err := ExecuteA2AAgent(ctx, e.client, a2aAddress, a2aServer.Spec.Headers, namespace, content, agentName, queryName, contextID, nil, &a2aServer)
