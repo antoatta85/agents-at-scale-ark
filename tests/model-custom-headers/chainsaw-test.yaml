@@ -49,7 +49,8 @@ spec:
           metadata:
             name: custom-headers-query
           status:
-            phase: done
+            (conditions[?type == 'Completed']):
+            - status: 'True'
     # Verify headers were received correctly
     # Mock-llm echoes back the headers object as JSON in the response content
     - assert:

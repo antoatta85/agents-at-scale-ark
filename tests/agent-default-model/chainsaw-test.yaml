@@ -120,7 +120,8 @@ spec:
           metadata:
             name: default-model-query
           status:
-            phase: done
+            (conditions[?type == 'Completed']):
+            - status: 'True'
     - assert:
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
