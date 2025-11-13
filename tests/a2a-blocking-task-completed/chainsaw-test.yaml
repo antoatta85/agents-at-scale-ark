@@ -43,7 +43,8 @@ spec:
           metadata:
             name: countdown-test-query
           status:
-            phase: done
+            (conditions[?type == 'Completed']):
+            - status: 'True'
     # Verify response contains full countdown history
     - assert:
         timeout: 1s

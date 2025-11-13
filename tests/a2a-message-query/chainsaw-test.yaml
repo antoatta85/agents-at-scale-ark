@@ -45,7 +45,8 @@ spec:
           metadata:
             name: echo-test-query
           status:
-            phase: done
+            (conditions[?type == 'Completed']):
+            - status: 'True'
     # Verify response contains the echoed message
     - assert:
         timeout: 1s
