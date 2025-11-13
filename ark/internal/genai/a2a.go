@@ -133,10 +133,8 @@ func CreateA2AClient(ctx context.Context, k8sClient client.Client, rpcURL string
 
 // executeA2AAgentMessage sends message to A2A agent and processes response
 func executeA2AAgentMessage(ctx context.Context, k8sClient client.Client, a2aClient *a2aclient.A2AClient, input, agentName, rpcURL, namespace, queryName, contextID string, recorder record.EventRecorder, obj client.Object) (*A2AResponse, error) {
-	log := logf.FromContext(ctx)
 	var message protocol.Message
 	if contextID != "" {
-		log.Info("Sending A2A message with context", "contextId", contextID)
 		message = protocol.NewMessageWithContext(protocol.MessageRoleUser, []protocol.Part{
 			protocol.NewTextPart(input),
 		}, nil, &contextID)
