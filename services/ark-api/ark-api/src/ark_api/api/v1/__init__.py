@@ -18,6 +18,7 @@ from .events import router as events_router
 from .evaluations import router as evaluations_router
 from .evaluators import router as evaluators_router
 from .api_keys import router as api_keys_router
+from .a2atasks import router as a2atasks_router
 
 router = APIRouter(prefix="/v1", tags=["v1"])
 
@@ -40,3 +41,4 @@ router.include_router(events_router)
 router.include_router(evaluations_router)
 router.include_router(evaluators_router)
 router.include_router(api_keys_router)
+router.include_router(a2atasks_router)
