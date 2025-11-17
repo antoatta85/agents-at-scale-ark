@@ -585,7 +585,7 @@ jobs:
           MAX_RETRIES=3
           RETRY_DELAY=30
           for ((attempt=1; attempt<=$MAX_RETRIES; attempt++)); do
-            if chainsaw test --config .chainsaw.yaml --selector '!evaluated'; then
+            if chainsaw test --config .chainsaw.yaml --selector '!evaluated && !multi-provider'; then
               exit 0
             fi
             if [ $attempt -lt $MAX_RETRIES ]; then

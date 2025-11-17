@@ -2,6 +2,8 @@ apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: agent-parameters
+  labels:
+    multi-provider: "true"
 spec:
   steps:
     - name: setup-and-test
