@@ -624,6 +624,52 @@ jobs:
       - uses: ./.github/actions/collect-coverage-e2e
         with:
           artifact-name: coverage-reports-evaluated
+    
+  e2e-tests-multi-provider:
+    needs: [setup-container-cache-registry, build-containers]
+    runs-on: ubuntu-24.04
+    if: ${{ needs.setup-container-cache-registry.outputs.is-fork-pr == 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-e2e
+        with:
+          ark-image-tag: ${{ github.sha }}
+          install-coverage: "true"
+          install-evaluator: "false"
+          ci-cache-registry: ${{ needs.setup-container-cache-registry.outputs.ci-cache-registry }}
+          ci-cache-registry-username: ${{ secrets.DOCKER_CICD_CACHE_REGISTRY_USERNAME || github.actor }}
+          ci-cache-registry-password: ${{ secrets.DOCKER_CICD_CACHE_REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+
+      - name: Install chainsaw and jq
+        run: |
+          curl -s -L "https://github.com/kyverno/chainsaw/releases/download/v0.2.12/chainsaw_linux_amd64.tar.gz" | \
+            tar xz -C /tmp
+          sudo mv /tmp/chainsaw /usr/local/bin/chainsaw
+          sudo chmod +x /usr/local/bin/chainsaw
+          sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run multi-provider E2E tests
+        env:
+          E2E_TEST_AZURE_OPENAI_KEY: ${{ secrets.CICD_AZURE_OPENAI_KEY }}
+          E2E_TEST_AZURE_OPENAI_BASE_URL: ${{ secrets.CICD_AZURE_OPENAI_BASE_URL }}
+          E2E_TEST_AZURE_OPENAI_API_VERSION: ${{ secrets.CICD_AZURE_OPENAI_API_VERSION || '2024-12-01-preview' }}
+          E2E_TEST_OPENAI_API_KEY: ${{ secrets.CICD_OPENAI_API_KEY }}
+          E2E_TEST_OPENAI_BASE_URL: ${{ secrets.CICD_OPENAI_BASE_URL || 'https://api.openai.com/v1' }}
+          FILESYS_IMAGE: ${{ needs.setup-container-cache-registry.outputs.ci-cache-registry }}/filesystem-mcp-server
+          FILESYS_IMAGE_TAG: ${{ github.sha }}
+          LANGCHAIN_WEATHER_AGENT_IMAGE_REPOSITORY: ${{ vars.DOCKER_CICD_CACHE_REGISTRY || format('ghcr.io/{0}/{1}', github.repository_owner, github.event.repository.name) }}/langchain-weather-agent
+          LANGCHAIN_WEATHER_AGENT_IMAGE_TAG: ${{ github.sha }}
+          ARK_CLUSTER_MEMORY_IMAGE: ${{ vars.DOCKER_CICD_CACHE_REGISTRY || format('ghcr.io/{0}/{1}', github.repository_owner, github.event.repository.name) }}/ark-cluster-memory
+          ARK_CLUSTER_MEMORY_IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd tests
+          chmod +x chainsaw-multi
+          ./chainsaw-multi
+
+      - uses: ./.github/actions/collect-coverage-e2e
+        with:
+          artifact-name: coverage-reports-multi-provider
 
   build-charts:
     runs-on: ubuntu-24.04
