@@ -400,7 +400,7 @@ jobs:
           echo "ARK_QUICKSTART_API_VERSION=$ARK_QUICKSTART_API_VERSION"
           echo "ARK_QUICKSTART_API_KEY=***"
           make quickstart-force
-            - name: Wait for ARK components to be ready
+      - name: Wait for ARK components to be ready
         run: |
           echo "Waiting for ARK controller to be ready..."
           kubectl -n ark-system wait --for=condition=available --timeout=300s deployment/ark-controller
