@@ -8,7 +8,7 @@ vars:
     default: "sso"
   OIDC_ISSUER_URL:
     source: env
-    default: "http://host.docker.internal:8090/realms/ark-test"
+    default: "http://localhost:8090/realms/ark-test"
   OIDC_APPLICATION_ID:
     source: env
     default: "ark-api"

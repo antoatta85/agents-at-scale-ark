@@ -23,7 +23,7 @@ vars:
     default: "dev-secret-key-for-local-testing-only-min-32-chars"
   OIDC_ISSUER_URL:
     source: env
-    default: "http://host.docker.internal:8090/realms/ark-test"
+    default: "http://localhost:8090/realms/ark-test"
   OIDC_CLIENT_ID:
     source: env
     default: "ark-dashboard"
