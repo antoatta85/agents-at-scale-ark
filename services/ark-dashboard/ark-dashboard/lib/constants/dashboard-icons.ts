@@ -3,6 +3,7 @@ import {
   Bot,
   Calendar,
   CheckCircle,
+  ClipboardList,
   Database,
   Key,
   Lock,
@@ -20,9 +21,10 @@ export interface DashboardSection {
   title: string;
   icon: LucideIcon;
   group: 'configurations' | 'operations' | 'runtime' | 'service';
+  enablerFeature?: string;
 }
 
-export const DASHBOARD_SECTIONS = {
+export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
   // Configurations - order: Agents, Teams, Models, Secrets
   agents: {
     key: 'agents',
@@ -79,6 +81,13 @@ export const DASHBOARD_SECTIONS = {
     title: 'Memory',
     icon: Database,
     group: 'operations',
+  },
+  tasks: {
+    key: 'tasks',
+    title: 'A2A Tasks',
+    icon: ClipboardList,
+    group: 'operations',
+    enablerFeature: 'a2a-tasks',
   },
 
   // Runtime
