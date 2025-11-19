@@ -60,7 +60,7 @@ for provider in $(echo "$PROVIDERS" | jq -r '.[]'); do
         
         # Run with timeout and show full output
         (
-            perl -e 'alarm shift; exec @ARGV' "$TEST_TIMEOUT" chainsaw test --test-dir "./$test" 2>&1
+            timeout "$TEST_TIMEOUT" chainsaw test --test-dir "./$test" 2>&1
             echo "EXIT_CODE:$?" > /tmp/chainsaw-exit-${test}.txt
         ) | tee /tmp/chainsaw-output-${test}.txt
         
