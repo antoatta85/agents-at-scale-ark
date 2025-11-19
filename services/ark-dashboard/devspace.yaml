@@ -1,6 +1,45 @@
 # DevSpace configuration for ark-dashboard service
 version: v2beta1
 
+# Environment variables - defaults to local Keycloak, can be overridden
+vars:
+  AUTH_MODE:
+    source: env
+    default: "sso"
+  BASE_URL:
+    source: env
+    default: "http://localhost:3000"
+  AUTH_URL:
+    source: env
+    default: "http://localhost:3000/api/auth"
+  NEXT_PUBLIC_BASE_URL:
+    source: env
+    default: "http://localhost:3000"
+  NEXTAUTH_URL:
+    source: env
+    default: "http://localhost:3000/api/auth"
+  AUTH_SECRET:
+    source: env
+    default: "dev-secret-key-for-local-testing-only-min-32-chars"
+  OIDC_ISSUER_URL:
+    source: env
+    default: "http://host.docker.internal:8090/realms/ark-test"
+  OIDC_CLIENT_ID:
+    source: env
+    default: "ark-dashboard"
+  OIDC_CLIENT_SECRET:
+    source: env
+    default: ""
+  OIDC_PROVIDER_NAME:
+    source: env
+    default: "Local Keycloak"
+  OIDC_PROVIDER_ID:
+    source: env
+    default: "mid"
+  SESSION_MAX_AGE:
+    source: env
+    default: "1800"
+
 images:
   ark-dashboard:
     image: ark-dashboard
@@ -34,6 +73,31 @@ deployments:
             requests:
               memory: "256Mi"
               cpu: "200m"
+          env:
+            - name: BASE_URL
+              value: ${vars.BASE_URL}
+            - name: AUTH_URL
+              value: ${vars.AUTH_URL}
+            - name: AUTH_SECRET
+              value: ${vars.AUTH_SECRET}
+            - name: OIDC_ISSUER_URL
+              value: ${vars.OIDC_ISSUER_URL}
+            - name: OIDC_CLIENT_ID
+              value: ${vars.OIDC_CLIENT_ID}
+            - name: OIDC_CLIENT_SECRET
+              value: ${vars.OIDC_CLIENT_SECRET}
+            - name: OIDC_PROVIDER_NAME
+              value: ${vars.OIDC_PROVIDER_NAME}
+            - name: OIDC_PROVIDER_ID
+              value: ${vars.OIDC_PROVIDER_ID}
+            - name: SESSION_MAX_AGE
+              value: ${vars.SESSION_MAX_AGE}
+            - name: AUTH_MODE
+              value: ${vars.AUTH_MODE}
+            - name: NEXT_PUBLIC_BASE_URL
+              value: ${vars.NEXT_PUBLIC_BASE_URL}
+            - name: NEXTAUTH_URL
+              value: ${vars.NEXTAUTH_URL}
         httpRoute:
           enabled: true
 
@@ -44,6 +108,30 @@ dev:
     env:
       - name: NODE_ENV
         value: development
+      - name: BASE_URL
+        value: "http://localhost:3000"
+      - name: AUTH_URL
+        value: "http://localhost:3000/api/auth"
+      - name: AUTH_SECRET
+        value: "dev-secret-key-for-local-testing-only-min-32-chars"
+      - name: OIDC_ISSUER_URL
+        value: "http://192.168.100.3:8090/realms/ark-test"
+      - name: OIDC_CLIENT_ID
+        value: "ark-dashboard"
+      - name: OIDC_CLIENT_SECRET
+        value: ""
+      - name: OIDC_PROVIDER_NAME
+        value: "Local Keycloak"
+      - name: OIDC_PROVIDER_ID
+        value: "mid"
+      - name: SESSION_MAX_AGE
+        value: "1800"
+      - name: AUTH_MODE
+        value: "sso"
+      - name: NEXT_PUBLIC_BASE_URL
+        value: "http://localhost:3000"
+      - name: NEXTAUTH_URL
+        value: "http://localhost:3000/api/auth"
     command:
       [
         "sh",
@@ -51,6 +139,8 @@ dev:
         "cd /app/ark-dashboard && npm install -g pnpm && pnpm install && pnpm run dev",
       ]
     namespace: default
+    ports:
+      - port: 3000:3000
     # Stream logs instead of terminal
     logs:
       lastLines: 50
