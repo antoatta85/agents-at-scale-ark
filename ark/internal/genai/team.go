@@ -72,7 +72,6 @@ func (t *Team) executeSequential(ctx context.Context, userInput Message, history
 
 		// Start turn-level telemetry span
 		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, i, member.GetName(), member.GetType())
-		defer turnSpan.End()
 
 		err := t.executeMemberAndAccumulate(turnCtx, member, userInput, &messages, &newMessages)
 
@@ -82,14 +81,16 @@ func (t *Team) executeSequential(ctx context.Context, userInput Message, history
 		}
 
 		if err != nil {
+			t.TeamRecorder.RecordError(turnSpan, err)
+			turnSpan.End()
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
-			t.TeamRecorder.RecordError(turnSpan, err)
 			return newMessages, err
 		}
 
 		t.TeamRecorder.RecordSuccess(turnSpan)
+		turnSpan.End()
 	}
 
 	return newMessages, nil
@@ -118,7 +119,6 @@ func (t *Team) executeRoundRobin(ctx context.Context, userInput Message, history
 
 		// Start turn-level telemetry span
 		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, messageCount, member.GetName(), member.GetType())
-		defer turnSpan.End()
 
 		err := t.executeMemberAndAccumulate(turnCtx, member, userInput, &messages, &newMessages)
 
@@ -128,14 +128,18 @@ func (t *Team) executeRoundRobin(ctx context.Context, userInput Message, history
 		}
 
 		if err != nil {
+			t.TeamRecorder.RecordError(turnSpan, err)
+			turnSpan.End()
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
+
 			t.TeamRecorder.RecordError(turnSpan, err)
 			return newMessages, fmt.Errorf("agent %s failed in team %s: %w", member.GetName(), t.FullName(), err)
 		}
 
 		t.TeamRecorder.RecordSuccess(turnSpan)
+		turnSpan.End()
 
 		messageCount++                                   // Increment message count
 		memberIndex = (memberIndex + 1) % len(t.Members) // Move to next agent in round-robin

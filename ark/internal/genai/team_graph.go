@@ -35,7 +35,6 @@ func (t *Team) executeGraph(ctx context.Context, userInput Message, history []Me
 
 		// Start turn-level telemetry span
 		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, turns, member.GetName(), member.GetType())
-		defer turnSpan.End()
 
 		err := t.executeMemberAndAccumulate(turnCtx, member, userInput, &messages, &newMessages)
 
@@ -45,14 +44,16 @@ func (t *Team) executeGraph(ctx context.Context, userInput Message, history []Me
 		}
 
 		if err != nil {
+			t.TeamRecorder.RecordError(turnSpan, err)
+			turnSpan.End()
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
-			t.TeamRecorder.RecordError(turnSpan, err)
 			return newMessages, err
 		}
 
 		t.TeamRecorder.RecordSuccess(turnSpan)
+		turnSpan.End()
 
 		nextMember := transitionMap[currentMemberName]
 		if nextMember == "" {

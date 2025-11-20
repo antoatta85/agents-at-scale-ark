@@ -244,7 +244,6 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 
 		// Start turn-level telemetry span
 		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, turn, nextMember.GetName(), nextMember.GetType())
-		defer turnSpan.End()
 
 		err = t.executeMemberAndAccumulate(turnCtx, nextMember, userInput, &messages, &newMessages)
 
@@ -254,14 +253,16 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 		}
 
 		if err != nil {
+			t.TeamRecorder.RecordError(turnSpan, err)
+			turnSpan.End()
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
-			t.TeamRecorder.RecordError(turnSpan, err)
 			return newMessages, err
 		}
 
 		t.TeamRecorder.RecordSuccess(turnSpan)
+		turnSpan.End()
 
 		previousMember = nextMember.GetName()
 
