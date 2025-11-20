@@ -141,7 +141,7 @@ func (r *A2ATaskReconciler) createA2AClient(ctx context.Context, a2aTask *arkv1a
 
 	agentName := a2aTask.Spec.AgentRef.Name
 
-	return genai.CreateA2AClient(ctx, r.Client, a2aServerAddress, a2aServer.Spec.Headers, serverNamespace, agentName, r.Recorder, a2aTask)
+	return genai.CreateA2AClient(ctx, r.Client, a2aServerAddress, a2aServer.Spec.Headers, serverNamespace, agentName)
 }
 
 // queryTaskStatus queries the A2A server for task status
