@@ -10,9 +10,13 @@ import {
 } from '@/lib/constants/dashboard-icons';
 import { A2A_TASKS_FEATURE_KEY } from '@/atoms/experimental-features';
 
-vi.mock('@/atoms/experimental-features', () => ({
-  isA2ATasksEnabledAtom: vi.fn().mockReturnValue(atom(true)),
-}));
+vi.mock('@/atoms/experimental-features', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    isA2ATasksEnabledAtom: vi.fn().mockReturnValue(atom(true)),
+  }
+})
 
 describe('Dashboard Sections - enabledWhen', () => {
   describe('DASHBOARD_SECTIONS filtering', () => {
