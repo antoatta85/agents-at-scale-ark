@@ -1,12 +1,18 @@
+'use client';
+
+import type { BreadcrumbElement } from '@/components/common/page-header';
+import { PageHeader } from '@/components/common/page-header';
+import { A2ATasksSection } from '@/components/sections/a2a-tasks-section';
+
+const breadcrumbs: BreadcrumbElement[] = [
+  { href: '/', label: 'ARK Dashboard' },
+];
+
 export default function TasksPage() {
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold">A2A Tasks</h1>
-        <p className="text-muted-foreground mt-4">
-          Agent-to-Agent tasks will be displayed here
-        </p>
-      </div>
-    </div>
+    <>
+      <PageHeader breadcrumbs={breadcrumbs} currentPage="A2A Tasks" />
+      <A2ATasksSection />
+    </>
   );
 }
