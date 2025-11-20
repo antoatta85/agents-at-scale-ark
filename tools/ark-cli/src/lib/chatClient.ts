@@ -66,6 +66,7 @@ export class ChatClient {
       params.metadata = {
         queryAnnotations: JSON.stringify({
           'ark.mckinsey.com/a2a-context-id': config.a2aContextId,
+          'sessions.io/session-id': config.a2aContextId,
         }),
       };
     }

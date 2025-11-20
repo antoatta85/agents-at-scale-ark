@@ -18,6 +18,7 @@ export interface QueryOptions {
   watchTimeout?: string;
   verbose?: boolean;
   outputFormat?: string;
+  sessionId?: string;
 }
 
 interface StreamState {
@@ -56,7 +57,10 @@ export async function executeQuery(options: QueryOptions): Promise<void> {
     await chatClient.sendMessage(
       targetId,
       messages,
-      {streamingEnabled: true},
+      {
+        streamingEnabled: true,
+        ...(options.sessionId && {a2aContextId: options.sessionId})
+      },
       (chunk: string, toolCalls?: ToolCall[], arkMetadata?: ArkMetadata) => {
         if (firstOutput) {
           spinner.stop();
@@ -145,6 +149,7 @@ async function executeQueryWithFormat(options: QueryOptions): Promise<void> {
     spec: {
       input: options.message,
       ...(options.timeout && {timeout: options.timeout}),
+      ...(options.sessionId && {sessionId: options.sessionId}),
       targets: [
         {
           type: options.targetType,
