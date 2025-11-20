@@ -15,7 +15,10 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { isA2ATasksEnabledAtom } from '@/atoms/experimental-features';
+import {
+  A2A_TASKS_FEATURE_KEY,
+  isA2ATasksEnabledAtom
+} from '@/atoms/experimental-features';
 import { NamespaceEditor } from '@/components/editors';
 import {
   Collapsible,
@@ -109,8 +112,8 @@ export function AppSidebar() {
   };
 
   const enabledOperationSections = OPERATION_SECTIONS.filter(item => {
-    switch (item.key) {
-      case 'tasks':
+    switch (item.enablerFeature) {
+      case A2A_TASKS_FEATURE_KEY:
         return isA2ATasksEnabled;
       default:
         return true;

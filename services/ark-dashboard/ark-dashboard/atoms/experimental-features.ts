@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 
@@ -36,7 +35,7 @@ export const isExperimentalExecutionEngineEnabledAtom = atom(get => {
     : false;
 });
 
-export const A2A_TASKS_FEATURE_KEY = 'a2a-tasks';
+export const A2A_TASKS_FEATURE_KEY = 'experimental-a2a-tasks';
 export const storedIsA2ATasksEnabledAtom = atomWithStorage<boolean>(
   A2A_TASKS_FEATURE_KEY,
   false,

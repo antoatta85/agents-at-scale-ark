@@ -8,6 +8,7 @@ import {
   RUNTIME_SECTIONS,
   SERVICE_SECTIONS,
 } from '@/lib/constants/dashboard-icons';
+import { A2A_TASKS_FEATURE_KEY } from '@/atoms/experimental-features';
 
 vi.mock('@/atoms/experimental-features', () => ({
   isA2ATasksEnabledAtom: vi.fn().mockReturnValue(atom(true)),
@@ -70,7 +71,7 @@ describe('Dashboard Sections - enabledWhen', () => {
     it('should define enabler feature for a2a-tasks section', () => {
       const opKeys = OPERATION_SECTIONS.filter(s => s.key === 'tasks');
       expect(opKeys).toHaveLength(1);
-      expect(opKeys[0].enablerFeature).toBe('a2a-tasks');
+      expect(opKeys[0].enablerFeature).toBe(A2A_TASKS_FEATURE_KEY);
     });
 
     it('should only contain sections with group "operations"', () => {

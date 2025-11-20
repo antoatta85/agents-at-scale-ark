@@ -2,6 +2,7 @@ import { createStore } from 'jotai';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  A2A_TASKS_FEATURE_KEY,
   isA2ATasksEnabledAtom,
   storedIsA2ATasksEnabledAtom,
 } from '@/atoms/experimental-features';
@@ -22,12 +23,12 @@ describe('A2A Tasks Feature Flag Atoms', () => {
 
     it('should persist value to localStorage', () => {
       store.set(storedIsA2ATasksEnabledAtom, true);
-      expect(localStorage.getItem('a2a-tasks-enabled')).toBe('true');
+      expect(localStorage.getItem(A2A_TASKS_FEATURE_KEY)).toBe('true');
     });
 
     it('should read value from localStorage on set', () => {
       store.set(storedIsA2ATasksEnabledAtom, true);
-      expect(localStorage.getItem('a2a-tasks-enabled')).toBe('true');
+      expect(localStorage.getItem(A2A_TASKS_FEATURE_KEY)).toBe('true');
 
       const value = store.get(storedIsA2ATasksEnabledAtom);
       expect(value).toBe(true);

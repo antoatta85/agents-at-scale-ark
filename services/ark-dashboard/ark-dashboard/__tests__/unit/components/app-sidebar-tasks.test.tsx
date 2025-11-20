@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { A2A_TASKS_FEATURE_KEY } from '@/atoms/experimental-features';
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
@@ -66,7 +67,7 @@ describe('AppSidebar - A2A Tasks Menu Item', () => {
   });
 
   it('should show Tasks menu item when feature is enabled', async () => {
-    localStorage.setItem('a2a-tasks-enabled', 'true');
+    localStorage.setItem(A2A_TASKS_FEATURE_KEY, 'true');
 
     render(
       <JotaiProvider>
@@ -82,7 +83,7 @@ describe('AppSidebar - A2A Tasks Menu Item', () => {
   });
 
   it('should be in the Operations section when visible', async () => {
-    localStorage.setItem('a2a-tasks-enabled', 'true');
+    localStorage.setItem(A2A_TASKS_FEATURE_KEY, 'true');
 
     render(
       <JotaiProvider>
@@ -104,7 +105,7 @@ describe('AppSidebar - A2A Tasks Menu Item', () => {
   });
 
   it('should navigate to /tasks when clicked', async () => {
-    localStorage.setItem('a2a-tasks-enabled', 'true');
+    localStorage.setItem(A2A_TASKS_FEATURE_KEY, 'true');
     const user = userEvent.setup();
 
     render(
