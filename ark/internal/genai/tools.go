@@ -37,7 +37,7 @@ type HTTPExecutor struct {
 }
 
 // Execute implements ToolExecutor interface for HTTP tools
-func (h *HTTPExecutor) Execute(ctx context.Context, call ToolCall, recorder EventEmitter) (ToolResult, error) {
+func (h *HTTPExecutor) Execute(ctx context.Context, call ToolCall) (ToolResult, error) {
 	// Parse arguments
 	var arguments map[string]any
 	if call.Function.Arguments != "" {
@@ -231,7 +231,7 @@ func (tr *ToolRegistry) GetToolType(toolName string) string {
 	}
 }
 
-func (tr *ToolRegistry) ExecuteTool(ctx context.Context, call ToolCall, recorder EventEmitter) (ToolResult, error) {
+func (tr *ToolRegistry) ExecuteTool(ctx context.Context, call ToolCall) (ToolResult, error) {
 	executor, exists := tr.executors[call.Function.Name]
 	if !exists {
 		return ToolResult{
@@ -245,7 +245,7 @@ func (tr *ToolRegistry) ExecuteTool(ctx context.Context, call ToolCall, recorder
 	ctx, span := tr.toolRecorder.StartToolExecution(ctx, call.Function.Name, toolType, call.ID, call.Function.Arguments)
 	defer span.End()
 
-	result, err := executor.Execute(ctx, call, recorder)
+	result, err := executor.Execute(ctx, call)
 	if err != nil {
 		tr.toolRecorder.RecordError(span, err)
 		return result, err
@@ -290,7 +290,7 @@ func (tr *ToolRegistry) Close() error {
 
 type NoopExecutor struct{}
 
-func (n *NoopExecutor) Execute(ctx context.Context, call ToolCall, recorder EventEmitter) (ToolResult, error) {
+func (n *NoopExecutor) Execute(ctx context.Context, call ToolCall) (ToolResult, error) {
 	var arguments map[string]any
 	if err := json.Unmarshal([]byte(call.Function.Arguments), &arguments); err != nil {
 		logf.Log.Info("Error parsing tool arguments", "ToolCall", call)
@@ -321,7 +321,7 @@ func GetNoopTool() ToolDefinition {
 
 type TerminateExecutor struct{}
 
-func (t *TerminateExecutor) Execute(ctx context.Context, call ToolCall, recorder EventEmitter) (ToolResult, error) {
+func (t *TerminateExecutor) Execute(ctx context.Context, call ToolCall) (ToolResult, error) {
 	var arguments map[string]any
 	if err := json.Unmarshal([]byte(call.Function.Arguments), &arguments); err != nil {
 		logf.Log.Info("Error parsing tool arguments", "ToolCall", call)

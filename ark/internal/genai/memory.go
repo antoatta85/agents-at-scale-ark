@@ -78,15 +78,15 @@ func DefaultConfig() Config {
 	}
 }
 
-func NewMemory(ctx context.Context, k8sClient client.Client, memoryName, namespace string, recorder EventEmitter) (MemoryInterface, error) {
-	return NewMemoryWithConfig(ctx, k8sClient, memoryName, namespace, recorder, DefaultConfig())
+func NewMemory(ctx context.Context, k8sClient client.Client, memoryName, namespace string) (MemoryInterface, error) {
+	return NewMemoryWithConfig(ctx, k8sClient, memoryName, namespace, DefaultConfig())
 }
 
-func NewMemoryWithConfig(ctx context.Context, k8sClient client.Client, memoryName, namespace string, recorder EventEmitter, config Config) (MemoryInterface, error) {
-	return NewHTTPMemory(ctx, k8sClient, memoryName, namespace, recorder, config)
+func NewMemoryWithConfig(ctx context.Context, k8sClient client.Client, memoryName, namespace string, config Config) (MemoryInterface, error) {
+	return NewHTTPMemory(ctx, k8sClient, memoryName, namespace, config)
 }
 
-func NewMemoryForQuery(ctx context.Context, k8sClient client.Client, memoryRef *arkv1alpha1.MemoryRef, namespace string, recorder EventEmitter, sessionId, queryName string) (MemoryInterface, error) {
+func NewMemoryForQuery(ctx context.Context, k8sClient client.Client, memoryRef *arkv1alpha1.MemoryRef, namespace, sessionId, queryName string) (MemoryInterface, error) {
 	config := DefaultConfig()
 	config.SessionId = sessionId
 	config.QueryName = queryName
@@ -106,7 +106,7 @@ func NewMemoryForQuery(ctx context.Context, k8sClient client.Client, memoryRef *
 		memoryNamespace = resolveNamespace(memoryRef.Namespace, namespace)
 	}
 
-	memory, err := NewMemoryWithConfig(ctx, k8sClient, memoryName, memoryNamespace, recorder, config)
+	memory, err := NewMemoryWithConfig(ctx, k8sClient, memoryName, memoryNamespace, config)
 	if err != nil {
 		return nil, err
 	}

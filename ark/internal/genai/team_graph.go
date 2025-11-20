@@ -3,8 +3,6 @@ package genai
 import (
 	"context"
 	"fmt"
-
-	corev1 "k8s.io/api/core/v1"
 )
 
 func (t *Team) executeGraph(ctx context.Context, userInput Message, history []Message) ([]Message, error) {
@@ -27,9 +25,6 @@ func (t *Team) executeGraph(ctx context.Context, userInput Message, history []Me
 		}
 	}
 
-	turnTracker := NewExecutionRecorder(t.Recorder)
-	turnTracker.TeamTurn(ctx, "Start", t.FullName(), t.Strategy, 0)
-
 	currentMemberName := t.Members[0].GetName()
 
 	for turns := 0; ; turns++ {
@@ -38,14 +33,11 @@ func (t *Team) executeGraph(ctx context.Context, userInput Message, history []Me
 			return newMessages, fmt.Errorf("member %s not found in team %s", currentMemberName, t.FullName())
 		}
 
-		memberTracker := NewExecutionRecorder(t.Recorder)
-		memberTracker.ParticipantSelected(ctx, t.FullName(), currentMemberName, "graph")
-
 		// Start turn-level telemetry span
 		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, turns, member.GetName(), member.GetType())
 		defer turnSpan.End()
 
-		err := t.executeMemberAndAccumulate(turnCtx, member, userInput, &messages, &newMessages, turns)
+		err := t.executeMemberAndAccumulate(turnCtx, member, userInput, &messages, &newMessages)
 
 		// Record turn output
 		if len(newMessages) > 0 {
@@ -70,16 +62,6 @@ func (t *Team) executeGraph(ctx context.Context, userInput Message, history []Me
 		currentMemberName = nextMember
 
 		if t.MaxTurns != nil && turns+1 >= *t.MaxTurns {
-			turnTracker.TeamTurn(ctx, "MaxTurns", t.FullName(), t.Strategy, turns+1)
-			// Log the maxTurns limit for observability, but return success with accumulated messages
-			t.Recorder.EmitEvent(ctx, corev1.EventTypeWarning, "TeamMaxTurnsReached", BaseEvent{
-				Name: t.FullName(),
-				Metadata: map[string]string{
-					"strategy": t.Strategy,
-					"maxTurns": fmt.Sprintf("%d", *t.MaxTurns),
-					"teamName": t.FullName(),
-				},
-			})
 			return newMessages, nil
 		}
 	}

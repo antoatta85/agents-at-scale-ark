@@ -7,7 +7,6 @@ import (
 	"strings"
 	"text/template"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
@@ -73,7 +72,7 @@ func (t *Team) loadSelectorAgent(ctx context.Context) (*Agent, error) {
 		return nil, fmt.Errorf("failed to get selector agent %s in namespace %s: %w", agentName, t.Namespace, err)
 	}
 
-	agent, err := MakeAgent(ctx, t.Client, &agentCRD, t.Recorder, t.TelemetryProvider)
+	agent, err := MakeAgent(ctx, t.Client, &agentCRD, t.TelemetryProvider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create selector agent: %w", err)
 	}
@@ -120,9 +119,6 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 		return nil, fmt.Errorf("selector agent returned invalid response")
 	}
 
-	rec := NewExecutionRecorder(t.Recorder)
-	rec.SelectorAgentResponse(ctx, t.FullName(), selectorAgent.Name, selectedName, participantsList)
-
 	// Use candidateMembers if provided, otherwise use all team members
 	membersToSearch := t.Members
 	if candidateMembers != nil {
@@ -132,7 +128,6 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 	// Find selected member
 	for _, member := range membersToSearch {
 		if member.GetName() == selectedName {
-			rec.ParticipantSelected(ctx, t.FullName(), selectedName, "exact_match")
 			return member, nil
 		}
 	}
@@ -140,7 +135,6 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 	// Fallback to first member if not found
 	if len(membersToSearch) > 0 {
 		fallback := membersToSearch[0]
-		rec.ParticipantSelected(ctx, t.FullName(), fallback.GetName(), "fallback_no_match")
 
 		// Avoid repeating same member
 		if fallback.GetName() == previousMember && len(membersToSearch) > 1 {
@@ -182,14 +176,6 @@ func (t *Team) selectFromGraphConstraints(ctx context.Context, messages []Messag
 
 	if previousMemberObj == nil {
 		// Previous member not found, fallback to first member
-		t.Recorder.EmitEvent(ctx, corev1.EventTypeWarning, "PreviousMemberNotFound", BaseEvent{
-			Name: t.FullName(),
-			Metadata: map[string]string{
-				"strategy":       t.Strategy,
-				"previousMember": previousMember,
-				"teamName":       t.FullName(),
-			},
-		})
 		return t.Members[0], nil
 	}
 
@@ -198,20 +184,10 @@ func (t *Team) selectFromGraphConstraints(ctx context.Context, messages []Messag
 	switch len(legal) {
 	case 0:
 		// No legal transitions - fallback to first member
-		t.Recorder.EmitEvent(ctx, corev1.EventTypeWarning, "NoLegalTransitions", BaseEvent{
-			Name: t.FullName(),
-			Metadata: map[string]string{
-				"strategy":       t.Strategy,
-				"previousMember": previousMember,
-				"teamName":       t.FullName(),
-			},
-		})
 		return t.Members[0], nil
 	case 1:
 		// Only one legal transition - use it directly (skip selector agent for optimization)
 		selectedMember := legal[0]
-		rec := NewExecutionRecorder(t.Recorder)
-		rec.ParticipantSelected(ctx, t.FullName(), selectedMember.GetName(), "graph_constrained_single")
 		return selectedMember, nil
 	default:
 		// Multiple legal transitions - use selector agent to choose from candidates
@@ -257,9 +233,6 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 	previousMember := ""
 
 	for turn := 0; ; turn++ {
-		turnTracker := NewExecutionRecorder(t.Recorder)
-		turnTracker.TeamTurn(ctx, "Start", t.FullName(), t.Strategy, turn)
-
 		// Determine next member based on graph constraints (if any)
 		nextMember, err := t.determineNextMember(ctx, messages, tmpl, previousMember, legalTransitions)
 		if err != nil {
@@ -273,7 +246,7 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, turn, nextMember.GetName(), nextMember.GetType())
 		defer turnSpan.End()
 
-		err = t.executeMemberAndAccumulate(turnCtx, nextMember, userInput, &messages, &newMessages, turn)
+		err = t.executeMemberAndAccumulate(turnCtx, nextMember, userInput, &messages, &newMessages)
 
 		// Record turn output
 		if len(newMessages) > 0 {
@@ -293,16 +266,6 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 		previousMember = nextMember.GetName()
 
 		if t.MaxTurns != nil && turn+1 >= *t.MaxTurns {
-			turnTracker.TeamTurn(ctx, "MaxTurns", t.FullName(), t.Strategy, turn+1)
-			// Log the maxTurns limit for observability, but return success with accumulated messages
-			t.Recorder.EmitEvent(ctx, corev1.EventTypeWarning, "TeamMaxTurnsReached", BaseEvent{
-				Name: t.FullName(),
-				Metadata: map[string]string{
-					"strategy": t.Strategy,
-					"maxTurns": fmt.Sprintf("%d", *t.MaxTurns),
-					"teamName": t.FullName(),
-				},
-			})
 			return newMessages, nil
 		}
 	}

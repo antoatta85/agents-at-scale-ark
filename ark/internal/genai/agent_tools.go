@@ -237,7 +237,7 @@ type AgentToolExecutor struct {
 	telemetryProvider telemetry.Provider
 }
 
-func (a *AgentToolExecutor) Execute(ctx context.Context, call ToolCall, recorder EventEmitter) (ToolResult, error) {
+func (a *AgentToolExecutor) Execute(ctx context.Context, call ToolCall) (ToolResult, error) {
 	var arguments map[string]any
 	if err := json.Unmarshal([]byte(call.Function.Arguments), &arguments); err != nil {
 		log := logf.FromContext(ctx)
@@ -271,8 +271,8 @@ func (a *AgentToolExecutor) Execute(ctx context.Context, call ToolCall, recorder
 	log := logf.FromContext(ctx)
 	log.Info("calling agent directly", "agent", a.AgentName, "namespace", a.Namespace, "input", inputStr)
 
-	// Create the Agent object using the Agent CRD and recorder
-	agent, err := MakeAgent(ctx, a.k8sClient, a.AgentCRD, recorder, a.telemetryProvider)
+	// Create the Agent object using the Agent CRD
+	agent, err := MakeAgent(ctx, a.k8sClient, a.AgentCRD, a.telemetryProvider)
 	if err != nil {
 		return ToolResult{
 			ID:    call.ID,

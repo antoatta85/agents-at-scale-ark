@@ -60,6 +60,13 @@ type Parameter struct {
 	Value string `json:"value"`
 }
 
+// TokenUsage represents token usage statistics from an execution engine
+type TokenUsage struct {
+	PromptTokens     int64 `json:"prompt_tokens,omitempty"`
+	CompletionTokens int64 `json:"completion_tokens,omitempty"`
+	TotalTokens      int64 `json:"total_tokens,omitempty"`
+}
+
 // ExecutionEngineResponse represents the response from an external execution engine
 type ExecutionEngineResponse struct {
 	Messages   []ExecutionEngineMessage `json:"messages"`
@@ -154,17 +161,9 @@ func NewExecutionEngineClient(k8sClient client.Client) *ExecutionEngineClient {
 }
 
 // Execute sends a request to the execution engine and returns the response messages
-func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alpha1.ExecutionEngineRef, agentConfig AgentConfig, userInput Message, history []Message, tools []ToolDefinition, recorder EventEmitter) ([]Message, error) {
-	// Track ExecutionEngine operation
-	engineTracker := NewOperationTracker(recorder, ctx, "Executor", engineRef.Name, map[string]string{
-		"agent":     agentConfig.Name,
-		"namespace": agentConfig.Namespace,
-	})
-	defer engineTracker.Complete("")
-
+func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alpha1.ExecutionEngineRef, agentConfig AgentConfig, userInput Message, history []Message, tools []ToolDefinition) ([]Message, error) {
 	engineAddress, err := c.resolveExecutionEngineAddress(ctx, engineRef, agentConfig.Namespace)
 	if err != nil {
-		engineTracker.Fail(err)
 		return nil, fmt.Errorf("failed to resolve execution engine address: %w", err)
 	}
 
@@ -184,7 +183,6 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 
 	requestBody, err := json.Marshal(request)
 	if err != nil {
-		engineTracker.Fail(err)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
@@ -192,7 +190,6 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(requestBody))
 	if err != nil {
-		engineTracker.Fail(err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -200,7 +197,6 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		engineTracker.Fail(err)
 		return nil, fmt.Errorf("execution engine request failed: %w", err)
 	}
 	defer func() {
@@ -210,26 +206,16 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("execution engine returned error status: %d", resp.StatusCode)
-		engineTracker.Fail(err)
-		return nil, err
+		return nil, fmt.Errorf("execution engine returned error status: %d", resp.StatusCode)
 	}
 
 	var response ExecutionEngineResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		engineTracker.Fail(err)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if response.Error != "" {
-		err := fmt.Errorf("execution engine error: %s", response.Error)
-		engineTracker.Fail(err)
-		return nil, err
-	}
-
-	// Collect token usage from execution engine response if present
-	if response.TokenUsage.TotalTokens > 0 {
-		engineTracker.CompleteWithTokens(response.TokenUsage)
+		return nil, fmt.Errorf("execution engine error: %s", response.Error)
 	}
 
 	// Convert response messages back to internal format

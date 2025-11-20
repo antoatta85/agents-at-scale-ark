@@ -23,11 +23,10 @@ type HTTPMemory struct {
 	sessionId  string
 	name       string
 	namespace  string
-	recorder   EventEmitter
 }
 
 // NewHTTPMemory creates a new HTTP-based memory implementation
-func NewHTTPMemory(ctx context.Context, k8sClient client.Client, memoryName, namespace string, recorder EventEmitter, config Config) (MemoryInterface, error) {
+func NewHTTPMemory(ctx context.Context, k8sClient client.Client, memoryName, namespace string, config Config) (MemoryInterface, error) {
 	if k8sClient == nil || memoryName == "" || namespace == "" {
 		return nil, fmt.Errorf("invalid parameters")
 	}
@@ -60,7 +59,6 @@ func NewHTTPMemory(ctx context.Context, k8sClient client.Client, memoryName, nam
 		sessionId:  sessionId,
 		name:       memoryName,
 		namespace:  namespace,
-		recorder:   recorder,
 	}, nil
 }
 
@@ -110,13 +108,6 @@ func (m *HTTPMemory) AddMessages(ctx context.Context, queryID string, messages [
 		return err
 	}
 
-	tracker := NewOperationTracker(m.recorder, ctx, "MemoryAddMessages", m.name, map[string]string{
-		"namespace": m.namespace,
-		"sessionId": m.sessionId,
-		"queryId":   queryID,
-		"messages":  fmt.Sprintf("%d", len(messages)),
-	})
-
 	// Convert messages to the request format
 	openaiMessages := make([]openai.ChatCompletionMessageParamUnion, len(messages))
 	for i, msg := range messages {
@@ -129,14 +120,12 @@ func (m *HTTPMemory) AddMessages(ctx context.Context, queryID string, messages [
 		Messages:  openaiMessages,
 	})
 	if err != nil {
-		tracker.Fail(fmt.Errorf("failed to serialize messages: %w", err))
 		return fmt.Errorf("failed to serialize messages: %w", err)
 	}
 
 	requestURL := fmt.Sprintf("%s%s", m.baseURL, MessagesEndpoint)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewReader(reqBody))
 	if err != nil {
-		tracker.Fail(fmt.Errorf("failed to create request: %w", err))
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -145,18 +134,14 @@ func (m *HTTPMemory) AddMessages(ctx context.Context, queryID string, messages [
 
 	resp, err := m.httpClient.Do(req)
 	if err != nil {
-		tracker.Fail(fmt.Errorf("HTTP request failed: %w", err))
 		return fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		err := fmt.Errorf("HTTP status %d", resp.StatusCode)
-		tracker.Fail(err)
-		return err
+		return fmt.Errorf("HTTP status %d", resp.StatusCode)
 	}
 
-	tracker.Complete("messages added")
 	return nil
 }
 
@@ -167,15 +152,9 @@ func (m *HTTPMemory) GetMessages(ctx context.Context) ([]Message, error) {
 		return nil, err
 	}
 
-	tracker := NewOperationTracker(m.recorder, ctx, "MemoryGetMessages", m.name, map[string]string{
-		"namespace": m.namespace,
-		"sessionId": m.sessionId,
-	})
-
 	requestURL := fmt.Sprintf("%s%s?session_id=%s", m.baseURL, MessagesEndpoint, url.QueryEscape(m.sessionId))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
-		tracker.Fail(fmt.Errorf("failed to create request: %w", err))
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -184,20 +163,16 @@ func (m *HTTPMemory) GetMessages(ctx context.Context) ([]Message, error) {
 
 	resp, err := m.httpClient.Do(req)
 	if err != nil {
-		tracker.Fail(fmt.Errorf("HTTP request failed: %w", err))
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		err := fmt.Errorf("HTTP status %d", resp.StatusCode)
-		tracker.Fail(err)
-		return nil, err
+		return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 	}
 
 	var response MessagesResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		tracker.Fail(fmt.Errorf("failed to decode response: %w", err))
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -205,16 +180,11 @@ func (m *HTTPMemory) GetMessages(ctx context.Context) ([]Message, error) {
 	for i, record := range response.Messages {
 		openaiMessage, err := unmarshalMessageRobust(record.Message)
 		if err != nil {
-			err := fmt.Errorf("failed to unmarshal message at index %d: %w", i, err)
-			tracker.Fail(err)
-			return nil, err
+			return nil, fmt.Errorf("failed to unmarshal message at index %d: %w", i, err)
 		}
 		messages = append(messages, Message(openaiMessage))
 	}
 
-	// Update metadata with message count
-	tracker.metadata["messages"] = fmt.Sprintf("%d", len(messages))
-	tracker.Complete("retrieved")
 	return messages, nil
 }
 
