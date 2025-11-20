@@ -6,13 +6,11 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -30,8 +28,7 @@ const (
 
 type AgentReconciler struct {
 	client.Client
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=ark.mckinsey.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -61,7 +58,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err := r.updateStatus(ctx, &agent); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.Recorder.Event(&agent, corev1.EventTypeNormal, "AgentCreated", "Initialized agent conditions")
 		return ctrl.Result{}, nil
 	}
 
@@ -86,7 +82,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err := r.updateStatus(ctx, &agent); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.Recorder.Event(&agent, corev1.EventTypeNormal, "StatusChanged", fmt.Sprintf("Agent availability: %s - %s", newStatus, reason))
 	}
 
 	return ctrl.Result{}, nil
@@ -129,7 +124,6 @@ func (r *AgentReconciler) checkModelDependency(ctx context.Context, agent *arkv1
 	if err := r.Get(ctx, modelKey, &model); err != nil {
 		if errors.IsNotFound(err) {
 			msg := fmt.Sprintf("Model '%s' not found in namespace '%s'", modelName, modelNamespace)
-			r.Recorder.Event(agent, corev1.EventTypeWarning, "ModelNotFound", msg)
 			return false, msg
 		}
 		return false, fmt.Sprintf("Error checking model: %v", err)
@@ -139,7 +133,6 @@ func (r *AgentReconciler) checkModelDependency(ctx context.Context, agent *arkv1
 	modelCondition := meta.FindStatusCondition(model.Status.Conditions, "ModelAvailable")
 	if modelCondition == nil || modelCondition.Status != metav1.ConditionTrue {
 		msg := fmt.Sprintf("Model '%s' is not available", modelName)
-		r.Recorder.Event(agent, corev1.EventTypeWarning, "ModelNotAvailable", msg)
 		return false, msg
 	}
 
@@ -155,7 +148,6 @@ func (r *AgentReconciler) checkToolDependencies(ctx context.Context, agent *arkv
 			if err := r.Get(ctx, toolKey, &tool); err != nil {
 				if errors.IsNotFound(err) {
 					msg := fmt.Sprintf("Tool '%s' not found in namespace '%s'", toolSpec.Name, agent.Namespace)
-					r.Recorder.Event(agent, corev1.EventTypeWarning, "ToolNotFound", msg)
 					return false, msg
 				}
 				return false, fmt.Sprintf("Error checking tool: %v", err)
@@ -187,7 +179,6 @@ func (r *AgentReconciler) validateA2AServerDependency(ctx context.Context, agent
 	if err := r.Get(ctx, a2aServerKey, &a2aServer); err != nil {
 		if errors.IsNotFound(err) {
 			msg := fmt.Sprintf("A2AServer '%s' not found in namespace '%s'", ownerRef.Name, agent.Namespace)
-			r.Recorder.Event(agent, corev1.EventTypeWarning, "A2AServerNotFound", msg)
 			return false, msg
 		}
 		return false, fmt.Sprintf("Error checking A2AServer: %v", err)
@@ -196,7 +187,6 @@ func (r *AgentReconciler) validateA2AServerDependency(ctx context.Context, agent
 	// Check if A2AServer is Ready
 	if !r.isA2AServerReady(&a2aServer) {
 		msg := fmt.Sprintf("A2AServer '%s' is not ready", ownerRef.Name)
-		r.Recorder.Event(agent, corev1.EventTypeWarning, "A2AServerNotReady", msg)
 		return false, msg
 	}
 

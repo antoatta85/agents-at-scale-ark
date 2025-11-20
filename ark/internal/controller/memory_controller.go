@@ -6,10 +6,8 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -22,7 +20,6 @@ import (
 type MemoryReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
 	resolver *common.ValueSourceResolver
 }
 
@@ -102,8 +99,6 @@ func (r *MemoryReconciler) processMemory(ctx context.Context, memory arkv1alpha1
 		return ctrl.Result{}, err
 	}
 
-	// Record successful event
-	r.Recorder.Event(&memory, corev1.EventTypeNormal, "AddressResolved", fmt.Sprintf("Successfully resolved address: %s", resolvedAddress))
 	log.Info("Memory processed successfully", "memory", memory.Name, "address", resolvedAddress)
 
 	return ctrl.Result{}, nil

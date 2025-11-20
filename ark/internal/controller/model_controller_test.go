@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +73,6 @@ var _ = Describe("Model Controller", func() {
 			controllerReconciler := &ModelReconciler{
 				Client:    k8sClient,
 				Scheme:    k8sClient.Scheme(),
-				Recorder:  record.NewFakeRecorder(10),
 				Telemetry: noop.NewProvider(),
 			}
 

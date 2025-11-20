@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,8 +23,7 @@ import (
 
 type A2ATaskReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=ark.mckinsey.com,resources=a2atasks,verbs=get;list;watch;create;update;patch;delete
@@ -74,7 +72,6 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Fetch task status from A2A server for all non-terminal tasks
 	if err := r.fetchA2ATaskStatus(ctx, &a2aTask); err != nil {
 		log.Error(err, "failed to fetch A2A task status", "taskId", a2aTask.Spec.TaskID)
-		r.Recorder.Event(&a2aTask, "Warning", "TaskPollingFailed", fmt.Sprintf("Failed to fetch task status: %v", err))
 
 		// Continue with requeue even on error to retry polling
 	}
@@ -170,18 +167,12 @@ func (r *A2ATaskReconciler) updateConditionsAndEvents(a2aTask *arkv1alpha1.A2ATa
 		r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskPending", "Task is pending execution")
 	case genai.PhaseRunning:
 		r.setConditionCompleted(a2aTask, metav1.ConditionFalse, "TaskRunning", "Task is running")
-		if oldPhase == genai.PhasePending {
-			r.Recorder.Event(a2aTask, "Normal", "TaskStarted", "A2A task execution started")
-		}
 	case genai.PhaseCompleted:
 		r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskSucceeded", "Task completed successfully")
-		r.Recorder.Event(a2aTask, "Normal", "TaskCompleted", "A2A task completed successfully")
 	case genai.PhaseFailed:
 		r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskFailed", "Task failed")
-		r.Recorder.Event(a2aTask, "Normal", "TaskCompleted", "A2A task failed")
 	case genai.PhaseCancelled:
 		r.setConditionCompleted(a2aTask, metav1.ConditionTrue, "TaskCancelled", "Task was cancelled")
-		r.Recorder.Event(a2aTask, "Normal", "TaskCompleted", "A2A task was cancelled")
 	}
 }
 
