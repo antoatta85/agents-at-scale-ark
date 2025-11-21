@@ -7,11 +7,16 @@ import (
 )
 
 type ModelTracker interface {
-	RecordModelCreated(ctx context.Context, model runtime.Object)
-	RecordModelAvailable(ctx context.Context, model runtime.Object)
-	RecordModelUnavailable(ctx context.Context, model runtime.Object, reason string)
+	ModelUnavailable(ctx context.Context, model runtime.Object, reason string)
+}
+
+type A2aTracker interface {
+	AgentCreationFailed(ctx context.Context, obj runtime.Object, reason string)
+	AgentDeletionFailed(ctx context.Context, obj runtime.Object, reason string)
+	TaskPollingFailed(ctx context.Context, obj runtime.Object, reason string)
 }
 
 type Provider interface {
 	ModelTracker() ModelTracker
+	A2aTracker() A2aTracker
 }

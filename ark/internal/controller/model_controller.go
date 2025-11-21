@@ -51,7 +51,6 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// Initialize conditions if empty
 	if len(model.Status.Conditions) == 0 {
-		r.Eventing.ModelTracker().RecordModelCreated(ctx, &model)
 		if _, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionUnknown, "Initializing", "Model availability is being determined"); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -67,7 +66,7 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 		// Log the failure only when condition changes
 		if changed {
-			r.Eventing.ModelTracker().RecordModelUnavailable(ctx, &model, result.Message)
+			r.Eventing.ModelTracker().ModelUnavailable(ctx, &model, result.Message)
 			log.Info("model probe failed",
 				"model", model.Name,
 				"status", result.Message,
@@ -77,12 +76,8 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	// Success case - model is available
-	changed, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionTrue, "Available", result.Message)
-	if err != nil {
+	if _, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionTrue, "Available", result.Message); err != nil {
 		return ctrl.Result{}, err
-	}
-	if changed {
-		r.Eventing.ModelTracker().RecordModelAvailable(ctx, &model)
 	}
 
 	// Continue polling at regular interval
