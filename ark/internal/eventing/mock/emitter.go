@@ -14,6 +14,7 @@ type Event struct {
 	Reason  string
 	Message string
 	Object  runtime.Object
+	Data    *eventing.EventData
 }
 
 type MockEventEmitter struct {
@@ -46,6 +47,19 @@ func (e *MockEventEmitter) EmitWarning(ctx context.Context, obj runtime.Object, 
 		Reason:  reason,
 		Message: message,
 		Object:  obj,
+	})
+}
+
+func (e *MockEventEmitter) EmitStructured(ctx context.Context, obj runtime.Object, eventType, reason, message string, data eventing.EventData) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	dataCopy := data
+	e.events = append(e.events, Event{
+		Type:    eventType,
+		Reason:  reason,
+		Message: message,
+		Object:  obj,
+		Data:    &dataCopy,
 	})
 }
 
