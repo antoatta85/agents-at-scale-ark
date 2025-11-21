@@ -41,11 +41,11 @@ type QueryTracker interface {
 	GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsage
 
 	QueryResolveStart(ctx context.Context, query *arkv1alpha1.Query) context.Context
-	QueryResolveComplete(ctx context.Context, result string)
+	QueryResolveComplete(ctx context.Context)
 	QueryResolveFailed(ctx context.Context, err error)
-	TargetExecutionStart(ctx context.Context, targetIndex int, targetName string)
-	TargetExecutionComplete(ctx context.Context, targetIndex int, targetName, result string)
-	TargetExecutionFailed(ctx context.Context, targetIndex int, targetName string, err error)
+	TargetExecutionStart(ctx context.Context, targetType, targetName string)
+	TargetExecutionComplete(ctx context.Context, targetType, targetName string)
+	TargetExecutionFailed(ctx context.Context, targetType, targetName string, err error)
 
 	LLMCallStart(ctx context.Context, modelName string)
 	LLMCallComplete(ctx context.Context, modelName string, usage openai.CompletionUsage)

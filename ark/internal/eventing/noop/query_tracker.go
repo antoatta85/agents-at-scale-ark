@@ -35,19 +35,19 @@ func (t *noopQueryTracker) QueryResolveStart(ctx context.Context, query *arkv1al
 	return ctx
 }
 
-func (t *noopQueryTracker) QueryResolveComplete(ctx context.Context, result string) {
+func (t *noopQueryTracker) QueryResolveComplete(ctx context.Context) {
 }
 
 func (t *noopQueryTracker) QueryResolveFailed(ctx context.Context, err error) {
 }
 
-func (t *noopQueryTracker) TargetExecutionStart(ctx context.Context, targetIndex int, targetName string) {
+func (t *noopQueryTracker) TargetExecutionStart(ctx context.Context, targetType, targetName string) {
 }
 
-func (t *noopQueryTracker) TargetExecutionComplete(ctx context.Context, targetIndex int, targetName, result string) {
+func (t *noopQueryTracker) TargetExecutionComplete(ctx context.Context, targetType, targetName string) {
 }
 
-func (t *noopQueryTracker) TargetExecutionFailed(ctx context.Context, targetIndex int, targetName string, err error) {
+func (t *noopQueryTracker) TargetExecutionFailed(ctx context.Context, targetType, targetName string, err error) {
 }
 
 func (t *noopQueryTracker) LLMCallStart(ctx context.Context, modelName string) {

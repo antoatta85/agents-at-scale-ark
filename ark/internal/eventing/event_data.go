@@ -14,8 +14,8 @@ type EventData struct {
 	TeamName       string `json:"teamName,omitempty"`
 	ModelName      string `json:"modelName,omitempty"`
 	TargetName     string `json:"targetName,omitempty"`
+	TargetType     string `json:"targetType,omitempty"`
 
-	TargetIndex       *int   `json:"targetIndex,omitempty"`
 	TurnNumber        *int   `json:"turnNumber,omitempty"`
 	TeamMemberIndex   *int   `json:"teamMemberIndex,omitempty"`
 	ExecutionStrategy string `json:"executionStrategy,omitempty"`

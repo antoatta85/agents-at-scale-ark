@@ -98,7 +98,7 @@ func (qt *queryTracker) eventFromContext(ctx context.Context) (eventing.EventDat
 }
 
 func (qt *queryTracker) QueryResolveStart(ctx context.Context, query *arkv1alpha1.Query) context.Context {
-	// Save Query object pointer to context
+	ctx = qt.StartTokenCollection(ctx)
 	ctx = context.WithValue(ctx, queryKey, query)
 
 	eventData := qt.buildEventData(query)
@@ -108,14 +108,17 @@ func (qt *queryTracker) QueryResolveStart(ctx context.Context, query *arkv1alpha
 	return ctx
 }
 
-func (qt *queryTracker) QueryResolveComplete(ctx context.Context, result string) {
+func (qt *queryTracker) QueryResolveComplete(ctx context.Context) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
-		eventData.Result = result
 		tokenUsage := qt.GetTokenSummary(ctx)
 		if tokenUsage.TotalTokens > 0 {
 			eventData.PromptTokens = &tokenUsage.PromptTokens
 			eventData.CompletionTokens = &tokenUsage.CompletionTokens
 			eventData.TotalTokens = &tokenUsage.TotalTokens
+		}
+		if query.Status.Duration != nil {
+			durationMs := query.Status.Duration.Milliseconds()
+			eventData.DurationMs = &durationMs
 		}
 		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "QueryResolveComplete", "Query resolution completed successfully", eventData)
 	}
@@ -128,29 +131,28 @@ func (qt *queryTracker) QueryResolveFailed(ctx context.Context, err error) {
 	}
 }
 
-func (qt *queryTracker) TargetExecutionStart(ctx context.Context, targetIndex int, targetName string) {
+func (qt *queryTracker) TargetExecutionStart(ctx context.Context, targetType, targetName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
-		eventData.TargetIndex = &targetIndex
+		eventData.TargetType = targetType
 		eventData.TargetName = targetName
-		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "TargetExecutionStart", "Starting execution of target "+targetName, eventData)
+		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "TargetExecutionStart", "Starting execution of "+targetType+" target "+targetName, eventData)
 	}
 }
 
-func (qt *queryTracker) TargetExecutionComplete(ctx context.Context, targetIndex int, targetName, result string) {
+func (qt *queryTracker) TargetExecutionComplete(ctx context.Context, targetType, targetName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
-		eventData.TargetIndex = &targetIndex
+		eventData.TargetType = targetType
 		eventData.TargetName = targetName
-		eventData.Result = result
-		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "TargetExecutionComplete", "Successfully executed target "+targetName, eventData)
+		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "TargetExecutionComplete", "Successfully executed "+targetType+" target "+targetName, eventData)
 	}
 }
 
-func (qt *queryTracker) TargetExecutionFailed(ctx context.Context, targetIndex int, targetName string, err error) {
+func (qt *queryTracker) TargetExecutionFailed(ctx context.Context, targetType, targetName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
-		eventData.TargetIndex = &targetIndex
+		eventData.TargetType = targetType
 		eventData.TargetName = targetName
 		eventData.ErrorMessage = err.Error()
-		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeWarning, "TargetExecutionFailed", "Failed to execute target "+targetName, eventData)
+		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeWarning, "TargetExecutionFailed", "Failed to execute "+targetType+" target "+targetName, eventData)
 	}
 }
 

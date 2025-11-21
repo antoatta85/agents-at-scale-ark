@@ -182,11 +182,12 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	r.Telemetry.QueryRecorder().RecordSessionID(span, sessionId)
 	defer span.End()
 
-	opCtx = r.Eventing.QueryTracker().StartTokenCollection(opCtx)
+	opCtx = r.Eventing.QueryTracker().QueryResolveStart(opCtx, &obj)
 
 	impersonatedClient, memory, err := r.setupQueryExecution(opCtx, obj, sessionId)
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
+		r.Eventing.QueryTracker().QueryResolveFailed(opCtx, err)
 		return
 	}
 
@@ -200,6 +201,7 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	if err != nil {
 		genai.StreamError(opCtx, eventStream, err, "query_execution_failed", "query")
 		r.Telemetry.QueryRecorder().RecordError(span, err)
+		r.Eventing.QueryTracker().QueryResolveFailed(opCtx, err)
 		_ = r.updateStatus(opCtx, &obj, statusError)
 		return
 	}
@@ -223,6 +225,8 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	duration := &metav1.Duration{Duration: time.Since(startTime)}
 	r.finalizeEventStream(opCtx, eventStream, &obj)
 	_ = r.updateStatusWithDuration(opCtx, &obj, queryStatus, duration)
+
+	r.Eventing.QueryTracker().QueryResolveComplete(opCtx)
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
 }
@@ -605,13 +609,10 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	// Store query in context for access in deeper call stacks
 	ctx = context.WithValue(ctx, genai.QueryContextKey, &query)
 
-	// Create target-specific span for observability.
-	// This span tracks execution of a single target (agent/team/model/tool) and records:
-	// - Target type and name as attributes
-	// - Input/output content for debugging
-	// - Execution time and outcome
 	ctx, span := r.Telemetry.QueryRecorder().StartTarget(ctx, target.Type, target.Name)
 	defer span.End()
+
+	r.Eventing.QueryTracker().TargetExecutionStart(ctx, target.Type, target.Name)
 
 	// Add query and session context for streaming metadata
 	queryID := string(query.UID)
@@ -667,6 +668,7 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
+		r.Eventing.QueryTracker().TargetExecutionFailed(ctx, target.Type, target.Name, err)
 		r.handleTargetExecutionError(ctx, err, target, eventStream)
 		return nil, err
 	}
@@ -679,6 +681,7 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	}
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
+	r.Eventing.QueryTracker().TargetExecutionComplete(ctx, target.Type, target.Name)
 
 	return result, nil
 }
