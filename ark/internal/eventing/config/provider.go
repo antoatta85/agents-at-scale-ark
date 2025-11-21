@@ -16,7 +16,7 @@ type Provider struct {
 	mcpServerTracker       eventing.MCPServerTracker
 }
 
-func NewProvider(mgr ctrl.Manager) eventing.Provider {
+func NewProvider(mgr ctrl.Manager) *Provider {
 	recorder := mgr.GetEventRecorderFor("ark-controller")
 	emitter := k8seventing.NewKubernetesEventEmitter(recorder)
 

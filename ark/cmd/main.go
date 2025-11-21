@@ -28,7 +28,6 @@ import (
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
 	"mckinsey.com/ark/internal/controller"
-	"mckinsey.com/ark/internal/eventing"
 	eventingconfig "mckinsey.com/ark/internal/eventing/config"
 	telemetryconfig "mckinsey.com/ark/internal/telemetry/config"
 	webhookv1 "mckinsey.com/ark/internal/webhook/v1"
@@ -231,7 +230,7 @@ func setupMetricsServer(cfg config, baseTLSOpts []func(*tls.Config)) (metricsser
 	return metricsServerOptions, metricsCertWatcher
 }
 
-func setupControllers(mgr ctrl.Manager, telemetryProvider *telemetryconfig.Provider, eventingProvider eventing.Provider) {
+func setupControllers(mgr ctrl.Manager, telemetryProvider *telemetryconfig.Provider, eventingProvider *eventingconfig.Provider) {
 	controllers := []struct {
 		name       string
 		reconciler interface{ SetupWithManager(ctrl.Manager) error }
