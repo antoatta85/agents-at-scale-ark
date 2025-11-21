@@ -18,56 +18,7 @@ import { DASHBOARD_SECTIONS } from '@/lib/constants';
 import { type A2ATask } from '@/lib/services/a2a-tasks';
 import { useListA2ATasks } from '@/lib/services/a2a-tasks-hooks';
 
-interface StatusDotProps {
-  variant: 'completed' | 'running' | 'failed' | 'pending' | 'default';
-}
-
-function StatusDot({ variant }: StatusDotProps) {
-  const getVariantClasses = () => {
-    switch (variant) {
-      case 'completed':
-        return 'bg-green-300';
-      case 'failed':
-        return 'bg-red-300';
-      case 'running':
-        return 'bg-blue-300';
-      case 'pending':
-        return 'bg-yellow-300';
-      default:
-        return 'bg-gray-300';
-    }
-  };
-
-  const getStatusName = () => {
-    switch (variant) {
-      case 'completed':
-        return 'Completed';
-      case 'failed':
-        return 'Failed';
-      case 'running':
-        return 'Running';
-      case 'pending':
-        return 'Pending';
-      default:
-        return 'Unknown';
-    }
-  };
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger>
-          <span
-            className={`inline-flex h-[16px] w-[16px] items-center rounded-full px-2 py-1 text-xs font-medium ${getVariantClasses()}`}
-          />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{getStatusName()}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
+import { StatusDot } from './status-dot';
 
 function DataTable({ data }: { data: A2ATask[] }) {
   const Icon =
