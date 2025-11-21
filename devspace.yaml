@@ -5,6 +5,8 @@ version: v2beta1
 dependencies:
   localhost-gateway:
     path: ./services/localhost-gateway
+  keycloak:
+    path: ./services/keycloak
   ark:
     path: ./ark
   ark-cluster-memory:

@@ -1,0 +1,27 @@
+version: v2beta1
+name: keycloak
+
+pipelines:
+  deploy: create_deployments keycloak
+  dev: |-
+    create_deployments keycloak
+    start_dev keycloak
+
+deployments:
+  keycloak:
+    helm:
+      chart:
+        path: ./chart
+      values:
+        httpRoute:
+          enabled: true
+
+dev:
+  keycloak:
+    labelSelector:
+      app.kubernetes.io/name: keycloak
+    ports:
+      - port: 8080:8080
+    logs:
+      enabled: true
+      lastLines: 100

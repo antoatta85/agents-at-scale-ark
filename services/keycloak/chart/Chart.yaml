@@ -1,0 +1,9 @@
+apiVersion: v2
+name: keycloak
+description: Keycloak identity and access management
+type: application
+version: 0.1.0
+appVersion: latest
+annotations:
+  ark.mckinsey.com/service: keycloak
+  ark.mckinsey.com/resources: service

@@ -1,0 +1,29 @@
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: latest
+  pullPolicy: Always
+
+admin:
+  username: admin
+  password: admin
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+httpRoute:
+  enabled: false
+  parentRefs:
+    - name: localhost-gateway
+      namespace: ark-system
+  hostnames:
+    - "keycloak.127.0.0.1.nip.io"
+    - "keycloak.default.127.0.0.1.nip.io"
