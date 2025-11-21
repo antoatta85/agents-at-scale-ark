@@ -13,6 +13,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
+	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/genai"
 	"mckinsey.com/ark/internal/telemetry"
 	"mckinsey.com/ark/internal/telemetry/noop"
@@ -27,6 +28,7 @@ type ModelReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
 	Telemetry telemetry.Provider
+	Eventing  eventing.Provider
 }
 
 // +kubebuilder:rbac:groups=ark.mckinsey.com,resources=models,verbs=get;list;watch;create;update;patch;delete
@@ -49,6 +51,7 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// Initialize conditions if empty
 	if len(model.Status.Conditions) == 0 {
+		r.Eventing.ModelTracker().RecordModelCreated(ctx, &model)
 		if _, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionUnknown, "Initializing", "Model availability is being determined"); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -64,6 +67,7 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 		// Log the failure only when condition changes
 		if changed {
+			r.Eventing.ModelTracker().RecordModelUnavailable(ctx, &model, result.Message)
 			log.Info("model probe failed",
 				"model", model.Name,
 				"status", result.Message,
@@ -73,8 +77,12 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	// Success case - model is available
-	if _, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionTrue, "Available", result.Message); err != nil {
+	changed, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionTrue, "Available", result.Message)
+	if err != nil {
 		return ctrl.Result{}, err
+	}
+	if changed {
+		r.Eventing.ModelTracker().RecordModelAvailable(ctx, &model)
 	}
 
 	// Continue polling at regular interval
