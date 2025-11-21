@@ -22,6 +22,7 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/annotations"
+	eventingconfig "mckinsey.com/ark/internal/eventing/config"
 	"mckinsey.com/ark/internal/genai"
 	telemetryconfig "mckinsey.com/ark/internal/telemetry/config"
 )
@@ -44,6 +45,7 @@ type QueryReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Telemetry  *telemetryconfig.Provider
+	Eventing   *eventingconfig.Provider
 	operations sync.Map
 }
 
@@ -180,6 +182,8 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	r.Telemetry.QueryRecorder().RecordSessionID(span, sessionId)
 	defer span.End()
 
+	opCtx = r.Eventing.QueryTracker().StartTokenCollection(opCtx)
+
 	impersonatedClient, memory, err := r.setupQueryExecution(opCtx, obj, sessionId)
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
@@ -206,7 +210,12 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 		r.Telemetry.QueryRecorder().RecordRootOutput(span, responses[0].Content)
 	}
 
-	obj.Status.TokenUsage = arkv1alpha1.TokenUsage{}
+	tokenSummary := r.Eventing.QueryTracker().GetTokenSummary(opCtx)
+	obj.Status.TokenUsage = tokenSummary
+
+	if tokenSummary.TotalTokens > 0 {
+		r.Telemetry.QueryRecorder().RecordTokenUsage(span, tokenSummary.PromptTokens, tokenSummary.CompletionTokens, tokenSummary.TotalTokens)
+	}
 
 	queryStatus := r.determineQueryStatus(responses)
 	_ = r.updateStatus(opCtx, &obj, queryStatus)
@@ -689,7 +698,7 @@ func (r *QueryReconciler) executeAgent(ctx context.Context, query arkv1alpha1.Qu
 	})
 
 	// Regular agent execution
-	agent, err := genai.MakeAgent(ctx, impersonatedClient, &agentCRD, r.Telemetry)
+	agent, err := genai.MakeAgent(ctx, impersonatedClient, &agentCRD, r.Telemetry, r.Eventing)
 	if err != nil {
 		return nil, fmt.Errorf("unable to make agent %v, error:%w", agentKey, err)
 	}
@@ -725,7 +734,7 @@ func (r *QueryReconciler) executeTeam(ctx context.Context, query arkv1alpha1.Que
 		return nil, fmt.Errorf("unable to fetch team %v, error:%w", teamKey, err)
 	}
 
-	team, err := genai.MakeTeam(ctx, impersonatedClient, &teamCRD, r.Telemetry)
+	team, err := genai.MakeTeam(ctx, impersonatedClient, &teamCRD, r.Telemetry, r.Eventing)
 	if err != nil {
 		return nil, fmt.Errorf("unable to make team %v, error:%w", teamKey, err)
 	}
@@ -760,7 +769,7 @@ func (r *QueryReconciler) executeModel(ctx context.Context, query arkv1alpha1.Qu
 		return nil, fmt.Errorf("unable to get %v, error:%w", modelKey, err)
 	}
 
-	model, err := genai.LoadModel(ctx, impersonatedClient, &arkv1alpha1.AgentModelRef{Name: modelName, Namespace: query.Namespace}, query.Namespace, nil, r.Telemetry.ModelRecorder())
+	model, err := genai.LoadModel(ctx, impersonatedClient, &arkv1alpha1.AgentModelRef{Name: modelName, Namespace: query.Namespace}, query.Namespace, nil, r.Telemetry.ModelRecorder(), r.Eventing.QueryTracker())
 	if err != nil {
 		return nil, fmt.Errorf("unable to load model %v, error:%w", modelKey, err)
 	}
@@ -863,7 +872,7 @@ func (r *QueryReconciler) executeTool(ctx context.Context, crd arkv1alpha1.Query
 	toolDefinition := genai.CreateToolFromCRD(&toolCRD)
 	// Pass the tool registry's MCP pool to CreateToolExecutor
 	mcpPool, McpSettings := toolRegistry.GetMCPPool()
-	executor, err := genai.CreateToolExecutor(ctx, impersonatedClient, &toolCRD, query.Namespace, mcpPool, McpSettings, r.Telemetry)
+	executor, err := genai.CreateToolExecutor(ctx, impersonatedClient, &toolCRD, query.Namespace, mcpPool, McpSettings, r.Telemetry, r.Eventing)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tool executor: %w", err)
 	}

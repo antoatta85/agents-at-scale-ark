@@ -72,7 +72,7 @@ func (t *Team) loadSelectorAgent(ctx context.Context) (*Agent, error) {
 		return nil, fmt.Errorf("failed to get selector agent %s in namespace %s: %w", agentName, t.Namespace, err)
 	}
 
-	agent, err := MakeAgent(ctx, t.Client, &agentCRD, t.TelemetryProvider)
+	agent, err := MakeAgent(ctx, t.Client, &agentCRD, t.TelemetryProvider, t.EventingProvider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create selector agent: %w", err)
 	}

@@ -13,6 +13,7 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
+	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/telemetry"
 )
 
@@ -319,7 +320,7 @@ func resolveMCPSettingsForAgent(ctx context.Context, k8sClient client.Client, ag
 	return mcpSettings, nil
 }
 
-func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Agent, telemetryProvider telemetry.Provider) (*Agent, error) {
+func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Agent, telemetryProvider telemetry.Provider, eventingProvider eventing.Provider) (*Agent, error) {
 	queryCrd, ok := ctx.Value(QueryContextKey).(*arkv1alpha1.Query)
 	if !ok {
 		return nil, fmt.Errorf("missing query context for agent %s/%s", crd.Namespace, crd.Name)
@@ -335,7 +336,7 @@ func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Ag
 	// A2A agents don't need models - they delegate to external A2A servers
 	if crd.Spec.ExecutionEngine == nil || crd.Spec.ExecutionEngine.Name != ExecutionEngineA2A {
 		var err error
-		resolvedModel, err = LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace, modelHeaders, telemetryProvider.ModelRecorder())
+		resolvedModel, err = LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace, modelHeaders, telemetryProvider.ModelRecorder(), eventingProvider.QueryTracker())
 		if err != nil {
 			return nil, fmt.Errorf("failed to load model for agent %s/%s: %w", crd.Namespace, crd.Name, err)
 		}
@@ -361,7 +362,7 @@ func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Ag
 
 	tools := NewToolRegistry(mcpSettings, telemetryProvider.ToolRecorder())
 
-	if err := tools.registerTools(ctx, k8sClient, crd, telemetryProvider); err != nil {
+	if err := tools.registerTools(ctx, k8sClient, crd, telemetryProvider, eventingProvider); err != nil {
 		return nil, err
 	}
 

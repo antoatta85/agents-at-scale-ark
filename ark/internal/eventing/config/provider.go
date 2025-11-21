@@ -14,6 +14,7 @@ type Provider struct {
 	agentTracker           eventing.AgentTracker
 	executionEngineTracker eventing.ExecutionEngineTracker
 	mcpServerTracker       eventing.MCPServerTracker
+	queryTracker           eventing.QueryTracker
 }
 
 func NewProvider(mgr ctrl.Manager) *Provider {
@@ -26,6 +27,7 @@ func NewProvider(mgr ctrl.Manager) *Provider {
 		agentTracker:           trackers.NewAgentTracker(emitter),
 		executionEngineTracker: trackers.NewExecutionEngineTracker(emitter),
 		mcpServerTracker:       trackers.NewMCPServerTracker(emitter),
+		queryTracker:           trackers.NewQueryTracker(emitter),
 	}
 }
 
@@ -47,4 +49,8 @@ func (p *Provider) ExecutionEngineTracker() eventing.ExecutionEngineTracker {
 
 func (p *Provider) MCPServerTracker() eventing.MCPServerTracker {
 	return p.mcpServerTracker
+}
+
+func (p *Provider) QueryTracker() eventing.QueryTracker {
+	return p.queryTracker
 }
