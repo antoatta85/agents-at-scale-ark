@@ -1,4 +1,7 @@
-import type { A2ATaskDetailResponse, A2ATaskListResponse } from '@/lib/api/a2a-tasks-types';
+import type {
+  A2ATaskDetailResponse,
+  A2ATaskListResponse,
+} from '@/lib/api/a2a-tasks-types';
 import { apiClient } from '@/lib/api/client';
 
 export type A2ATask = A2ATaskDetailResponse & {
