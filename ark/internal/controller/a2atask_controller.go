@@ -18,12 +18,14 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
+	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/genai"
 )
 
 type A2ATaskReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Eventing eventing.Provider
 }
 
 // +kubebuilder:rbac:groups=ark.mckinsey.com,resources=a2atasks,verbs=get;list;watch;create;update;patch;delete
@@ -72,6 +74,7 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Fetch task status from A2A server for all non-terminal tasks
 	if err := r.fetchA2ATaskStatus(ctx, &a2aTask); err != nil {
 		log.Error(err, "failed to fetch A2A task status", "taskId", a2aTask.Spec.TaskID)
+		r.Eventing.A2aTracker().TaskPollingFailed(ctx, &a2aTask, fmt.Sprintf("Failed to fetch task status: %v", err))
 
 		// Continue with requeue even on error to retry polling
 	}

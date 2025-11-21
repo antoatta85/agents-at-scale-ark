@@ -236,7 +236,11 @@ func setupControllers(mgr ctrl.Manager, telemetryProvider *telemetryconfig.Provi
 		name       string
 		reconciler interface{ SetupWithManager(ctrl.Manager) error }
 	}{
-		{"Agent", &controller.AgentReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
+		{"Agent", &controller.AgentReconciler{
+			Client:   mgr.GetClient(),
+			Scheme:   mgr.GetScheme(),
+			Eventing: eventingProvider,
+		}},
 		{"Query", &controller.QueryReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -244,8 +248,16 @@ func setupControllers(mgr ctrl.Manager, telemetryProvider *telemetryconfig.Provi
 		}},
 		{"Tool", &controller.ToolReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
 		{"Team", &controller.TeamReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
-		{"A2AServer", &controller.A2AServerReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
-		{"MCPServer", &controller.MCPServerReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
+		{"A2AServer", &controller.A2AServerReconciler{
+			Client:   mgr.GetClient(),
+			Scheme:   mgr.GetScheme(),
+			Eventing: eventingProvider,
+		}},
+		{"MCPServer", &controller.MCPServerReconciler{
+			Client:   mgr.GetClient(),
+			Scheme:   mgr.GetScheme(),
+			Eventing: eventingProvider,
+		}},
 		{"Model", &controller.ModelReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -253,10 +265,18 @@ func setupControllers(mgr ctrl.Manager, telemetryProvider *telemetryconfig.Provi
 			Eventing:  eventingProvider,
 		}},
 		{"Memory", &controller.MemoryReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
-		{"ExecutionEngine", &controller.ExecutionEngineReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
+		{"ExecutionEngine", &controller.ExecutionEngineReconciler{
+			Client:   mgr.GetClient(),
+			Scheme:   mgr.GetScheme(),
+			Eventing: eventingProvider,
+		}},
 		{"Evaluator", &controller.EvaluatorReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
 		{"Evaluation", &controller.EvaluationReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
-		{"A2ATask", &controller.A2ATaskReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}},
+		{"A2ATask", &controller.A2ATaskReconciler{
+			Client:   mgr.GetClient(),
+			Scheme:   mgr.GetScheme(),
+			Eventing: eventingProvider,
+		}},
 	}
 
 	for _, reconciler := range controllers {

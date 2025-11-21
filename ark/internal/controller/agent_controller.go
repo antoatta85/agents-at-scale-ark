@@ -19,6 +19,7 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
+	"mckinsey.com/ark/internal/eventing"
 )
 
 const (
@@ -28,7 +29,8 @@ const (
 
 type AgentReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Eventing eventing.Provider
 }
 
 // +kubebuilder:rbac:groups=ark.mckinsey.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -79,6 +81,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	if currentCondition == nil || currentCondition.Status != newStatus || currentCondition.Reason != reason {
 		log.Info("agent status changed", "agent", agent.Name, "available", newStatus, "reason", reason)
 		r.setCondition(&agent, AgentAvailable, newStatus, reason, message)
+		if !available {
+			r.Eventing.AgentTracker().DependencyUnavailable(ctx, &agent, message)
+		}
 		if err := r.updateStatus(ctx, &agent); err != nil {
 			return ctrl.Result{}, err
 		}

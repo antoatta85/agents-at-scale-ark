@@ -14,12 +14,14 @@ import (
 
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
 	"mckinsey.com/ark/internal/common"
+	"mckinsey.com/ark/internal/eventing"
 )
 
 // ExecutionEngineReconciler reconciles an ExecutionEngine object
 type ExecutionEngineReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
+	Eventing eventing.Provider
 	resolver *common.ValueSourceResolverV1PreAlpha1
 }
 
@@ -72,6 +74,7 @@ func (r *ExecutionEngineReconciler) processExecutionEngine(ctx context.Context, 
 	resolvedAddress, err := resolver.ResolveValueSource(ctx, executionEngine.Spec.Address, executionEngine.Namespace)
 	if err != nil {
 		log.Error(err, "failed to resolve ExecutionEngine address", "executionEngine", executionEngine.Name)
+		r.Eventing.ExecutionEngineTracker().AddressResolutionFailed(ctx, &executionEngine, fmt.Sprintf("Failed to resolve address: %v", err))
 		if err := r.updateStatus(ctx, executionEngine, statusError, fmt.Sprintf("Failed to resolve address: %v", err)); err != nil {
 			return ctrl.Result{}, err
 		}

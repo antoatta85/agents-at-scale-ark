@@ -22,6 +22,7 @@ import (
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/annotations"
 	"mckinsey.com/ark/internal/common"
+	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/genai"
 	"mckinsey.com/ark/internal/labels"
 )
@@ -35,6 +36,7 @@ const (
 type MCPServerReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
+	Eventing eventing.Provider
 	resolver *common.ValueSourceResolver
 }
 
@@ -172,6 +174,7 @@ func (r *MCPServerReconciler) reconcileConditionsAddressResolutionFailed(ctx con
 	changed2 := r.reconcileCondition(mcpServer, MCPServerDiscovering, metav1.ConditionFalse, "AddressResolutionFailed", "Cannot attempt discovery due to address resolution failure")
 	if changed1 || changed2 {
 		log.Error(err, "failed to resolve MCPServer address", "server", mcpServer.Name)
+		r.Eventing.MCPServerTracker().AddressResolutionFailed(ctx, mcpServer, fmt.Sprintf("Failed to resolve address: %v", err))
 		return r.updateStatus(ctx, mcpServer)
 	}
 	return nil
@@ -185,6 +188,7 @@ func (r *MCPServerReconciler) reconcileConditionsClientCreationFailed(ctx contex
 	changed2 := r.reconcileCondition(mcpServer, MCPServerDiscovering, metav1.ConditionFalse, "ClientCreationFailed", "Cannot attempt discovery due to client creation failure")
 	if changed1 || changed2 {
 		log.Error(err, "mcp client creation failed", "server", mcpServer.Name)
+		r.Eventing.MCPServerTracker().ClientCreationFailed(ctx, mcpServer, fmt.Sprintf("Failed to create MCP client: %v", err))
 		return r.updateStatus(ctx, mcpServer)
 	}
 	return nil
@@ -197,6 +201,7 @@ func (r *MCPServerReconciler) reconcileConditionsToolListingFailed(ctx context.C
 	changed2 := r.reconcileCondition(mcpServer, MCPServerReady, metav1.ConditionFalse, "ToolListingFailed", "Server not ready due to tool listing failure")
 	if changed1 || changed2 {
 		log.Error(err, "tool listing failed", "server", mcpServer.Name)
+		r.Eventing.MCPServerTracker().ToolListingFailed(ctx, mcpServer, fmt.Sprintf("Failed to list tools: %v", err))
 		return r.updateStatus(ctx, mcpServer)
 	}
 	return nil
@@ -209,6 +214,7 @@ func (r *MCPServerReconciler) reconcileConditionsToolCreationFailed(ctx context.
 	changed := r.reconcileCondition(mcpServer, MCPServerReady, metav1.ConditionFalse, "ToolCreationFailed", errorMsg)
 	if changed {
 		log.Error(err, "tool creation failed", "server", mcpServer.Name)
+		r.Eventing.MCPServerTracker().ToolCreationFailed(ctx, mcpServer, errorMsg)
 		return r.updateStatus(ctx, mcpServer)
 	}
 	return nil
