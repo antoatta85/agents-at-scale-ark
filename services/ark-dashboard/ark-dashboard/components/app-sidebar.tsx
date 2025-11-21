@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 
 import {
   A2A_TASKS_FEATURE_KEY,
-  isA2ATasksEnabledAtom
+  isA2ATasksEnabledAtom,
 } from '@/atoms/experimental-features';
 import { NamespaceEditor } from '@/components/editors';
 import {

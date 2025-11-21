@@ -70,7 +70,8 @@ function StatusDot({ variant }: StatusDotProps) {
 }
 
 function DataTable({ data }: { data: A2ATask[] }) {
-  const Icon = DASHBOARD_SECTIONS['tasks']?.icon || DASHBOARD_SECTIONS['a2a']?.icon;
+  const Icon =
+    DASHBOARD_SECTIONS['tasks']?.icon || DASHBOARD_SECTIONS['a2a']?.icon;
 
   const getStatusVariant = (
     phase: string | undefined,
@@ -152,9 +153,7 @@ function DataTable({ data }: { data: A2ATask[] }) {
                 className="px-3 py-8 text-center text-xs text-gray-500 dark:text-gray-400">
                 <Empty>
                   <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      {Icon && <Icon />}
-                    </EmptyMedia>
+                    <EmptyMedia variant="icon">{Icon && <Icon />}</EmptyMedia>
                     <EmptyTitle>No A2A Tasks Found</EmptyTitle>
                     <EmptyDescription>
                       No Agent-to-Agent tasks have been created yet.
@@ -215,7 +214,9 @@ export function A2ATasksSection() {
             size="sm"
             onClick={() => refetch()}
             disabled={isFetching}>
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
         </div>

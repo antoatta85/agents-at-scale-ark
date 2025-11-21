@@ -56,7 +56,7 @@ export interface A2ATaskStatus {
   artifacts?: A2ATaskArtifact[];
   history?: A2ATaskMessage[];
   lastStatusMessage?: A2ATaskMessage;
-  conditions?: Array<Record<string, any>>;
+  conditions?: Array<Record<string, unknown>>;
 }
 
 export interface A2ATaskDetailResponse {
@@ -84,5 +84,5 @@ export interface A2ATaskDetailResponse {
   timeout?: string;
   ttl?: string;
   status?: A2ATaskStatus;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
