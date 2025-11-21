@@ -4,9 +4,20 @@ import type {
 } from '@/lib/api/a2a-tasks-types';
 import { apiClient } from '@/lib/api/client';
 
+export type A2ATaskPhase =
+  | 'completed'
+  | 'running'
+  | 'failed'
+  | 'pending'
+  | 'unknown'
+  | 'assigned'
+  | 'input-required'
+  | 'auth-required'
+  | 'cancelled';
+
 export type A2ATask = A2ATaskDetailResponse & {
   id: string;
-  phase?: string;
+  phase?: A2ATaskPhase;
   creationTimestamp?: string;
 };
 

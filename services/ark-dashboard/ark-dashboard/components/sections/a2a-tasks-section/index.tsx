@@ -9,34 +9,15 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { DASHBOARD_SECTIONS } from '@/lib/constants';
-import { type A2ATask } from '@/lib/services/a2a-tasks';
+import { type A2ATask, A2ATaskPhase } from '@/lib/services/a2a-tasks';
 import { useListA2ATasks } from '@/lib/services/a2a-tasks-hooks';
 
-import { StatusDot } from './status-dot';
+import { StatusDot, StatusDotVariant } from './status-dot';
+import { mapTaskPhaseToVariant } from './utils';
 
 function DataTable({ data }: { data: A2ATask[] }) {
   const Icon =
     DASHBOARD_SECTIONS['tasks']?.icon || DASHBOARD_SECTIONS['a2a']?.icon;
-
-  const getStatusVariant = (
-    phase: string | undefined,
-  ): 'completed' | 'running' | 'failed' | 'pending' | 'default' => {
-    const normalizedPhase = phase?.toLowerCase();
-    switch (normalizedPhase) {
-      case 'completed':
-      case 'succeeded':
-        return 'completed';
-      case 'running':
-        return 'running';
-      case 'failed':
-      case 'error':
-        return 'failed';
-      case 'pending':
-        return 'pending';
-      default:
-        return 'default';
-    }
-  };
 
   return (
     <div className="overflow-hidden rounded-md border border-gray-200 dark:border-gray-800">
@@ -76,7 +57,7 @@ function DataTable({ data }: { data: A2ATask[] }) {
                   {task.name}
                 </td>
                 <td className="px-3 py-3 text-center text-gray-900 dark:text-gray-100">
-                  <StatusDot variant={getStatusVariant(task.phase)} />
+                  <StatusDot variant={mapTaskPhaseToVariant(task.phase)} />
                 </td>
                 <td className="px-3 py-3 text-sm text-gray-900 dark:text-gray-100">
                   {task.agentRef?.name || '-'}

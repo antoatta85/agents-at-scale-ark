@@ -5,8 +5,15 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+export type StatusDotVariant =
+  | 'completed'
+  | 'running'
+  | 'failed'
+  | 'pending'
+  | 'unknown';
+
 export interface StatusDotProps {
-  variant: 'completed' | 'running' | 'failed' | 'pending' | 'default';
+  variant: StatusDotVariant;
 }
 
 export function StatusDot({ variant }: StatusDotProps) {
@@ -20,6 +27,7 @@ export function StatusDot({ variant }: StatusDotProps) {
         return 'bg-blue-300';
       case 'pending':
         return 'bg-yellow-300';
+      case 'unknown':
       default:
         return 'bg-gray-300';
     }

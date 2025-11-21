@@ -28,8 +28,8 @@ describe('StatusDot', () => {
     expect(dot).toHaveClass('bg-yellow-300');
   });
 
-  it('renders default variant correctly', () => {
-    render(<StatusDot variant="default" />);
+  it('renders unknown variant correctly', () => {
+    render(<StatusDot variant="unknown" />);
     const dot = screen.getByTestId('status-dot');
     expect(dot).toHaveClass('bg-gray-300');
   });
