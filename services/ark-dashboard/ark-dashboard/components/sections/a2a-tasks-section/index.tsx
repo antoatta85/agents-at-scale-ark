@@ -9,10 +9,10 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { DASHBOARD_SECTIONS } from '@/lib/constants';
-import { type A2ATask, A2ATaskPhase } from '@/lib/services/a2a-tasks';
+import { type A2ATask } from '@/lib/services/a2a-tasks';
 import { useListA2ATasks } from '@/lib/services/a2a-tasks-hooks';
 
-import { StatusDot, StatusDotVariant } from './status-dot';
+import { StatusDot } from './status-dot';
 import { mapTaskPhaseToVariant } from './utils';
 
 function DataTable({ data }: { data: A2ATask[] }) {
