@@ -268,17 +268,19 @@ func (qt *queryTracker) SelectorAgentResponse(ctx context.Context, teamName, sel
 	}
 }
 
-func (qt *queryTracker) AgentExecutionStart(ctx context.Context, agentName string) {
+func (qt *queryTracker) AgentExecutionStart(ctx context.Context, agentName, modelName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.AgentName = agentName
+		eventData.ModelName = modelName
 		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "AgentExecutionStart", "Agent "+agentName+" started execution", eventData)
 	}
 }
 
-func (qt *queryTracker) AgentExecutionComplete(ctx context.Context, agentName, result string) {
+func (qt *queryTracker) AgentExecutionComplete(ctx context.Context, agentName, modelName string, durationMs int64) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.AgentName = agentName
-		eventData.Result = result
+		eventData.ModelName = modelName
+		eventData.DurationMs = &durationMs
 		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "AgentExecutionComplete", "Agent "+agentName+" completed execution", eventData)
 	}
 }

@@ -43,6 +43,7 @@ type QueryTracker interface {
 	QueryResolveStart(ctx context.Context, query *arkv1alpha1.Query) context.Context
 	QueryResolveComplete(ctx context.Context)
 	QueryResolveFailed(ctx context.Context, err error)
+
 	TargetExecutionStart(ctx context.Context, targetType, targetName string)
 	TargetExecutionComplete(ctx context.Context, targetType, targetName string)
 	TargetExecutionFailed(ctx context.Context, targetType, targetName string, err error)
@@ -63,8 +64,8 @@ type QueryTracker interface {
 	ParticipantSelected(ctx context.Context, teamName, selectedParticipant string, availableParticipants []string)
 	SelectorAgentResponse(ctx context.Context, teamName, selectorResponse string, availableParticipants []string)
 
-	AgentExecutionStart(ctx context.Context, agentName string)
-	AgentExecutionComplete(ctx context.Context, agentName, result string)
+	AgentExecutionStart(ctx context.Context, agentName, modelName string)
+	AgentExecutionComplete(ctx context.Context, agentName, modelName string, durationMs int64)
 
 	A2ADiscoveryStart(ctx context.Context, serverName string)
 	A2ADiscoverySuccess(ctx context.Context, serverName, agentName string, capabilities []string)

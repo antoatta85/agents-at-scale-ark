@@ -89,10 +89,10 @@ func (t *noopQueryTracker) ParticipantSelected(ctx context.Context, teamName, se
 func (t *noopQueryTracker) SelectorAgentResponse(ctx context.Context, teamName, selectorResponse string, availableParticipants []string) {
 }
 
-func (t *noopQueryTracker) AgentExecutionStart(ctx context.Context, agentName string) {
+func (t *noopQueryTracker) AgentExecutionStart(ctx context.Context, agentName, modelName string) {
 }
 
-func (t *noopQueryTracker) AgentExecutionComplete(ctx context.Context, agentName, result string) {
+func (t *noopQueryTracker) AgentExecutionComplete(ctx context.Context, agentName, modelName string, durationMs int64) {
 }
 
 func (t *noopQueryTracker) A2ADiscoveryStart(ctx context.Context, serverName string) {

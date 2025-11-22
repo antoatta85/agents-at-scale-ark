@@ -30,6 +30,7 @@ type Agent struct {
 	Annotations     map[string]string
 	OutputSchema    *runtime.RawExtension
 	client          client.Client
+	QueryTracker    eventing.QueryTracker
 }
 
 // FullName returns the namespace/name format for the agent
@@ -42,12 +43,15 @@ func (a *Agent) Execute(ctx context.Context, userInput Message, history []Messag
 	ctx, span := a.AgentRecorder.StartAgentExecution(ctx, a.Name, a.Namespace)
 	defer span.End()
 
+	a.QueryTracker.AgentExecutionStart(ctx, a.Name)
+
 	result, err := a.executeAgent(ctx, userInput, history, memory, eventStream)
 	if err != nil {
 		a.AgentRecorder.RecordError(span, err)
 		return nil, err
 	}
 
+	a.QueryTracker.AgentExecutionComplete(ctx, a.Name)
 	a.AgentRecorder.RecordSuccess(span)
 	return result, nil
 }
