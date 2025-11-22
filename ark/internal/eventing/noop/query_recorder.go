@@ -6,29 +6,17 @@ import (
 	"github.com/openai/openai-go"
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/eventing"
+	"mckinsey.com/ark/internal/eventing/recorder/tokens"
 )
 
-type noopQueryRecorder struct{}
+type noopQueryRecorder struct {
+	tokens.TokenCollector
+}
 
 func NewQueryRecorder() eventing.QueryRecorder {
-	return &noopQueryRecorder{}
-}
-
-func (t *noopQueryRecorder) StartTokenCollection(ctx context.Context) context.Context {
-	return ctx
-}
-
-func (t *noopQueryRecorder) AddTokens(ctx context.Context, promptTokens, completionTokens, totalTokens int64) {
-}
-
-func (t *noopQueryRecorder) AddTokenUsage(ctx context.Context, usage arkv1alpha1.TokenUsage) {
-}
-
-func (t *noopQueryRecorder) AddCompletionUsage(ctx context.Context, usage openai.CompletionUsage) {
-}
-
-func (t *noopQueryRecorder) GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsage {
-	return arkv1alpha1.TokenUsage{}
+	return &noopQueryRecorder{
+		TokenCollector: tokens.NewTokenCollector(),
+	}
 }
 
 func (t *noopQueryRecorder) QueryResolveStart(ctx context.Context, query *arkv1alpha1.Query) context.Context {

@@ -7,63 +7,23 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/eventing"
+	"mckinsey.com/ark/internal/eventing/recorder/tokens"
 )
 
-type (
-	tokenCollectorKeyType struct{}
-	queryKeyType          struct{}
-)
+type queryKeyType struct{}
 
-var (
-	tokenCollectorKey = tokenCollectorKeyType{}
-	queryKey          = queryKeyType{}
-)
+var queryKey = queryKeyType{}
 
 type queryRecorder struct {
+	tokens.TokenCollector
 	emitter eventing.EventEmitter
 }
 
 func NewQueryRecorder(emitter eventing.EventEmitter) eventing.QueryRecorder {
 	return &queryRecorder{
-		emitter: emitter,
+		TokenCollector: tokens.NewTokenCollector(),
+		emitter:        emitter,
 	}
-}
-
-func (t *queryRecorder) StartTokenCollection(ctx context.Context) context.Context {
-	collector := eventing.NewTokenCollector()
-	return context.WithValue(ctx, tokenCollectorKey, collector)
-}
-
-func (t *queryRecorder) AddTokens(ctx context.Context, promptTokens, completionTokens, totalTokens int64) {
-	collector, ok := ctx.Value(tokenCollectorKey).(eventing.TokenCollector)
-	if !ok || collector == nil {
-		return
-	}
-	collector.AddTokens(promptTokens, completionTokens, totalTokens)
-}
-
-func (t *queryRecorder) AddTokenUsage(ctx context.Context, usage arkv1alpha1.TokenUsage) {
-	collector, ok := ctx.Value(tokenCollectorKey).(eventing.TokenCollector)
-	if !ok || collector == nil {
-		return
-	}
-	collector.AddTokens(usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens)
-}
-
-func (t *queryRecorder) AddCompletionUsage(ctx context.Context, usage openai.CompletionUsage) {
-	collector, ok := ctx.Value(tokenCollectorKey).(eventing.TokenCollector)
-	if !ok || collector == nil {
-		return
-	}
-	collector.AddTokens(usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens)
-}
-
-func (t *queryRecorder) GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsage {
-	collector, ok := ctx.Value(tokenCollectorKey).(eventing.TokenCollector)
-	if !ok || collector == nil {
-		return arkv1alpha1.TokenUsage{}
-	}
-	return collector.GetSummary()
 }
 
 func (t *queryRecorder) getQueryFromContext(ctx context.Context) *arkv1alpha1.Query {
