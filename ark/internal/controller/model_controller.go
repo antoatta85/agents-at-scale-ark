@@ -66,7 +66,7 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 		// Log the failure only when condition changes
 		if changed {
-			r.Eventing.ModelTracker().ModelUnavailable(ctx, &model, result.Message)
+			r.Eventing.ModelRecorder().ModelUnavailable(ctx, &model, result.Message)
 			log.Info("model probe failed",
 				"model", model.Name,
 				"status", result.Message,

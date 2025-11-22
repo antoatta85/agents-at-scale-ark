@@ -182,12 +182,12 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	r.Telemetry.QueryRecorder().RecordSessionID(span, sessionId)
 	defer span.End()
 
-	opCtx = r.Eventing.QueryTracker().QueryResolveStart(opCtx, &obj)
+	opCtx = r.Eventing.QueryRecorder().QueryResolveStart(opCtx, &obj)
 
 	impersonatedClient, memory, err := r.setupQueryExecution(opCtx, obj, sessionId)
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
-		r.Eventing.QueryTracker().QueryResolveFailed(opCtx, err)
+		r.Eventing.QueryRecorder().QueryResolveFailed(opCtx, err)
 		return
 	}
 
@@ -201,7 +201,7 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	if err != nil {
 		genai.StreamError(opCtx, eventStream, err, "query_execution_failed", "query")
 		r.Telemetry.QueryRecorder().RecordError(span, err)
-		r.Eventing.QueryTracker().QueryResolveFailed(opCtx, err)
+		r.Eventing.QueryRecorder().QueryResolveFailed(opCtx, err)
 		_ = r.updateStatus(opCtx, &obj, statusError)
 		return
 	}
@@ -212,7 +212,7 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 		r.Telemetry.QueryRecorder().RecordRootOutput(span, responses[0].Content)
 	}
 
-	tokenSummary := r.Eventing.QueryTracker().GetTokenSummary(opCtx)
+	tokenSummary := r.Eventing.QueryRecorder().GetTokenSummary(opCtx)
 	obj.Status.TokenUsage = tokenSummary
 
 	if tokenSummary.TotalTokens > 0 {
@@ -226,7 +226,7 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	r.finalizeEventStream(opCtx, eventStream, &obj)
 	_ = r.updateStatusWithDuration(opCtx, &obj, queryStatus, duration)
 
-	r.Eventing.QueryTracker().QueryResolveComplete(opCtx)
+	r.Eventing.QueryRecorder().QueryResolveComplete(opCtx)
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
 }
@@ -612,7 +612,7 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	ctx, span := r.Telemetry.QueryRecorder().StartTarget(ctx, target.Type, target.Name)
 	defer span.End()
 
-	r.Eventing.QueryTracker().TargetExecutionStart(ctx, target.Type, target.Name)
+	r.Eventing.QueryRecorder().TargetExecutionStart(ctx, target.Type, target.Name)
 
 	// Add query and session context for streaming metadata
 	queryID := string(query.UID)
@@ -668,7 +668,7 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
-		r.Eventing.QueryTracker().TargetExecutionFailed(ctx, target.Type, target.Name, err)
+		r.Eventing.QueryRecorder().TargetExecutionFailed(ctx, target.Type, target.Name, err)
 		r.handleTargetExecutionError(ctx, err, target, eventStream)
 		return nil, err
 	}
@@ -681,7 +681,7 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	}
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
-	r.Eventing.QueryTracker().TargetExecutionComplete(ctx, target.Type, target.Name)
+	r.Eventing.QueryRecorder().TargetExecutionComplete(ctx, target.Type, target.Name)
 
 	return result, nil
 }

@@ -165,7 +165,7 @@ func (r *A2AServerReconciler) reconcileConditionsAgentCreationFailed(ctx context
 	changed := r.reconcileCondition(a2aServer, A2AServerReady, metav1.ConditionFalse, "AgentCreationFailed", fmt.Sprintf("Failed to create agent: %v", err))
 	if changed {
 		log.Error(err, "A2A agent creation failed", "server", a2aServer.Name, "agent", agentName)
-		r.Eventing.A2aTracker().AgentCreationFailed(ctx, a2aServer, fmt.Sprintf("Failed to create agent %s: %v", agentName, err))
+		r.Eventing.A2aRecorder().AgentCreationFailed(ctx, a2aServer, fmt.Sprintf("Failed to create agent %s: %v", agentName, err))
 		return r.updateStatusWithConditions(ctx, a2aServer)
 	}
 	return nil
@@ -243,7 +243,7 @@ func (r *A2AServerReconciler) createAgentWithSkills(ctx context.Context, a2aServ
 				},
 			}); err != nil {
 				log.Error(err, "Failed to delete agent", "agent", agentName, "a2aServer", a2aServer.Name, "namespace", a2aServer.Namespace)
-				r.Eventing.A2aTracker().AgentDeletionFailed(ctx, a2aServer, fmt.Sprintf("Failed to delete obsolete agent %s: %v", agentName, err))
+				r.Eventing.A2aRecorder().AgentDeletionFailed(ctx, a2aServer, fmt.Sprintf("Failed to delete obsolete agent %s: %v", agentName, err))
 				return false, err
 			}
 			log.Info("agent deleted", "agent", agentName, "a2aServer", a2aServer.Name, "namespace", a2aServer.Namespace)

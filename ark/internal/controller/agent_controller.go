@@ -82,7 +82,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		log.Info("agent status changed", "agent", agent.Name, "available", newStatus, "reason", reason)
 		r.setCondition(&agent, AgentAvailable, newStatus, reason, message)
 		if !available {
-			r.Eventing.AgentTracker().DependencyUnavailable(ctx, &agent, message)
+			r.Eventing.AgentRecorder().DependencyUnavailable(ctx, &agent, message)
 		}
 		if err := r.updateStatus(ctx, &agent); err != nil {
 			return ctrl.Result{}, err

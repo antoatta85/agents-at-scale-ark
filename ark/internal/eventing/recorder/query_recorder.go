@@ -1,4 +1,4 @@
-package trackers
+package recorder
 
 import (
 	"context"
@@ -19,22 +19,22 @@ var (
 	queryKey          = queryKeyType{}
 )
 
-type queryTracker struct {
+type queryRecorder struct {
 	emitter eventing.EventEmitter
 }
 
-func NewQueryTracker(emitter eventing.EventEmitter) eventing.QueryTracker {
-	return &queryTracker{
+func NewQueryRecorder(emitter eventing.EventEmitter) eventing.QueryRecorder {
+	return &queryRecorder{
 		emitter: emitter,
 	}
 }
 
-func (t *queryTracker) StartTokenCollection(ctx context.Context) context.Context {
+func (t *queryRecorder) StartTokenCollection(ctx context.Context) context.Context {
 	collector := eventing.NewTokenCollector()
 	return context.WithValue(ctx, tokenCollectorKey, collector)
 }
 
-func (t *queryTracker) AddTokens(ctx context.Context, promptTokens, completionTokens, totalTokens int64) {
+func (t *queryRecorder) AddTokens(ctx context.Context, promptTokens, completionTokens, totalTokens int64) {
 	collector, ok := ctx.Value(tokenCollectorKey).(eventing.TokenCollector)
 	if !ok || collector == nil {
 		return
@@ -42,7 +42,7 @@ func (t *queryTracker) AddTokens(ctx context.Context, promptTokens, completionTo
 	collector.AddTokens(promptTokens, completionTokens, totalTokens)
 }
 
-func (t *queryTracker) AddTokenUsage(ctx context.Context, usage arkv1alpha1.TokenUsage) {
+func (t *queryRecorder) AddTokenUsage(ctx context.Context, usage arkv1alpha1.TokenUsage) {
 	collector, ok := ctx.Value(tokenCollectorKey).(eventing.TokenCollector)
 	if !ok || collector == nil {
 		return
@@ -50,7 +50,7 @@ func (t *queryTracker) AddTokenUsage(ctx context.Context, usage arkv1alpha1.Toke
 	collector.AddTokens(usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens)
 }
 
-func (t *queryTracker) AddCompletionUsage(ctx context.Context, usage openai.CompletionUsage) {
+func (t *queryRecorder) AddCompletionUsage(ctx context.Context, usage openai.CompletionUsage) {
 	collector, ok := ctx.Value(tokenCollectorKey).(eventing.TokenCollector)
 	if !ok || collector == nil {
 		return
@@ -58,7 +58,7 @@ func (t *queryTracker) AddCompletionUsage(ctx context.Context, usage openai.Comp
 	collector.AddTokens(usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens)
 }
 
-func (t *queryTracker) GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsage {
+func (t *queryRecorder) GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsage {
 	collector, ok := ctx.Value(tokenCollectorKey).(eventing.TokenCollector)
 	if !ok || collector == nil {
 		return arkv1alpha1.TokenUsage{}
@@ -66,7 +66,7 @@ func (t *queryTracker) GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsa
 	return collector.GetSummary()
 }
 
-func (t *queryTracker) getQueryFromContext(ctx context.Context) *arkv1alpha1.Query {
+func (t *queryRecorder) getQueryFromContext(ctx context.Context) *arkv1alpha1.Query {
 	if v := ctx.Value(queryKey); v != nil {
 		if query, ok := v.(*arkv1alpha1.Query); ok {
 			return query
@@ -75,7 +75,7 @@ func (t *queryTracker) getQueryFromContext(ctx context.Context) *arkv1alpha1.Que
 	return nil
 }
 
-func (t *queryTracker) buildEventData(query *arkv1alpha1.Query) eventing.EventData {
+func (t *queryRecorder) buildEventData(query *arkv1alpha1.Query) eventing.EventData {
 	data := eventing.EventData{}
 
 	if query != nil {
@@ -88,7 +88,7 @@ func (t *queryTracker) buildEventData(query *arkv1alpha1.Query) eventing.EventDa
 	return data
 }
 
-func (qt *queryTracker) eventFromContext(ctx context.Context) (eventing.EventData, *arkv1alpha1.Query) {
+func (qt *queryRecorder) eventFromContext(ctx context.Context) (eventing.EventData, *arkv1alpha1.Query) {
 	eventData := eventing.EventData{}
 	if query := qt.getQueryFromContext(ctx); query != nil {
 		eventData = qt.buildEventData(query)
@@ -97,7 +97,7 @@ func (qt *queryTracker) eventFromContext(ctx context.Context) (eventing.EventDat
 	return eventData, nil
 }
 
-func (qt *queryTracker) QueryResolveStart(ctx context.Context, query *arkv1alpha1.Query) context.Context {
+func (qt *queryRecorder) QueryResolveStart(ctx context.Context, query *arkv1alpha1.Query) context.Context {
 	ctx = qt.StartTokenCollection(ctx)
 	ctx = context.WithValue(ctx, queryKey, query)
 
@@ -108,7 +108,7 @@ func (qt *queryTracker) QueryResolveStart(ctx context.Context, query *arkv1alpha
 	return ctx
 }
 
-func (qt *queryTracker) QueryResolveComplete(ctx context.Context) {
+func (qt *queryRecorder) QueryResolveComplete(ctx context.Context) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		tokenUsage := qt.GetTokenSummary(ctx)
 		if tokenUsage.TotalTokens > 0 {
@@ -124,14 +124,14 @@ func (qt *queryTracker) QueryResolveComplete(ctx context.Context) {
 	}
 }
 
-func (qt *queryTracker) QueryResolveFailed(ctx context.Context, err error) {
+func (qt *queryRecorder) QueryResolveFailed(ctx context.Context, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.ErrorMessage = err.Error()
 		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeWarning, "QueryResolveFailed", "Query resolution failed", eventData)
 	}
 }
 
-func (qt *queryTracker) TargetExecutionStart(ctx context.Context, targetType, targetName string) {
+func (qt *queryRecorder) TargetExecutionStart(ctx context.Context, targetType, targetName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TargetType = targetType
 		eventData.TargetName = targetName
@@ -139,7 +139,7 @@ func (qt *queryTracker) TargetExecutionStart(ctx context.Context, targetType, ta
 	}
 }
 
-func (qt *queryTracker) TargetExecutionComplete(ctx context.Context, targetType, targetName string) {
+func (qt *queryRecorder) TargetExecutionComplete(ctx context.Context, targetType, targetName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TargetType = targetType
 		eventData.TargetName = targetName
@@ -147,7 +147,7 @@ func (qt *queryTracker) TargetExecutionComplete(ctx context.Context, targetType,
 	}
 }
 
-func (qt *queryTracker) TargetExecutionFailed(ctx context.Context, targetType, targetName string, err error) {
+func (qt *queryRecorder) TargetExecutionFailed(ctx context.Context, targetType, targetName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TargetType = targetType
 		eventData.TargetName = targetName
@@ -156,14 +156,14 @@ func (qt *queryTracker) TargetExecutionFailed(ctx context.Context, targetType, t
 	}
 }
 
-func (qt *queryTracker) LLMCallStart(ctx context.Context, modelName string) {
+func (qt *queryRecorder) LLMCallStart(ctx context.Context, modelName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.ModelName = modelName
 		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "LLMCallStart", "Calling LLM model "+modelName, eventData)
 	}
 }
 
-func (qt *queryTracker) LLMCallComplete(ctx context.Context, modelName string, usage openai.CompletionUsage) {
+func (qt *queryRecorder) LLMCallComplete(ctx context.Context, modelName string, usage openai.CompletionUsage) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.ModelName = modelName
 		eventData.PromptTokens = &usage.PromptTokens
@@ -173,7 +173,7 @@ func (qt *queryTracker) LLMCallComplete(ctx context.Context, modelName string, u
 	}
 }
 
-func (qt *queryTracker) LLMCallFailed(ctx context.Context, modelName string, err error) {
+func (qt *queryRecorder) LLMCallFailed(ctx context.Context, modelName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.ModelName = modelName
 		eventData.ErrorMessage = err.Error()
@@ -181,7 +181,7 @@ func (qt *queryTracker) LLMCallFailed(ctx context.Context, modelName string, err
 	}
 }
 
-func (qt *queryTracker) TeamExecutionStart(ctx context.Context, teamName, strategy string) {
+func (qt *queryRecorder) TeamExecutionStart(ctx context.Context, teamName, strategy string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.ExecutionStrategy = strategy
@@ -189,7 +189,7 @@ func (qt *queryTracker) TeamExecutionStart(ctx context.Context, teamName, strate
 	}
 }
 
-func (qt *queryTracker) TeamExecutionComplete(ctx context.Context, teamName, result string) {
+func (qt *queryRecorder) TeamExecutionComplete(ctx context.Context, teamName, result string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.Result = result
@@ -197,7 +197,7 @@ func (qt *queryTracker) TeamExecutionComplete(ctx context.Context, teamName, res
 	}
 }
 
-func (qt *queryTracker) TeamTurnStart(ctx context.Context, teamName string, turnNumber int) {
+func (qt *queryRecorder) TeamTurnStart(ctx context.Context, teamName string, turnNumber int) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.TurnNumber = &turnNumber
@@ -205,7 +205,7 @@ func (qt *queryTracker) TeamTurnStart(ctx context.Context, teamName string, turn
 	}
 }
 
-func (qt *queryTracker) TeamTurnComplete(ctx context.Context, teamName string, turnNumber int) {
+func (qt *queryRecorder) TeamTurnComplete(ctx context.Context, teamName string, turnNumber int) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.TurnNumber = &turnNumber
@@ -213,7 +213,7 @@ func (qt *queryTracker) TeamTurnComplete(ctx context.Context, teamName string, t
 	}
 }
 
-func (qt *queryTracker) TeamMaxTurnsReached(ctx context.Context, teamName string, maxTurns int) {
+func (qt *queryRecorder) TeamMaxTurnsReached(ctx context.Context, teamName string, maxTurns int) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.TurnNumber = &maxTurns
@@ -221,7 +221,7 @@ func (qt *queryTracker) TeamMaxTurnsReached(ctx context.Context, teamName string
 	}
 }
 
-func (qt *queryTracker) TeamMemberStart(ctx context.Context, teamName string, memberIndex int, memberName string) {
+func (qt *queryRecorder) TeamMemberStart(ctx context.Context, teamName string, memberIndex int, memberName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.TeamMemberIndex = &memberIndex
@@ -230,7 +230,7 @@ func (qt *queryTracker) TeamMemberStart(ctx context.Context, teamName string, me
 	}
 }
 
-func (qt *queryTracker) TeamMemberComplete(ctx context.Context, teamName string, memberIndex int, memberName, result string) {
+func (qt *queryRecorder) TeamMemberComplete(ctx context.Context, teamName string, memberIndex int, memberName, result string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.TeamMemberIndex = &memberIndex
@@ -240,7 +240,7 @@ func (qt *queryTracker) TeamMemberComplete(ctx context.Context, teamName string,
 	}
 }
 
-func (qt *queryTracker) TeamMemberFailed(ctx context.Context, teamName string, memberIndex int, memberName string, err error) {
+func (qt *queryRecorder) TeamMemberFailed(ctx context.Context, teamName string, memberIndex int, memberName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.TeamMemberIndex = &memberIndex
@@ -250,7 +250,7 @@ func (qt *queryTracker) TeamMemberFailed(ctx context.Context, teamName string, m
 	}
 }
 
-func (qt *queryTracker) ParticipantSelected(ctx context.Context, teamName, selectedParticipant string, availableParticipants []string) {
+func (qt *queryRecorder) ParticipantSelected(ctx context.Context, teamName, selectedParticipant string, availableParticipants []string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.SelectedParticipant = selectedParticipant
@@ -259,7 +259,7 @@ func (qt *queryTracker) ParticipantSelected(ctx context.Context, teamName, selec
 	}
 }
 
-func (qt *queryTracker) SelectorAgentResponse(ctx context.Context, teamName, selectorResponse string, availableParticipants []string) {
+func (qt *queryRecorder) SelectorAgentResponse(ctx context.Context, teamName, selectorResponse string, availableParticipants []string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.TeamName = teamName
 		eventData.SelectorResponse = selectorResponse
@@ -268,7 +268,7 @@ func (qt *queryTracker) SelectorAgentResponse(ctx context.Context, teamName, sel
 	}
 }
 
-func (qt *queryTracker) AgentExecutionStart(ctx context.Context, agentName, modelName string) {
+func (qt *queryRecorder) AgentExecutionStart(ctx context.Context, agentName, modelName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.AgentName = agentName
 		eventData.ModelName = modelName
@@ -276,7 +276,7 @@ func (qt *queryTracker) AgentExecutionStart(ctx context.Context, agentName, mode
 	}
 }
 
-func (qt *queryTracker) AgentExecutionComplete(ctx context.Context, agentName, modelName string, durationMs int64) {
+func (qt *queryRecorder) AgentExecutionComplete(ctx context.Context, agentName, modelName string, durationMs int64) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.AgentName = agentName
 		eventData.ModelName = modelName
@@ -285,14 +285,14 @@ func (qt *queryTracker) AgentExecutionComplete(ctx context.Context, agentName, m
 	}
 }
 
-func (qt *queryTracker) A2ADiscoveryStart(ctx context.Context, serverName string) {
+func (qt *queryRecorder) A2ADiscoveryStart(ctx context.Context, serverName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "A2ADiscoveryStart", "Starting agent discovery on A2A server "+serverName, eventData)
 	}
 }
 
-func (qt *queryTracker) A2ADiscoverySuccess(ctx context.Context, serverName, agentName string, capabilities []string) {
+func (qt *queryRecorder) A2ADiscoverySuccess(ctx context.Context, serverName, agentName string, capabilities []string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.A2AAgentName = agentName
@@ -301,7 +301,7 @@ func (qt *queryTracker) A2ADiscoverySuccess(ctx context.Context, serverName, age
 	}
 }
 
-func (qt *queryTracker) A2ADiscoveryFailed(ctx context.Context, serverName string, err error) {
+func (qt *queryRecorder) A2ADiscoveryFailed(ctx context.Context, serverName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.ErrorMessage = err.Error()
@@ -309,7 +309,7 @@ func (qt *queryTracker) A2ADiscoveryFailed(ctx context.Context, serverName strin
 	}
 }
 
-func (qt *queryTracker) A2AClientCreateFailed(ctx context.Context, serverName string, err error) {
+func (qt *queryRecorder) A2AClientCreateFailed(ctx context.Context, serverName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.ErrorMessage = err.Error()
@@ -317,7 +317,7 @@ func (qt *queryTracker) A2AClientCreateFailed(ctx context.Context, serverName st
 	}
 }
 
-func (qt *queryTracker) A2AConnectionFailed(ctx context.Context, serverName string, err error) {
+func (qt *queryRecorder) A2AConnectionFailed(ctx context.Context, serverName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.ErrorMessage = err.Error()
@@ -325,7 +325,7 @@ func (qt *queryTracker) A2AConnectionFailed(ctx context.Context, serverName stri
 	}
 }
 
-func (qt *queryTracker) A2AHeaderResolutionFailed(ctx context.Context, serverName string, err error) {
+func (qt *queryRecorder) A2AHeaderResolutionFailed(ctx context.Context, serverName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.ErrorMessage = err.Error()
@@ -333,7 +333,7 @@ func (qt *queryTracker) A2AHeaderResolutionFailed(ctx context.Context, serverNam
 	}
 }
 
-func (qt *queryTracker) A2ACallStart(ctx context.Context, serverName, agentName, conversationID string) {
+func (qt *queryRecorder) A2ACallStart(ctx context.Context, serverName, agentName, conversationID string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.A2AAgentName = agentName
@@ -342,7 +342,7 @@ func (qt *queryTracker) A2ACallStart(ctx context.Context, serverName, agentName,
 	}
 }
 
-func (qt *queryTracker) A2ACallComplete(ctx context.Context, serverName, agentName, conversationID, result string) {
+func (qt *queryRecorder) A2ACallComplete(ctx context.Context, serverName, agentName, conversationID, result string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.A2AAgentName = agentName
@@ -352,7 +352,7 @@ func (qt *queryTracker) A2ACallComplete(ctx context.Context, serverName, agentNa
 	}
 }
 
-func (qt *queryTracker) A2ACallFailed(ctx context.Context, serverName, agentName, conversationID string, err error) {
+func (qt *queryRecorder) A2ACallFailed(ctx context.Context, serverName, agentName, conversationID string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.A2AAgentName = agentName
@@ -362,7 +362,7 @@ func (qt *queryTracker) A2ACallFailed(ctx context.Context, serverName, agentName
 	}
 }
 
-func (qt *queryTracker) A2AExecutionSuccess(ctx context.Context, serverName, result string) {
+func (qt *queryRecorder) A2AExecutionSuccess(ctx context.Context, serverName, result string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.Result = result
@@ -370,7 +370,7 @@ func (qt *queryTracker) A2AExecutionSuccess(ctx context.Context, serverName, res
 	}
 }
 
-func (qt *queryTracker) A2AExecutionFailed(ctx context.Context, serverName string, err error) {
+func (qt *queryRecorder) A2AExecutionFailed(ctx context.Context, serverName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.ErrorMessage = err.Error()
@@ -378,7 +378,7 @@ func (qt *queryTracker) A2AExecutionFailed(ctx context.Context, serverName strin
 	}
 }
 
-func (qt *queryTracker) A2AResponseParseError(ctx context.Context, serverName string, err error) {
+func (qt *queryRecorder) A2AResponseParseError(ctx context.Context, serverName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.A2AServerName = serverName
 		eventData.ErrorMessage = err.Error()
@@ -386,7 +386,7 @@ func (qt *queryTracker) A2AResponseParseError(ctx context.Context, serverName st
 	}
 }
 
-func (qt *queryTracker) ExecutorStart(ctx context.Context, engineName string) {
+func (qt *queryRecorder) ExecutorStart(ctx context.Context, engineName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		if eventData.Metadata == nil {
 			eventData.Metadata = make(map[string]string)
@@ -396,7 +396,7 @@ func (qt *queryTracker) ExecutorStart(ctx context.Context, engineName string) {
 	}
 }
 
-func (qt *queryTracker) ExecutorComplete(ctx context.Context, engineName, result string) {
+func (qt *queryRecorder) ExecutorComplete(ctx context.Context, engineName, result string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.Result = result
 		if eventData.Metadata == nil {
@@ -407,7 +407,7 @@ func (qt *queryTracker) ExecutorComplete(ctx context.Context, engineName, result
 	}
 }
 
-func (qt *queryTracker) ExecutorFailed(ctx context.Context, engineName string, err error) {
+func (qt *queryRecorder) ExecutorFailed(ctx context.Context, engineName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.ErrorMessage = err.Error()
 		if eventData.Metadata == nil {
@@ -418,7 +418,7 @@ func (qt *queryTracker) ExecutorFailed(ctx context.Context, engineName string, e
 	}
 }
 
-func (qt *queryTracker) MemoryAddMessagesStart(ctx context.Context, threadID string, messageCount int) {
+func (qt *queryRecorder) MemoryAddMessagesStart(ctx context.Context, threadID string, messageCount int) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.MemoryThreadID = threadID
 		eventData.MessageCount = &messageCount
@@ -426,7 +426,7 @@ func (qt *queryTracker) MemoryAddMessagesStart(ctx context.Context, threadID str
 	}
 }
 
-func (qt *queryTracker) MemoryAddMessagesComplete(ctx context.Context, threadID string, messageCount int) {
+func (qt *queryRecorder) MemoryAddMessagesComplete(ctx context.Context, threadID string, messageCount int) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.MemoryThreadID = threadID
 		eventData.MessageCount = &messageCount
@@ -434,7 +434,7 @@ func (qt *queryTracker) MemoryAddMessagesComplete(ctx context.Context, threadID 
 	}
 }
 
-func (qt *queryTracker) MemoryAddMessagesFailed(ctx context.Context, threadID string, err error) {
+func (qt *queryRecorder) MemoryAddMessagesFailed(ctx context.Context, threadID string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.MemoryThreadID = threadID
 		eventData.ErrorMessage = err.Error()
@@ -442,14 +442,14 @@ func (qt *queryTracker) MemoryAddMessagesFailed(ctx context.Context, threadID st
 	}
 }
 
-func (qt *queryTracker) MemoryGetMessagesStart(ctx context.Context, threadID string) {
+func (qt *queryRecorder) MemoryGetMessagesStart(ctx context.Context, threadID string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.MemoryThreadID = threadID
 		qt.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, "MemoryGetMessagesStart", "Retrieving messages from memory thread "+threadID, eventData)
 	}
 }
 
-func (qt *queryTracker) MemoryGetMessagesComplete(ctx context.Context, threadID string, messageCount int) {
+func (qt *queryRecorder) MemoryGetMessagesComplete(ctx context.Context, threadID string, messageCount int) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.MemoryThreadID = threadID
 		eventData.MessageCount = &messageCount
@@ -457,7 +457,7 @@ func (qt *queryTracker) MemoryGetMessagesComplete(ctx context.Context, threadID 
 	}
 }
 
-func (qt *queryTracker) MemoryGetMessagesFailed(ctx context.Context, threadID string, err error) {
+func (qt *queryRecorder) MemoryGetMessagesFailed(ctx context.Context, threadID string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.MemoryThreadID = threadID
 		eventData.ErrorMessage = err.Error()
@@ -465,7 +465,7 @@ func (qt *queryTracker) MemoryGetMessagesFailed(ctx context.Context, threadID st
 	}
 }
 
-func (qt *queryTracker) QueryParameterResolutionFailed(ctx context.Context, paramName string, err error) {
+func (qt *queryRecorder) QueryParameterResolutionFailed(ctx context.Context, paramName string, err error) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		eventData.ErrorMessage = err.Error()
 		if eventData.Parameters == nil {
@@ -476,7 +476,7 @@ func (qt *queryTracker) QueryParameterResolutionFailed(ctx context.Context, para
 	}
 }
 
-func (qt *queryTracker) QueryParameterNotFound(ctx context.Context, paramName string) {
+func (qt *queryRecorder) QueryParameterNotFound(ctx context.Context, paramName string) {
 	if eventData, query := qt.eventFromContext(ctx); query != nil {
 		if eventData.Parameters == nil {
 			eventData.Parameters = make(map[string]string)

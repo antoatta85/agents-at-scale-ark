@@ -5,16 +5,16 @@ import (
 
 	"mckinsey.com/ark/internal/eventing"
 	k8seventing "mckinsey.com/ark/internal/eventing/kubernetes"
-	trackers "mckinsey.com/ark/internal/eventing/tracker"
+	recorders "mckinsey.com/ark/internal/eventing/recorder"
 )
 
 type Provider struct {
-	modelTracker           eventing.ModelTracker
-	a2aTracker             eventing.A2aTracker
-	agentTracker           eventing.AgentTracker
-	executionEngineTracker eventing.ExecutionEngineTracker
-	mcpServerTracker       eventing.MCPServerTracker
-	queryTracker           eventing.QueryTracker
+	modelRecorder           eventing.ModelRecorder
+	a2aRecorder             eventing.A2aRecorder
+	agentRecorder           eventing.AgentRecorder
+	executionEngineRecorder eventing.ExecutionEngineRecorder
+	mcpServerRecorder       eventing.MCPServerRecorder
+	queryRecorder           eventing.QueryRecorder
 }
 
 func NewProvider(mgr ctrl.Manager) *Provider {
@@ -22,35 +22,35 @@ func NewProvider(mgr ctrl.Manager) *Provider {
 	emitter := k8seventing.NewKubernetesEventEmitter(recorder)
 
 	return &Provider{
-		modelTracker:           trackers.NewModelTracker(emitter),
-		a2aTracker:             trackers.NewA2aTracker(emitter),
-		agentTracker:           trackers.NewAgentTracker(emitter),
-		executionEngineTracker: trackers.NewExecutionEngineTracker(emitter),
-		mcpServerTracker:       trackers.NewMCPServerTracker(emitter),
-		queryTracker:           trackers.NewQueryTracker(emitter),
+		modelRecorder:           recorders.NewModelRecorder(emitter),
+		a2aRecorder:             recorders.NewA2aRecorder(emitter),
+		agentRecorder:           recorders.NewAgentRecorder(emitter),
+		executionEngineRecorder: recorders.NewExecutionEngineRecorder(emitter),
+		mcpServerRecorder:       recorders.NewMCPServerRecorder(emitter),
+		queryRecorder:           recorders.NewQueryRecorder(emitter),
 	}
 }
 
-func (p *Provider) ModelTracker() eventing.ModelTracker {
-	return p.modelTracker
+func (p *Provider) ModelRecorder() eventing.ModelRecorder {
+	return p.modelRecorder
 }
 
-func (p *Provider) A2aTracker() eventing.A2aTracker {
-	return p.a2aTracker
+func (p *Provider) A2aRecorder() eventing.A2aRecorder {
+	return p.a2aRecorder
 }
 
-func (p *Provider) AgentTracker() eventing.AgentTracker {
-	return p.agentTracker
+func (p *Provider) AgentRecorder() eventing.AgentRecorder {
+	return p.agentRecorder
 }
 
-func (p *Provider) ExecutionEngineTracker() eventing.ExecutionEngineTracker {
-	return p.executionEngineTracker
+func (p *Provider) ExecutionEngineRecorder() eventing.ExecutionEngineRecorder {
+	return p.executionEngineRecorder
 }
 
-func (p *Provider) MCPServerTracker() eventing.MCPServerTracker {
-	return p.mcpServerTracker
+func (p *Provider) MCPServerRecorder() eventing.MCPServerRecorder {
+	return p.mcpServerRecorder
 }
 
-func (p *Provider) QueryTracker() eventing.QueryTracker {
-	return p.queryTracker
+func (p *Provider) QueryRecorder() eventing.QueryRecorder {
+	return p.queryRecorder
 }

@@ -74,7 +74,7 @@ func (r *ExecutionEngineReconciler) processExecutionEngine(ctx context.Context, 
 	resolvedAddress, err := resolver.ResolveValueSource(ctx, executionEngine.Spec.Address, executionEngine.Namespace)
 	if err != nil {
 		log.Error(err, "failed to resolve ExecutionEngine address", "executionEngine", executionEngine.Name)
-		r.Eventing.ExecutionEngineTracker().AddressResolutionFailed(ctx, &executionEngine, fmt.Sprintf("Failed to resolve address: %v", err))
+		r.Eventing.ExecutionEngineRecorder().AddressResolutionFailed(ctx, &executionEngine, fmt.Sprintf("Failed to resolve address: %v", err))
 		if err := r.updateStatus(ctx, executionEngine, statusError, fmt.Sprintf("Failed to resolve address: %v", err)); err != nil {
 			return ctrl.Result{}, err
 		}

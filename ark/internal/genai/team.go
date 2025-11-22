@@ -205,12 +205,12 @@ func (t *Team) executeWithTracking(execFunc func(context.Context, Message, []Mes
 	ctx, span := t.TeamRecorder.StartTeamExecution(ctx, t.Name, t.Namespace, t.Strategy, len(t.Members), maxTurns)
 	defer span.End()
 
-	teamCtx := t.EventingProvider.QueryTracker().StartTokenCollection(ctx)
+	teamCtx := t.EventingProvider.QueryRecorder().StartTokenCollection(ctx)
 
 	result, err := execFunc(teamCtx, userInput, history)
 
-	teamTokens := t.EventingProvider.QueryTracker().GetTokenSummary(teamCtx)
-	t.EventingProvider.QueryTracker().AddTokenUsage(ctx, teamTokens)
+	teamTokens := t.EventingProvider.QueryRecorder().GetTokenSummary(teamCtx)
+	t.EventingProvider.QueryRecorder().AddTokenUsage(ctx, teamTokens)
 
 	if err != nil {
 		t.TeamRecorder.RecordError(span, err)

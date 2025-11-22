@@ -74,7 +74,7 @@ func (r *A2ATaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Fetch task status from A2A server for all non-terminal tasks
 	if err := r.fetchA2ATaskStatus(ctx, &a2aTask); err != nil {
 		log.Error(err, "failed to fetch A2A task status", "taskId", a2aTask.Spec.TaskID)
-		r.Eventing.A2aTracker().TaskPollingFailed(ctx, &a2aTask, fmt.Sprintf("Failed to fetch task status: %v", err))
+		r.Eventing.A2aRecorder().TaskPollingFailed(ctx, &a2aTask, fmt.Sprintf("Failed to fetch task status: %v", err))
 
 		// Continue with requeue even on error to retry polling
 	}
