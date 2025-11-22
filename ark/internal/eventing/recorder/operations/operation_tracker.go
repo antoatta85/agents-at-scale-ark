@@ -8,11 +8,17 @@ import (
 	"mckinsey.com/ark/internal/eventing"
 )
 
-type queryContextKeyType struct{}
+type (
+	queryDetailsKeyType     struct{}
+	operationDetailsKeyType struct{}
+)
 
-var queryContextKey = queryContextKeyType{}
+var (
+	queryDetailsKey     = queryDetailsKeyType{}
+	operationDetailsKey = operationDetailsKeyType{}
+)
 
-type QueryContext struct {
+type QueryDetails struct {
 	Query     *arkv1alpha1.Query
 	QueryID   string
 	QueryName string
@@ -36,7 +42,7 @@ func (ot *OperationTracker) InitializeQueryContext(ctx context.Context, query *a
 		sessionID = string(query.UID)
 	}
 
-	qctx := &QueryContext{
+	qd := &QueryDetails{
 		Query:     query,
 		QueryID:   string(query.UID),
 		QueryName: query.Name,
@@ -44,59 +50,84 @@ func (ot *OperationTracker) InitializeQueryContext(ctx context.Context, query *a
 		SessionID: sessionID,
 	}
 
-	return context.WithValue(ctx, queryContextKey, qctx)
+	return context.WithValue(ctx, queryDetailsKey, qd)
 }
 
-func (ot *OperationTracker) getQueryContext(ctx context.Context) *QueryContext {
-	if v := ctx.Value(queryContextKey); v != nil {
-		if qctx, ok := v.(*QueryContext); ok {
-			return qctx
+func (ot *OperationTracker) getQueryDetails(ctx context.Context) *QueryDetails {
+	if v := ctx.Value(queryDetailsKey); v != nil {
+		if qd, ok := v.(*QueryDetails); ok {
+			return qd
 		}
 	}
 	return nil
 }
 
-func (ot *OperationTracker) buildOperationData(ctx context.Context, additionalData OperationData) OperationData {
-	qctx := ot.getQueryContext(ctx)
-	if qctx == nil {
-		return additionalData
+func (ot *OperationTracker) getOperationDetails(ctx context.Context) map[string]string {
+	if v := ctx.Value(operationDetailsKey); v != nil {
+		if metadata, ok := v.(map[string]string); ok {
+			return metadata
+		}
 	}
-
-	additionalData.QueryID = qctx.QueryID
-	additionalData.QueryName = qctx.QueryName
-	additionalData.QueryNamespace = qctx.Namespace
-	additionalData.SessionID = qctx.SessionID
-
-	return additionalData
+	return nil
 }
 
-func (ot *OperationTracker) Start(ctx context.Context, operation, message string, data OperationData) {
-	qctx := ot.getQueryContext(ctx)
-	if qctx == nil {
+func (ot *OperationTracker) buildOperationData(ctx context.Context, additionalData map[string]string) (map[string]string, *arkv1alpha1.Query) {
+	result := make(map[string]string)
+
+	qd := ot.getQueryDetails(ctx)
+	if qd == nil {
+		return result, nil
+	}
+
+	result["queryId"] = qd.QueryID
+	result["queryName"] = qd.QueryName
+	result["queryNamespace"] = qd.Namespace
+	result["sessionId"] = qd.SessionID
+
+	opDetails := ot.getOperationDetails(ctx)
+	for k, v := range opDetails {
+		result[k] = v
+	}
+
+	for k, v := range additionalData {
+		result[k] = v
+	}
+
+	return result, qd.Query
+}
+
+func (ot *OperationTracker) Start(ctx context.Context, operation, message string, data map[string]string) context.Context {
+	ctx = context.WithValue(ctx, operationDetailsKey, data)
+
+	operationData, query := ot.buildOperationData(ctx, nil)
+	if query == nil {
+		return ctx
+	}
+
+	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, operation+"Start", message, operationData)
+
+	return ctx
+}
+
+func (ot *OperationTracker) Complete(ctx context.Context, operation, message string, data map[string]string) {
+	operationData, query := ot.buildOperationData(ctx, data)
+	if query == nil {
 		return
 	}
 
-	operationData := ot.buildOperationData(ctx, data)
-	ot.emitter.EmitStructured(ctx, qctx.Query, corev1.EventTypeNormal, operation+"Start", message, operationData)
+	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, operation+"Complete", message, operationData)
 }
 
-func (ot *OperationTracker) Complete(ctx context.Context, operation, message string, data OperationData) {
-	qctx := ot.getQueryContext(ctx)
-	if qctx == nil {
+func (ot *OperationTracker) Fail(ctx context.Context, operation, message string, err error, data map[string]string) {
+	if data == nil {
+		data = make(map[string]string)
+	}
+	data["error"] = err.Error()
+
+	operationData, query := ot.buildOperationData(ctx, data)
+	if query == nil {
 		return
 	}
 
-	operationData := ot.buildOperationData(ctx, data)
-	ot.emitter.EmitStructured(ctx, qctx.Query, corev1.EventTypeNormal, operation+"Complete", message, operationData)
-}
-
-func (ot *OperationTracker) Fail(ctx context.Context, operation, message string, err error, data OperationData) {
-	qctx := ot.getQueryContext(ctx)
-	if qctx == nil {
-		return
-	}
-
-	data.ErrorMessage = err.Error()
-	operationData := ot.buildOperationData(ctx, data)
-	ot.emitter.EmitStructured(ctx, qctx.Query, corev1.EventTypeWarning, operation+"Error", message, operationData)
+	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeWarning, operation+"Error", message, operationData)
 }
