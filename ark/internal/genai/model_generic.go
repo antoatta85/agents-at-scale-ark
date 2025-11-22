@@ -6,7 +6,6 @@ import (
 
 	"github.com/openai/openai-go"
 	"k8s.io/apimachinery/pkg/runtime"
-	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/telemetry"
 )
 
@@ -28,7 +27,6 @@ type Model struct {
 	OutputSchema  *runtime.RawExtension
 	SchemaName    string
 	ModelRecorder telemetry.ModelRecorder
-	QueryTracker  eventing.QueryTracker
 }
 
 func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStream EventStreamInterface, n int64, tools ...[]openai.ChatCompletionToolParam) (*openai.ChatCompletion, error) {
@@ -79,7 +77,6 @@ func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStr
 	}
 
 	m.ModelRecorder.RecordTokenUsage(span, response.Usage.PromptTokens, response.Usage.CompletionTokens, response.Usage.TotalTokens)
-	m.QueryTracker.AddCompletionUsage(ctx, response.Usage)
 	m.ModelRecorder.RecordSuccess(span)
 
 	return response, nil

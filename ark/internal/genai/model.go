@@ -11,7 +11,6 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/common"
-	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/telemetry"
 )
 
@@ -43,7 +42,7 @@ func ResolveModelSpec(modelSpec any, defaultNamespace string) (string, string, e
 }
 
 // LoadModel loads a model by resolving modelSpec and defaultNamespace
-func LoadModel(ctx context.Context, k8sClient client.Client, modelSpec interface{}, defaultNamespace string, additionalHeaders map[string]string, modelRecorder telemetry.ModelRecorder, queryTracker eventing.QueryTracker) (*Model, error) {
+func LoadModel(ctx context.Context, k8sClient client.Client, modelSpec interface{}, defaultNamespace string, additionalHeaders map[string]string, modelRecorder telemetry.ModelRecorder) (*Model, error) {
 	modelName, namespace, err := ResolveModelSpec(modelSpec, defaultNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve model spec: %w", err)
@@ -63,7 +62,6 @@ func LoadModel(ctx context.Context, k8sClient client.Client, modelSpec interface
 		Model:         model,
 		Type:          modelCRD.Spec.Type,
 		ModelRecorder: modelRecorder,
-		QueryTracker:  queryTracker,
 	}
 
 	switch modelCRD.Spec.Type {

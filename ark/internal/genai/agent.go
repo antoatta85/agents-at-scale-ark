@@ -30,7 +30,6 @@ type Agent struct {
 	Annotations     map[string]string
 	OutputSchema    *runtime.RawExtension
 	client          client.Client
-	QueryTracker    eventing.QueryTracker
 }
 
 // FullName returns the namespace/name format for the agent
@@ -43,15 +42,12 @@ func (a *Agent) Execute(ctx context.Context, userInput Message, history []Messag
 	ctx, span := a.AgentRecorder.StartAgentExecution(ctx, a.Name, a.Namespace)
 	defer span.End()
 
-	a.QueryTracker.AgentExecutionStart(ctx, a.Name)
-
 	result, err := a.executeAgent(ctx, userInput, history, memory, eventStream)
 	if err != nil {
 		a.AgentRecorder.RecordError(span, err)
 		return nil, err
 	}
 
-	a.QueryTracker.AgentExecutionComplete(ctx, a.Name)
 	a.AgentRecorder.RecordSuccess(span)
 	return result, nil
 }
@@ -340,7 +336,7 @@ func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Ag
 	// A2A agents don't need models - they delegate to external A2A servers
 	if crd.Spec.ExecutionEngine == nil || crd.Spec.ExecutionEngine.Name != ExecutionEngineA2A {
 		var err error
-		resolvedModel, err = LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace, modelHeaders, telemetryProvider.ModelRecorder(), eventingProvider.QueryTracker())
+		resolvedModel, err = LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace, modelHeaders, telemetryProvider.ModelRecorder())
 		if err != nil {
 			return nil, fmt.Errorf("failed to load model for agent %s/%s: %w", crd.Namespace, crd.Name, err)
 		}

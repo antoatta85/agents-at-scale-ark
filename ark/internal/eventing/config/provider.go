@@ -5,7 +5,7 @@ import (
 
 	"mckinsey.com/ark/internal/eventing"
 	k8seventing "mckinsey.com/ark/internal/eventing/kubernetes"
-	"mckinsey.com/ark/internal/eventing/trackers"
+	trackers "mckinsey.com/ark/internal/eventing/tracker"
 )
 
 type Provider struct {
