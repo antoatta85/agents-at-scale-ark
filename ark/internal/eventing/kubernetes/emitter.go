@@ -28,7 +28,7 @@ func (e *KubernetesEventEmitter) EmitWarning(ctx context.Context, obj runtime.Ob
 	e.recorder.Event(obj, "Warning", reason, message)
 }
 
-func (e *KubernetesEventEmitter) EmitStructured(ctx context.Context, obj runtime.Object, eventType, reason, message string, data eventing.EventData) {
+func (e *KubernetesEventEmitter) EmitStructured(ctx context.Context, obj runtime.Object, eventType, reason, message string, data any) {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		e.recorder.Event(obj, eventType, reason, message)

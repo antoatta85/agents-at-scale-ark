@@ -20,5 +20,5 @@ func (e *NoopEventEmitter) EmitNormal(ctx context.Context, obj runtime.Object, r
 func (e *NoopEventEmitter) EmitWarning(ctx context.Context, obj runtime.Object, reason, message string) {
 }
 
-func (e *NoopEventEmitter) EmitStructured(ctx context.Context, obj runtime.Object, eventType, reason, message string, data eventing.EventData) {
+func (e *NoopEventEmitter) EmitStructured(ctx context.Context, obj runtime.Object, eventType, reason, message string, data any) {
 }
