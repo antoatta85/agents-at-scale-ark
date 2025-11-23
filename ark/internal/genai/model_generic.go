@@ -6,6 +6,7 @@ import (
 
 	"github.com/openai/openai-go"
 	"k8s.io/apimachinery/pkg/runtime"
+	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/telemetry"
 )
 
@@ -27,6 +28,7 @@ type Model struct {
 	OutputSchema      *runtime.RawExtension
 	SchemaName        string
 	telemetryRecorder telemetry.ModelRecorder
+	eventingRecorder  eventing.ModelRecorder
 }
 
 func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStream EventStreamInterface, n int64, tools ...[]openai.ChatCompletionToolParam) (*openai.ChatCompletion, error) {

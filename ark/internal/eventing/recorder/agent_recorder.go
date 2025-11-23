@@ -6,15 +6,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"mckinsey.com/ark/internal/eventing"
+	"mckinsey.com/ark/internal/eventing/recorder/operations"
 )
 
 type agentRecorder struct {
 	emitter eventing.EventEmitter
+	operations.OperationTracker
 }
 
 func NewAgentRecorder(emitter eventing.EventEmitter) eventing.AgentRecorder {
 	return &agentRecorder{
-		emitter: emitter,
+		emitter:          emitter,
+		OperationTracker: operations.NewOperationTracker(emitter),
 	}
 }
 

@@ -22,6 +22,7 @@ type Team struct {
 	Selector          *arkv1alpha1.TeamSelectorSpec
 	Graph             *arkv1alpha1.TeamGraphSpec
 	telemetryRecorder telemetry.TeamRecorder
+	eventingRecorder  eventing.TeamRecorder
 	telemetry         telemetry.Provider
 	eventing          eventing.Provider
 	Client            client.Client
@@ -175,6 +176,7 @@ func MakeTeam(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Tea
 		Selector:          crd.Spec.Selector,
 		Graph:             crd.Spec.Graph,
 		telemetryRecorder: telemetryProvider.TeamRecorder(),
+		eventingRecorder:  eventingProvider.TeamRecorder(),
 		telemetry:         telemetryProvider,
 		eventing:          eventingProvider,
 		Client:            k8sClient,

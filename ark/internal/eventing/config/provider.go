@@ -12,9 +12,11 @@ type Provider struct {
 	modelRecorder           eventing.ModelRecorder
 	a2aRecorder             eventing.A2aRecorder
 	agentRecorder           eventing.AgentRecorder
+	teamRecorder            eventing.TeamRecorder
 	executionEngineRecorder eventing.ExecutionEngineRecorder
 	mcpServerRecorder       eventing.MCPServerRecorder
 	queryRecorder           eventing.QueryRecorder
+	toolRecorder            eventing.ToolRecorder
 }
 
 func NewProvider(mgr ctrl.Manager) *Provider {
@@ -25,9 +27,11 @@ func NewProvider(mgr ctrl.Manager) *Provider {
 		modelRecorder:           recorders.NewModelRecorder(emitter),
 		a2aRecorder:             recorders.NewA2aRecorder(emitter),
 		agentRecorder:           recorders.NewAgentRecorder(emitter),
+		teamRecorder:            recorders.NewTeamRecorder(emitter),
 		executionEngineRecorder: recorders.NewExecutionEngineRecorder(emitter),
 		mcpServerRecorder:       recorders.NewMCPServerRecorder(emitter),
 		queryRecorder:           recorders.NewQueryRecorder(emitter),
+		toolRecorder:            recorders.NewToolRecorder(emitter),
 	}
 }
 
@@ -43,6 +47,10 @@ func (p *Provider) AgentRecorder() eventing.AgentRecorder {
 	return p.agentRecorder
 }
 
+func (p *Provider) TeamRecorder() eventing.TeamRecorder {
+	return p.teamRecorder
+}
+
 func (p *Provider) ExecutionEngineRecorder() eventing.ExecutionEngineRecorder {
 	return p.executionEngineRecorder
 }
@@ -53,4 +61,8 @@ func (p *Provider) MCPServerRecorder() eventing.MCPServerRecorder {
 
 func (p *Provider) QueryRecorder() eventing.QueryRecorder {
 	return p.queryRecorder
+}
+
+func (p *Provider) ToolRecorder() eventing.ToolRecorder {
+	return p.toolRecorder
 }

@@ -26,6 +26,7 @@ type Agent struct {
 	Model             *Model
 	Tools             *ToolRegistry
 	telemetryRecorder telemetry.AgentRecorder
+	eventingRecorder  eventing.AgentRecorder
 	ExecutionEngine   *arkv1alpha1.ExecutionEngineRef
 	Annotations       map[string]string
 	OutputSchema      *runtime.RawExtension
@@ -39,26 +40,34 @@ func (a *Agent) FullName() string {
 
 // Execute executes the agent with optional event emission for tool calls
 func (a *Agent) Execute(ctx context.Context, userInput Message, history []Message, memory MemoryInterface, eventStream EventStreamInterface) (*ExecutionResult, error) {
+	if a.Model == nil {
+		return nil, fmt.Errorf("agent %s has no model configured", a.FullName())
+	}
+
 	ctx, span := a.telemetryRecorder.StartAgentExecution(ctx, a.Name, a.Namespace)
 	defer span.End()
+
+	operationData := map[string]string{
+		"agent": a.FullName(),
+		"model": a.Model.Model,
+	}
+	ctx = a.eventingRecorder.Start(ctx, "AgentExecution", fmt.Sprintf("Executing agent %s", a.FullName()), operationData)
 
 	result, err := a.executeAgent(ctx, userInput, history, memory, eventStream)
 	if err != nil {
 		a.telemetryRecorder.RecordError(span, err)
+		a.eventingRecorder.Fail(ctx, "AgentExecution", fmt.Sprintf("Agent execution failed: %v", err), err, nil)
 		return nil, err
 	}
 
 	a.telemetryRecorder.RecordSuccess(span)
+	a.eventingRecorder.Complete(ctx, "AgentExecution", "Agent execution completed successfully", nil)
 	return result, nil
 }
 
 func (a *Agent) executeAgent(ctx context.Context, userInput Message, history []Message, memory MemoryInterface, eventStream EventStreamInterface) (*ExecutionResult, error) {
 	if a.ExecutionEngine != nil {
 		return a.executeWithExecutionEngineRouter(ctx, userInput, history, eventStream)
-	}
-
-	if a.Model == nil {
-		return nil, fmt.Errorf("agent %s has no model configured", a.FullName())
 	}
 
 	messages, err := a.executeLocally(ctx, userInput, history, memory, eventStream)
@@ -336,7 +345,7 @@ func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Ag
 	// A2A agents don't need models - they delegate to external A2A servers
 	if crd.Spec.ExecutionEngine == nil || crd.Spec.ExecutionEngine.Name != ExecutionEngineA2A {
 		var err error
-		resolvedModel, err = LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace, modelHeaders, telemetryProvider.ModelRecorder())
+		resolvedModel, err = LoadModel(ctx, k8sClient, crd.Spec.ModelRef, crd.Namespace, modelHeaders, telemetryProvider.ModelRecorder(), eventingProvider.ModelRecorder())
 		if err != nil {
 			return nil, fmt.Errorf("failed to load model for agent %s/%s: %w", crd.Namespace, crd.Name, err)
 		}
@@ -360,7 +369,7 @@ func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Ag
 		return nil, err
 	}
 
-	tools := NewToolRegistry(mcpSettings, telemetryProvider.ToolRecorder())
+	tools := NewToolRegistry(mcpSettings, telemetryProvider.ToolRecorder(), eventingProvider.ToolRecorder())
 
 	if err := tools.registerTools(ctx, k8sClient, crd, telemetryProvider, eventingProvider); err != nil {
 		return nil, err
@@ -375,6 +384,7 @@ func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Ag
 		Model:             resolvedModel,
 		Tools:             tools,
 		telemetryRecorder: telemetryProvider.AgentRecorder(),
+		eventingRecorder:  eventingProvider.AgentRecorder(),
 		ExecutionEngine:   crd.Spec.ExecutionEngine,
 		Annotations:       crd.Annotations,
 		OutputSchema:      crd.Spec.OutputSchema,

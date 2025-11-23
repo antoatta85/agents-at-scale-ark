@@ -20,6 +20,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
+	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/telemetry"
 )
 
@@ -184,15 +185,17 @@ type ToolRegistry struct {
 	mcpPool           *MCPClientPool         // One MCP client pool per agent
 	mcpSettings       map[string]MCPSettings // MCP settings per MCP server (namespace/name)
 	telemetryRecorder telemetry.ToolRecorder
+	eventingRecorder  eventing.ToolRecorder
 }
 
-func NewToolRegistry(mcpSettings map[string]MCPSettings, toolRecorder telemetry.ToolRecorder) *ToolRegistry {
+func NewToolRegistry(mcpSettings map[string]MCPSettings, telemetryRecorder telemetry.ToolRecorder, eventingRecorder eventing.ToolRecorder) *ToolRegistry {
 	return &ToolRegistry{
 		tools:             make(map[string]ToolDefinition),
 		executors:         make(map[string]ToolExecutor),
 		mcpPool:           NewMCPClientPool(),
 		mcpSettings:       mcpSettings,
-		telemetryRecorder: toolRecorder,
+		telemetryRecorder: telemetryRecorder,
+		eventingRecorder:  eventingRecorder,
 	}
 }
 

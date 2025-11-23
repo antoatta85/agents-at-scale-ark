@@ -762,7 +762,7 @@ func (r *QueryReconciler) executeModel(ctx context.Context, query arkv1alpha1.Qu
 		return nil, fmt.Errorf("unable to get %v, error:%w", modelKey, err)
 	}
 
-	model, err := genai.LoadModel(ctx, impersonatedClient, &arkv1alpha1.AgentModelRef{Name: modelName, Namespace: query.Namespace}, query.Namespace, nil, r.Telemetry.ModelRecorder())
+	model, err := genai.LoadModel(ctx, impersonatedClient, &arkv1alpha1.AgentModelRef{Name: modelName, Namespace: query.Namespace}, query.Namespace, nil, r.Telemetry.ModelRecorder(), r.Eventing.ModelRecorder())
 	if err != nil {
 		return nil, fmt.Errorf("unable to load model %v, error:%w", modelKey, err)
 	}
@@ -853,7 +853,7 @@ func (r *QueryReconciler) executeTool(ctx context.Context, crd arkv1alpha1.Query
 		Type: "function",
 	}
 
-	toolRegistry := genai.NewToolRegistry(query.McpSettings, r.Telemetry.ToolRecorder())
+	toolRegistry := genai.NewToolRegistry(query.McpSettings, r.Telemetry.ToolRecorder(), r.Eventing.ToolRecorder())
 	defer func() {
 		if err := toolRegistry.Close(); err != nil {
 			// Log the error but don't fail the request since tool execution already succeeded

@@ -14,6 +14,7 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/eventing"
+	eventnoop "mckinsey.com/ark/internal/eventing/noop"
 	"mckinsey.com/ark/internal/genai"
 	"mckinsey.com/ark/internal/telemetry"
 	telenoop "mckinsey.com/ark/internal/telemetry/noop"
@@ -85,11 +86,12 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 func (r *ModelReconciler) probeModel(ctx context.Context, model arkv1alpha1.Model) genai.ProbeResult {
-	noopRecorder := telenoop.NewModelRecorder()
+	noopTelemetryRecorder := telenoop.NewModelRecorder()
+	noopEventingRecorder := eventnoop.NewModelRecorder()
 	resolvedModel, err := genai.LoadModel(ctx, r.Client, &arkv1alpha1.AgentModelRef{
 		Name:      model.Name,
 		Namespace: model.Namespace,
-	}, model.Namespace, nil, noopRecorder)
+	}, model.Namespace, nil, noopTelemetryRecorder, noopEventingRecorder)
 	if err != nil {
 		return genai.ProbeResult{
 			Available:     false,
