@@ -182,9 +182,13 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	r.Telemetry.QueryRecorder().RecordSessionID(span, sessionId)
 	defer span.End()
 
+	opCtx = r.Eventing.QueryRecorder().InitializeQueryContext(opCtx, &obj)
+	opCtx = r.Eventing.QueryRecorder().Start(opCtx, "QueryExecution", fmt.Sprintf("Executing query %s", obj.Name), nil)
+
 	impersonatedClient, memory, err := r.setupQueryExecution(opCtx, obj, sessionId)
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
+		r.Eventing.QueryRecorder().Fail(opCtx, "QueryExecution", fmt.Sprintf("Query execution failed: %v", err), err, nil)
 		return
 	}
 
@@ -198,6 +202,7 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	if err != nil {
 		genai.StreamError(opCtx, eventStream, err, "query_execution_failed", "query")
 		r.Telemetry.QueryRecorder().RecordError(span, err)
+		r.Eventing.QueryRecorder().Fail(opCtx, "QueryExecution", fmt.Sprintf("Query execution failed: %v", err), err, nil)
 		_ = r.updateStatus(opCtx, &obj, statusError)
 		return
 	}
@@ -223,6 +228,7 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	_ = r.updateStatusWithDuration(opCtx, &obj, queryStatus, duration)
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
+	r.Eventing.QueryRecorder().Complete(opCtx, "QueryExecution", "Query execution completed successfully", nil)
 }
 
 // finalizeEventStream sends a final chunk with complete query status, then closes the stream
@@ -264,7 +270,7 @@ func (r *QueryReconciler) setupQueryExecution(opCtx context.Context, obj arkv1al
 		return nil, nil, fmt.Errorf("failed to create impersonated client: %w", err)
 	}
 
-	memory, err := genai.NewMemoryForQuery(opCtx, impersonatedClient, obj.Spec.Memory, obj.Namespace, sessionId, obj.Name)
+	memory, err := genai.NewMemoryForQuery(opCtx, impersonatedClient, obj.Spec.Memory, obj.Namespace, sessionId, obj.Name, r.Eventing.MemoryRecorder())
 	if err != nil {
 		_ = r.updateStatus(opCtx, &obj, statusError)
 		return nil, nil, fmt.Errorf("failed to create memory client: %w", err)
@@ -606,6 +612,12 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	ctx, span := r.Telemetry.QueryRecorder().StartTarget(ctx, target.Type, target.Name)
 	defer span.End()
 
+	operationData := map[string]string{
+		"targetName": target.Name,
+		"targetType": target.Type,
+	}
+	ctx = r.Eventing.QueryRecorder().Start(ctx, "TargetExecution", fmt.Sprintf("Executing target %s/%s", target.Type, target.Name), operationData)
+
 	// Add query and session context for streaming metadata
 	queryID := string(query.UID)
 	sessionID := query.Spec.SessionId
@@ -661,6 +673,8 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
 		r.handleTargetExecutionError(ctx, err, target, eventStream)
+		operationData["result"] = fmt.Sprintf("Target execution failed: %v", err)
+		r.Eventing.QueryRecorder().Fail(ctx, "TargetExecution", operationData["result"], err, operationData)
 		return nil, err
 	}
 
@@ -672,6 +686,8 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	}
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
+	operationData["result"] = "Target execution completed successfully"
+	r.Eventing.QueryRecorder().Complete(ctx, "TargetExecution", operationData["result"], operationData)
 
 	return result, nil
 }

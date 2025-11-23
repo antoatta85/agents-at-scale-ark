@@ -245,7 +245,14 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 		// Start turn-level telemetry span
 		turnCtx, turnSpan := t.telemetryRecorder.StartTurn(ctx, turn, nextMember.GetName(), nextMember.GetType())
 
-		err = t.executeMemberAndAccumulate(turnCtx, nextMember, userInput, &messages, &newMessages)
+		operationData := map[string]string{
+			"teamName": t.Name,
+			"strategy": t.Strategy,
+			"turn":     fmt.Sprintf("%d", turn),
+		}
+		turnCtx = t.eventingRecorder.Start(turnCtx, "TeamTurn", fmt.Sprintf("Executing turn %d for team %s", turn, t.Name), operationData)
+
+		err = t.executeMemberAndAccumulate(turnCtx, nextMember, userInput, &messages, &newMessages, turn)
 
 		// Record turn output
 		if len(newMessages) > 0 {
@@ -255,6 +262,8 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 		if err != nil {
 			t.telemetryRecorder.RecordError(turnSpan, err)
 			turnSpan.End()
+			operationData["result"] = fmt.Sprintf("Team turn failed: %v", err)
+			t.eventingRecorder.Fail(turnCtx, "TeamTurn", operationData["result"], err, operationData)
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
@@ -263,6 +272,8 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 
 		t.telemetryRecorder.RecordSuccess(turnSpan)
 		turnSpan.End()
+		operationData["result"] = fmt.Sprintf("Team turn %d completed successfully", turn)
+		t.eventingRecorder.Complete(turnCtx, "TeamTurn", operationData["result"], operationData)
 
 		previousMember = nextMember.GetName()
 

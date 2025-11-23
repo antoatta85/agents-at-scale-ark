@@ -13,17 +13,20 @@ import (
 
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
 	arkann "mckinsey.com/ark/internal/annotations"
+	"mckinsey.com/ark/internal/eventing"
 )
 
 // A2AExecutionEngine handles execution for agents with the reserved 'a2a' execution engine
 type A2AExecutionEngine struct {
-	client client.Client
+	client           client.Client
+	eventingRecorder eventing.A2aRecorder
 }
 
 // NewA2AExecutionEngine creates a new A2A execution engine
-func NewA2AExecutionEngine(k8sClient client.Client) *A2AExecutionEngine {
+func NewA2AExecutionEngine(k8sClient client.Client, eventingRecorder eventing.A2aRecorder) *A2AExecutionEngine {
 	return &A2AExecutionEngine{
-		client: k8sClient,
+		client:           k8sClient,
+		eventingRecorder: eventingRecorder,
 	}
 }
 
@@ -43,6 +46,13 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 	if !hasServerName {
 		return nil, fmt.Errorf("A2A agent missing %s annotation", arkann.A2AServerName)
 	}
+
+	operationData := map[string]string{
+		"a2aServer":  a2aServerName,
+		"serverAddr": a2aAddress,
+		"protocol":   "a2a-jsonrpc",
+	}
+	ctx = e.eventingRecorder.Start(ctx, "A2AExecution", fmt.Sprintf("Executing A2A agent %s", agentName), operationData)
 
 	var a2aServer arkv1prealpha1.A2AServer
 	serverKey := client.ObjectKey{Name: a2aServerName, Namespace: namespace}
@@ -75,6 +85,8 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 	if err != nil {
 		modelID := fmt.Sprintf("agent/%s", agentName)
 		StreamError(ctx, eventStream, err, "a2a_execution_failed", modelID)
+		operationData["result"] = fmt.Sprintf("A2A execution failed: %v", err)
+		e.eventingRecorder.Fail(ctx, "A2AExecution", operationData["result"], err, operationData)
 		return nil, err
 	}
 
@@ -111,6 +123,9 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 			log.Error(err, "failed to send A2A response chunk to event stream")
 		}
 	}
+
+	operationData["result"] = "A2A execution completed successfully"
+	e.eventingRecorder.Complete(ctx, "A2AExecution", operationData["result"], operationData)
 
 	return &ExecutionResult{
 		Messages:    []Message{responseMessage},

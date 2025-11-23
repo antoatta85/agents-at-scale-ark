@@ -7,17 +7,20 @@ import (
 
 	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/eventing/recorder/operations"
+	"mckinsey.com/ark/internal/eventing/recorder/tokens"
 )
 
 type modelRecorder struct {
-	emitter eventing.EventEmitter
+	tokens.TokenCollector
 	operations.OperationTracker
+	emitter eventing.EventEmitter
 }
 
 func NewModelRecorder(emitter eventing.EventEmitter) eventing.ModelRecorder {
 	return &modelRecorder{
-		emitter:          emitter,
+		TokenCollector:   tokens.NewTokenCollector(),
 		OperationTracker: operations.NewOperationTracker(emitter),
+		emitter:          emitter,
 	}
 }
 

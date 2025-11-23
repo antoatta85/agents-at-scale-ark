@@ -9,13 +9,23 @@ import (
 )
 
 type OperationTracker interface {
+	InitializeQueryContext(ctx context.Context, query *arkv1alpha1.Query) context.Context
 	Start(ctx context.Context, operation, message string, data map[string]string) context.Context
 	Complete(ctx context.Context, operation, message string, data map[string]string)
 	Fail(ctx context.Context, operation, message string, err error, data map[string]string)
 }
 
+type TokenCollector interface {
+	StartTokenCollection(ctx context.Context) context.Context
+	AddTokens(ctx context.Context, promptTokens, completionTokens, totalTokens int64)
+	AddTokenUsage(ctx context.Context, usage arkv1alpha1.TokenUsage)
+	AddCompletionUsage(ctx context.Context, usage openai.CompletionUsage)
+	GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsage
+}
+
 type ModelRecorder interface {
 	OperationTracker
+	TokenCollector
 	ModelUnavailable(ctx context.Context, model runtime.Object, reason string)
 }
 
@@ -44,22 +54,20 @@ type MCPServerRecorder interface {
 }
 
 type TeamRecorder interface {
-	StartTokenCollection(ctx context.Context) context.Context
-	AddTokens(ctx context.Context, promptTokens, completionTokens, totalTokens int64)
-	AddTokenUsage(ctx context.Context, usage arkv1alpha1.TokenUsage)
-	AddCompletionUsage(ctx context.Context, usage openai.CompletionUsage)
-	GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsage
+	OperationTracker
+	TokenCollector
 }
 
 type QueryRecorder interface {
-	StartTokenCollection(ctx context.Context) context.Context
-	AddTokens(ctx context.Context, promptTokens, completionTokens, totalTokens int64)
-	AddTokenUsage(ctx context.Context, usage arkv1alpha1.TokenUsage)
-	AddCompletionUsage(ctx context.Context, usage openai.CompletionUsage)
-	GetTokenSummary(ctx context.Context) arkv1alpha1.TokenUsage
+	OperationTracker
+	TokenCollector
 }
 
 type ToolRecorder interface {
+	OperationTracker
+}
+
+type MemoryRecorder interface {
 	OperationTracker
 }
 
@@ -72,4 +80,5 @@ type Provider interface {
 	MCPServerRecorder() MCPServerRecorder
 	QueryRecorder() QueryRecorder
 	ToolRecorder() ToolRecorder
+	MemoryRecorder() MemoryRecorder
 }

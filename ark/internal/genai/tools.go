@@ -248,14 +248,32 @@ func (tr *ToolRegistry) ExecuteTool(ctx context.Context, call ToolCall) (ToolRes
 	ctx, span := tr.telemetryRecorder.StartToolExecution(ctx, call.Function.Name, toolType, call.ID, call.Function.Arguments)
 	defer span.End()
 
+	operationData := map[string]string{
+		"toolName":   call.Function.Name,
+		"toolType":   toolType,
+		"toolId":     call.ID,
+		"parameters": call.Function.Arguments,
+	}
+	ctx = tr.eventingRecorder.Start(ctx, "ToolCall", fmt.Sprintf("Executing tool %s", call.Function.Name), operationData)
+
 	result, err := executor.Execute(ctx, call)
 	if err != nil {
 		tr.telemetryRecorder.RecordError(span, err)
+		if IsTerminateTeam(err) {
+			operationData["terminationMessage"] = "TerminateTeam"
+			operationData["result"] = "Tool execution completed with termination"
+			tr.eventingRecorder.Complete(ctx, "ToolCall", operationData["result"], operationData)
+		} else {
+			operationData["result"] = fmt.Sprintf("Tool execution failed: %v", err)
+			tr.eventingRecorder.Fail(ctx, "ToolCall", operationData["result"], err, operationData)
+		}
 		return result, err
 	}
 
 	tr.telemetryRecorder.RecordToolResult(span, result.Content)
 	tr.telemetryRecorder.RecordSuccess(span)
+	operationData["result"] = "Tool execution completed successfully"
+	tr.eventingRecorder.Complete(ctx, "ToolCall", operationData["result"], operationData)
 
 	return result, nil
 }

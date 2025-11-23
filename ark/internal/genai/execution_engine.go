@@ -15,6 +15,7 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
+	"mckinsey.com/ark/internal/eventing"
 )
 
 // ExecutionEngineMessage represents a chat message in the format expected by execution engines
@@ -146,14 +147,16 @@ func convertFromExecutionEngineMessage(msg ExecutionEngineMessage) Message {
 
 // ExecutionEngineClient handles communication with external execution engines
 type ExecutionEngineClient struct {
-	client     client.Client
-	httpClient *http.Client
+	client           client.Client
+	httpClient       *http.Client
+	eventingRecorder eventing.ExecutionEngineRecorder
 }
 
 // NewExecutionEngineClient creates a new ExecutionEngine client
-func NewExecutionEngineClient(k8sClient client.Client) *ExecutionEngineClient {
+func NewExecutionEngineClient(k8sClient client.Client, eventingRecorder eventing.ExecutionEngineRecorder) *ExecutionEngineClient {
 	return &ExecutionEngineClient{
-		client: k8sClient,
+		client:           k8sClient,
+		eventingRecorder: eventingRecorder,
 		httpClient: &http.Client{
 			Timeout: 300 * time.Second, // 5 minutes timeout for agent execution
 		},
@@ -162,8 +165,16 @@ func NewExecutionEngineClient(k8sClient client.Client) *ExecutionEngineClient {
 
 // Execute sends a request to the execution engine and returns the response messages
 func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alpha1.ExecutionEngineRef, agentConfig AgentConfig, userInput Message, history []Message, tools []ToolDefinition) ([]Message, error) {
+	operationData := map[string]string{
+		"engineName": engineRef.Name,
+		"agentName":  agentConfig.Name,
+	}
+	ctx = c.eventingRecorder.Start(ctx, "ExecutionEngine", fmt.Sprintf("Executing agent via execution engine %s", engineRef.Name), operationData)
+
 	engineAddress, err := c.resolveExecutionEngineAddress(ctx, engineRef, agentConfig.Namespace)
 	if err != nil {
+		operationData["result"] = fmt.Sprintf("Failed to resolve execution engine address: %v", err)
+		c.eventingRecorder.Fail(ctx, "ExecutionEngine", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("failed to resolve execution engine address: %w", err)
 	}
 
@@ -183,6 +194,8 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 
 	requestBody, err := json.Marshal(request)
 	if err != nil {
+		operationData["result"] = fmt.Sprintf("Failed to marshal request: %v", err)
+		c.eventingRecorder.Fail(ctx, "ExecutionEngine", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
@@ -190,6 +203,8 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(requestBody))
 	if err != nil {
+		operationData["result"] = fmt.Sprintf("Failed to create request: %v", err)
+		c.eventingRecorder.Fail(ctx, "ExecutionEngine", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -197,6 +212,8 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		operationData["result"] = fmt.Sprintf("Execution engine request failed: %v", err)
+		c.eventingRecorder.Fail(ctx, "ExecutionEngine", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("execution engine request failed: %w", err)
 	}
 	defer func() {
@@ -206,16 +223,24 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("execution engine returned error status: %d", resp.StatusCode)
+		err := fmt.Errorf("execution engine returned error status: %d", resp.StatusCode)
+		operationData["result"] = err.Error()
+		c.eventingRecorder.Fail(ctx, "ExecutionEngine", operationData["result"], err, operationData)
+		return nil, err
 	}
 
 	var response ExecutionEngineResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		operationData["result"] = fmt.Sprintf("Failed to decode response: %v", err)
+		c.eventingRecorder.Fail(ctx, "ExecutionEngine", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if response.Error != "" {
-		return nil, fmt.Errorf("execution engine error: %s", response.Error)
+		err := fmt.Errorf("execution engine error: %s", response.Error)
+		operationData["result"] = err.Error()
+		c.eventingRecorder.Fail(ctx, "ExecutionEngine", operationData["result"], err, operationData)
+		return nil, err
 	}
 
 	// Convert response messages back to internal format
@@ -224,6 +249,8 @@ func (c *ExecutionEngineClient) Execute(ctx context.Context, engineRef *arkv1alp
 		convertedMessages[i] = convertFromExecutionEngineMessage(msg)
 	}
 
+	operationData["result"] = "Execution engine completed successfully"
+	c.eventingRecorder.Complete(ctx, "ExecutionEngine", operationData["result"], operationData)
 	return convertedMessages, nil
 }
 

@@ -17,6 +17,7 @@ type Provider struct {
 	mcpServerRecorder       eventing.MCPServerRecorder
 	queryRecorder           eventing.QueryRecorder
 	toolRecorder            eventing.ToolRecorder
+	memoryRecorder          eventing.MemoryRecorder
 }
 
 func NewProvider(mgr ctrl.Manager) *Provider {
@@ -32,6 +33,7 @@ func NewProvider(mgr ctrl.Manager) *Provider {
 		mcpServerRecorder:       recorders.NewMCPServerRecorder(emitter),
 		queryRecorder:           recorders.NewQueryRecorder(emitter),
 		toolRecorder:            recorders.NewToolRecorder(emitter),
+		memoryRecorder:          recorders.NewMemoryRecorder(emitter),
 	}
 }
 
@@ -65,4 +67,8 @@ func (p *Provider) QueryRecorder() eventing.QueryRecorder {
 
 func (p *Provider) ToolRecorder() eventing.ToolRecorder {
 	return p.toolRecorder
+}
+
+func (p *Provider) MemoryRecorder() eventing.MemoryRecorder {
+	return p.memoryRecorder
 }

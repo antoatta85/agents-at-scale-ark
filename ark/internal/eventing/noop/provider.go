@@ -54,6 +54,10 @@ func (p *noopProvider) ToolRecorder() eventing.ToolRecorder {
 	return p.toolRecorder
 }
 
+func (p *noopProvider) MemoryRecorder() eventing.MemoryRecorder {
+	return nil
+}
+
 func NewModelRecorder() eventing.ModelRecorder {
 	emitter := NewNoopEventEmitter()
 	return recorder.NewModelRecorder(emitter)

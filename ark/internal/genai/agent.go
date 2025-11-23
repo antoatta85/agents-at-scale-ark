@@ -27,6 +27,7 @@ type Agent struct {
 	Tools             *ToolRegistry
 	telemetryRecorder telemetry.AgentRecorder
 	eventingRecorder  eventing.AgentRecorder
+	eventing          eventing.Provider
 	ExecutionEngine   *arkv1alpha1.ExecutionEngineRef
 	Annotations       map[string]string
 	OutputSchema      *runtime.RawExtension
@@ -56,12 +57,14 @@ func (a *Agent) Execute(ctx context.Context, userInput Message, history []Messag
 	result, err := a.executeAgent(ctx, userInput, history, memory, eventStream)
 	if err != nil {
 		a.telemetryRecorder.RecordError(span, err)
-		a.eventingRecorder.Fail(ctx, "AgentExecution", fmt.Sprintf("Agent execution failed: %v", err), err, nil)
+		operationData["result"] = fmt.Sprintf("Agent execution failed: %v", err)
+		a.eventingRecorder.Fail(ctx, "AgentExecution", operationData["result"], err, operationData)
 		return nil, err
 	}
 
 	a.telemetryRecorder.RecordSuccess(span)
-	a.eventingRecorder.Complete(ctx, "AgentExecution", "Agent execution completed successfully", nil)
+	operationData["result"] = "Agent execution completed successfully"
+	a.eventingRecorder.Complete(ctx, "AgentExecution", operationData["result"], operationData)
 	return result, nil
 }
 
@@ -90,7 +93,7 @@ func (a *Agent) executeWithExecutionEngineRouter(ctx context.Context, userInput 
 }
 
 func (a *Agent) executeWithExecutionEngine(ctx context.Context, userInput Message, history []Message) ([]Message, error) {
-	engineClient := NewExecutionEngineClient(a.client)
+	engineClient := NewExecutionEngineClient(a.client, a.eventing.ExecutionEngineRecorder())
 
 	agentConfig, err := buildAgentConfig(a)
 	if err != nil {
@@ -109,7 +112,7 @@ func (a *Agent) executeWithExecutionEngine(ctx context.Context, userInput Messag
 }
 
 func (a *Agent) executeWithA2AExecutionEngine(ctx context.Context, userInput Message, eventStream EventStreamInterface) (*ExecutionResult, error) {
-	a2aEngine := NewA2AExecutionEngine(a.client)
+	a2aEngine := NewA2AExecutionEngine(a.client, a.eventing.A2aRecorder())
 	contextID := GetA2AContextID(ctx)
 	return a2aEngine.Execute(ctx, a.Name, a.Namespace, a.Annotations, contextID, userInput, eventStream)
 }
@@ -385,6 +388,7 @@ func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Ag
 		Tools:             tools,
 		telemetryRecorder: telemetryProvider.AgentRecorder(),
 		eventingRecorder:  eventingProvider.AgentRecorder(),
+		eventing:          eventingProvider,
 		ExecutionEngine:   crd.Spec.ExecutionEngine,
 		Annotations:       crd.Annotations,
 		OutputSchema:      crd.Spec.OutputSchema,

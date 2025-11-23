@@ -6,6 +6,7 @@ import (
 
 	"github.com/openai/openai-go"
 	"k8s.io/apimachinery/pkg/runtime"
+	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/telemetry"
 )
@@ -39,6 +40,12 @@ func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStr
 	ctx, span := m.telemetryRecorder.StartModelExecution(ctx, m.Model, m.Type)
 	defer span.End()
 
+	operationData := map[string]string{
+		"model":     m.Model,
+		"modelType": m.Type,
+	}
+	ctx = m.eventingRecorder.Start(ctx, "LLMCall", fmt.Sprintf("Calling model %s", m.Model), operationData)
+
 	otelMessages := make([]openai.ChatCompletionMessageParamUnion, len(messages))
 	for i, msg := range messages {
 		otelMessages[i] = openai.ChatCompletionMessageParamUnion(msg)
@@ -65,12 +72,16 @@ func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStr
 
 	if err != nil {
 		m.telemetryRecorder.RecordError(span, err)
+		operationData["result"] = fmt.Sprintf("Model call failed: %v", err)
+		m.eventingRecorder.Fail(ctx, "LLMCall", operationData["result"], err, operationData)
 		return nil, err
 	}
 
 	if response == nil {
 		err := fmt.Errorf("model provider returned nil response without error")
 		m.telemetryRecorder.RecordError(span, err)
+		operationData["result"] = "Model returned nil response"
+		m.eventingRecorder.Fail(ctx, "LLMCall", operationData["result"], err, operationData)
 		return nil, err
 	}
 
@@ -80,6 +91,13 @@ func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStr
 
 	m.telemetryRecorder.RecordTokenUsage(span, response.Usage.PromptTokens, response.Usage.CompletionTokens, response.Usage.TotalTokens)
 	m.telemetryRecorder.RecordSuccess(span)
+	operationData["result"] = "Model call completed successfully"
+	m.eventingRecorder.Complete(ctx, "LLMCall", operationData["result"], operationData)
+	m.eventingRecorder.AddTokenUsage(ctx, arkv1alpha1.TokenUsage{
+		PromptTokens:     response.Usage.PromptTokens,
+		CompletionTokens: response.Usage.CompletionTokens,
+		TotalTokens:      response.Usage.TotalTokens,
+	})
 
 	return response, nil
 }
