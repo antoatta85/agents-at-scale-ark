@@ -59,9 +59,9 @@ func LoadModel(ctx context.Context, k8sClient client.Client, modelSpec interface
 	}
 
 	modelInstance := &Model{
-		Model:         model,
-		Type:          modelCRD.Spec.Type,
-		ModelRecorder: modelRecorder,
+		Model:             model,
+		Type:              modelCRD.Spec.Type,
+		telemetryRecorder: modelRecorder,
 	}
 
 	switch modelCRD.Spec.Type {

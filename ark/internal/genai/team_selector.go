@@ -72,7 +72,7 @@ func (t *Team) loadSelectorAgent(ctx context.Context) (*Agent, error) {
 		return nil, fmt.Errorf("failed to get selector agent %s in namespace %s: %w", agentName, t.Namespace, err)
 	}
 
-	agent, err := MakeAgent(ctx, t.Client, &agentCRD, t.TelemetryProvider, t.EventingProvider)
+	agent, err := MakeAgent(ctx, t.Client, &agentCRD, t.telemetry, t.eventing)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create selector agent: %w", err)
 	}
@@ -243,17 +243,17 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 		}
 
 		// Start turn-level telemetry span
-		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, turn, nextMember.GetName(), nextMember.GetType())
+		turnCtx, turnSpan := t.telemetryRecorder.StartTurn(ctx, turn, nextMember.GetName(), nextMember.GetType())
 
 		err = t.executeMemberAndAccumulate(turnCtx, nextMember, userInput, &messages, &newMessages)
 
 		// Record turn output
 		if len(newMessages) > 0 {
-			t.TeamRecorder.RecordTurnOutput(turnSpan, newMessages, len(newMessages))
+			t.telemetryRecorder.RecordTurnOutput(turnSpan, newMessages, len(newMessages))
 		}
 
 		if err != nil {
-			t.TeamRecorder.RecordError(turnSpan, err)
+			t.telemetryRecorder.RecordError(turnSpan, err)
 			turnSpan.End()
 			if IsTerminateTeam(err) {
 				return newMessages, nil
@@ -261,7 +261,7 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 			return newMessages, err
 		}
 
-		t.TeamRecorder.RecordSuccess(turnSpan)
+		t.telemetryRecorder.RecordSuccess(turnSpan)
 		turnSpan.End()
 
 		previousMember = nextMember.GetName()

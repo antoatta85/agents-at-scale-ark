@@ -20,13 +20,13 @@ type ConfigProvider interface {
 }
 
 type Model struct {
-	Model         string
-	Type          string
-	Properties    map[string]string
-	Provider      ChatCompletionProvider
-	OutputSchema  *runtime.RawExtension
-	SchemaName    string
-	ModelRecorder telemetry.ModelRecorder
+	Model             string
+	Type              string
+	Properties        map[string]string
+	Provider          ChatCompletionProvider
+	OutputSchema      *runtime.RawExtension
+	SchemaName        string
+	telemetryRecorder telemetry.ModelRecorder
 }
 
 func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStream EventStreamInterface, n int64, tools ...[]openai.ChatCompletionToolParam) (*openai.ChatCompletion, error) {
@@ -34,7 +34,7 @@ func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStr
 		return nil, nil
 	}
 
-	ctx, span := m.ModelRecorder.StartModelExecution(ctx, m.Model, m.Type)
+	ctx, span := m.telemetryRecorder.StartModelExecution(ctx, m.Model, m.Type)
 	defer span.End()
 
 	otelMessages := make([]openai.ChatCompletionMessageParamUnion, len(messages))
@@ -42,8 +42,8 @@ func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStr
 		otelMessages[i] = openai.ChatCompletionMessageParamUnion(msg)
 	}
 
-	m.ModelRecorder.RecordInput(span, otelMessages)
-	m.ModelRecorder.RecordModelDetails(span, m.Model, m.Type)
+	m.telemetryRecorder.RecordInput(span, otelMessages)
+	m.telemetryRecorder.RecordModelDetails(span, m.Model, m.Type)
 
 	if m.OutputSchema != nil {
 		m.Provider.SetOutputSchema(m.OutputSchema, m.SchemaName)
@@ -62,22 +62,22 @@ func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStr
 	}
 
 	if err != nil {
-		m.ModelRecorder.RecordError(span, err)
+		m.telemetryRecorder.RecordError(span, err)
 		return nil, err
 	}
 
 	if response == nil {
 		err := fmt.Errorf("model provider returned nil response without error")
-		m.ModelRecorder.RecordError(span, err)
+		m.telemetryRecorder.RecordError(span, err)
 		return nil, err
 	}
 
 	if len(response.Choices) > 0 {
-		m.ModelRecorder.RecordOutput(span, response.Choices[0].Message)
+		m.telemetryRecorder.RecordOutput(span, response.Choices[0].Message)
 	}
 
-	m.ModelRecorder.RecordTokenUsage(span, response.Usage.PromptTokens, response.Usage.CompletionTokens, response.Usage.TotalTokens)
-	m.ModelRecorder.RecordSuccess(span)
+	m.telemetryRecorder.RecordTokenUsage(span, response.Usage.PromptTokens, response.Usage.CompletionTokens, response.Usage.TotalTokens)
+	m.telemetryRecorder.RecordSuccess(span)
 
 	return response, nil
 }

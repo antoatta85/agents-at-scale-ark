@@ -21,9 +21,9 @@ type Team struct {
 	MaxTurns          *int
 	Selector          *arkv1alpha1.TeamSelectorSpec
 	Graph             *arkv1alpha1.TeamGraphSpec
-	TeamRecorder      telemetry.TeamRecorder
-	TelemetryProvider telemetry.Provider
-	EventingProvider  eventing.Provider
+	telemetryRecorder telemetry.TeamRecorder
+	telemetry         telemetry.Provider
+	eventing          eventing.Provider
 	Client            client.Client
 	Namespace         string
 	memory            MemoryInterface
@@ -73,17 +73,17 @@ func (t *Team) executeSequential(ctx context.Context, userInput Message, history
 		}
 
 		// Start turn-level telemetry span
-		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, i, member.GetName(), member.GetType())
+		turnCtx, turnSpan := t.telemetryRecorder.StartTurn(ctx, i, member.GetName(), member.GetType())
 
 		err := t.executeMemberAndAccumulate(turnCtx, member, userInput, &messages, &newMessages)
 
 		// Record turn output
 		if len(newMessages) > 0 {
-			t.TeamRecorder.RecordTurnOutput(turnSpan, newMessages, len(newMessages))
+			t.telemetryRecorder.RecordTurnOutput(turnSpan, newMessages, len(newMessages))
 		}
 
 		if err != nil {
-			t.TeamRecorder.RecordError(turnSpan, err)
+			t.telemetryRecorder.RecordError(turnSpan, err)
 			turnSpan.End()
 			if IsTerminateTeam(err) {
 				return newMessages, nil
@@ -91,7 +91,7 @@ func (t *Team) executeSequential(ctx context.Context, userInput Message, history
 			return newMessages, err
 		}
 
-		t.TeamRecorder.RecordSuccess(turnSpan)
+		t.telemetryRecorder.RecordSuccess(turnSpan)
 		turnSpan.End()
 	}
 
@@ -120,27 +120,27 @@ func (t *Team) executeRoundRobin(ctx context.Context, userInput Message, history
 		member := t.Members[memberIndex]
 
 		// Start turn-level telemetry span
-		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, messageCount, member.GetName(), member.GetType())
+		turnCtx, turnSpan := t.telemetryRecorder.StartTurn(ctx, messageCount, member.GetName(), member.GetType())
 
 		err := t.executeMemberAndAccumulate(turnCtx, member, userInput, &messages, &newMessages)
 
 		// Record turn output
 		if len(newMessages) > 0 {
-			t.TeamRecorder.RecordTurnOutput(turnSpan, newMessages, len(newMessages))
+			t.telemetryRecorder.RecordTurnOutput(turnSpan, newMessages, len(newMessages))
 		}
 
 		if err != nil {
-			t.TeamRecorder.RecordError(turnSpan, err)
+			t.telemetryRecorder.RecordError(turnSpan, err)
 			turnSpan.End()
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
 
-			t.TeamRecorder.RecordError(turnSpan, err)
+			t.telemetryRecorder.RecordError(turnSpan, err)
 			return newMessages, fmt.Errorf("agent %s failed in team %s: %w", member.GetName(), t.FullName(), err)
 		}
 
-		t.TeamRecorder.RecordSuccess(turnSpan)
+		t.telemetryRecorder.RecordSuccess(turnSpan)
 		turnSpan.End()
 
 		messageCount++                                   // Increment message count
@@ -174,9 +174,9 @@ func MakeTeam(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Tea
 		MaxTurns:          crd.Spec.MaxTurns,
 		Selector:          crd.Spec.Selector,
 		Graph:             crd.Spec.Graph,
-		TeamRecorder:      telemetryProvider.TeamRecorder(),
-		TelemetryProvider: telemetryProvider,
-		EventingProvider:  eventingProvider,
+		telemetryRecorder: telemetryProvider.TeamRecorder(),
+		telemetry:         telemetryProvider,
+		eventing:          eventingProvider,
 		Client:            k8sClient,
 		Namespace:         crd.Namespace,
 	}, nil
@@ -202,22 +202,22 @@ func (t *Team) executeWithTracking(execFunc func(context.Context, Message, []Mes
 		maxTurns = *t.MaxTurns
 	}
 
-	ctx, span := t.TeamRecorder.StartTeamExecution(ctx, t.Name, t.Namespace, t.Strategy, len(t.Members), maxTurns)
+	ctx, span := t.telemetryRecorder.StartTeamExecution(ctx, t.Name, t.Namespace, t.Strategy, len(t.Members), maxTurns)
 	defer span.End()
 
-	teamCtx := t.EventingProvider.QueryRecorder().StartTokenCollection(ctx)
+	teamCtx := t.eventing.QueryRecorder().StartTokenCollection(ctx)
 
 	result, err := execFunc(teamCtx, userInput, history)
 
-	teamTokens := t.EventingProvider.QueryRecorder().GetTokenSummary(teamCtx)
-	t.EventingProvider.QueryRecorder().AddTokenUsage(ctx, teamTokens)
+	teamTokens := t.eventing.QueryRecorder().GetTokenSummary(teamCtx)
+	t.eventing.QueryRecorder().AddTokenUsage(ctx, teamTokens)
 
 	if err != nil {
-		t.TeamRecorder.RecordError(span, err)
+		t.telemetryRecorder.RecordError(span, err)
 		return result, err
 	}
 
-	t.TeamRecorder.RecordSuccess(span)
+	t.telemetryRecorder.RecordSuccess(span)
 	return result, err
 }
 

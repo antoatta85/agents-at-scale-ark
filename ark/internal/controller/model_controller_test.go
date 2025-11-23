@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
+	eventnoop "mckinsey.com/ark/internal/eventing/noop"
 	"mckinsey.com/ark/internal/telemetry/noop"
 )
 
@@ -74,6 +75,7 @@ var _ = Describe("Model Controller", func() {
 				Client:    k8sClient,
 				Scheme:    k8sClient.Scheme(),
 				Telemetry: noop.NewProvider(),
+				Eventing:  eventnoop.NewProvider(),
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{

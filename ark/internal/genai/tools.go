@@ -179,20 +179,20 @@ func (h *HTTPExecutor) Execute(ctx context.Context, call ToolCall) (ToolResult, 
 }
 
 type ToolRegistry struct {
-	tools        map[string]ToolDefinition
-	executors    map[string]ToolExecutor
-	mcpPool      *MCPClientPool         // One MCP client pool per agent
-	mcpSettings  map[string]MCPSettings // MCP settings per MCP server (namespace/name)
-	toolRecorder telemetry.ToolRecorder
+	tools             map[string]ToolDefinition
+	executors         map[string]ToolExecutor
+	mcpPool           *MCPClientPool         // One MCP client pool per agent
+	mcpSettings       map[string]MCPSettings // MCP settings per MCP server (namespace/name)
+	telemetryRecorder telemetry.ToolRecorder
 }
 
 func NewToolRegistry(mcpSettings map[string]MCPSettings, toolRecorder telemetry.ToolRecorder) *ToolRegistry {
 	return &ToolRegistry{
-		tools:        make(map[string]ToolDefinition),
-		executors:    make(map[string]ToolExecutor),
-		mcpPool:      NewMCPClientPool(),
-		mcpSettings:  mcpSettings,
-		toolRecorder: toolRecorder,
+		tools:             make(map[string]ToolDefinition),
+		executors:         make(map[string]ToolExecutor),
+		mcpPool:           NewMCPClientPool(),
+		mcpSettings:       mcpSettings,
+		telemetryRecorder: toolRecorder,
 	}
 }
 
@@ -242,17 +242,17 @@ func (tr *ToolRegistry) ExecuteTool(ctx context.Context, call ToolCall) (ToolRes
 	}
 
 	toolType := tr.GetToolType(call.Function.Name)
-	ctx, span := tr.toolRecorder.StartToolExecution(ctx, call.Function.Name, toolType, call.ID, call.Function.Arguments)
+	ctx, span := tr.telemetryRecorder.StartToolExecution(ctx, call.Function.Name, toolType, call.ID, call.Function.Arguments)
 	defer span.End()
 
 	result, err := executor.Execute(ctx, call)
 	if err != nil {
-		tr.toolRecorder.RecordError(span, err)
+		tr.telemetryRecorder.RecordError(span, err)
 		return result, err
 	}
 
-	tr.toolRecorder.RecordToolResult(span, result.Content)
-	tr.toolRecorder.RecordSuccess(span)
+	tr.telemetryRecorder.RecordToolResult(span, result.Content)
+	tr.telemetryRecorder.RecordSuccess(span)
 
 	return result, nil
 }

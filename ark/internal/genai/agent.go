@@ -18,18 +18,18 @@ import (
 )
 
 type Agent struct {
-	Name            string
-	Namespace       string
-	Prompt          string
-	Description     string
-	Parameters      []arkv1alpha1.Parameter
-	Model           *Model
-	Tools           *ToolRegistry
-	AgentRecorder   telemetry.AgentRecorder
-	ExecutionEngine *arkv1alpha1.ExecutionEngineRef
-	Annotations     map[string]string
-	OutputSchema    *runtime.RawExtension
-	client          client.Client
+	Name              string
+	Namespace         string
+	Prompt            string
+	Description       string
+	Parameters        []arkv1alpha1.Parameter
+	Model             *Model
+	Tools             *ToolRegistry
+	telemetryRecorder telemetry.AgentRecorder
+	ExecutionEngine   *arkv1alpha1.ExecutionEngineRef
+	Annotations       map[string]string
+	OutputSchema      *runtime.RawExtension
+	client            client.Client
 }
 
 // FullName returns the namespace/name format for the agent
@@ -39,16 +39,16 @@ func (a *Agent) FullName() string {
 
 // Execute executes the agent with optional event emission for tool calls
 func (a *Agent) Execute(ctx context.Context, userInput Message, history []Message, memory MemoryInterface, eventStream EventStreamInterface) (*ExecutionResult, error) {
-	ctx, span := a.AgentRecorder.StartAgentExecution(ctx, a.Name, a.Namespace)
+	ctx, span := a.telemetryRecorder.StartAgentExecution(ctx, a.Name, a.Namespace)
 	defer span.End()
 
 	result, err := a.executeAgent(ctx, userInput, history, memory, eventStream)
 	if err != nil {
-		a.AgentRecorder.RecordError(span, err)
+		a.telemetryRecorder.RecordError(span, err)
 		return nil, err
 	}
 
-	a.AgentRecorder.RecordSuccess(span)
+	a.telemetryRecorder.RecordSuccess(span)
 	return result, nil
 }
 
@@ -367,17 +367,17 @@ func MakeAgent(ctx context.Context, k8sClient client.Client, crd *arkv1alpha1.Ag
 	}
 
 	return &Agent{
-		Name:            crd.Name,
-		Namespace:       crd.Namespace,
-		Prompt:          crd.Spec.Prompt,
-		Description:     crd.Spec.Description,
-		Parameters:      crd.Spec.Parameters,
-		Model:           resolvedModel,
-		Tools:           tools,
-		AgentRecorder:   telemetryProvider.AgentRecorder(),
-		ExecutionEngine: crd.Spec.ExecutionEngine,
-		Annotations:     crd.Annotations,
-		OutputSchema:    crd.Spec.OutputSchema,
-		client:          k8sClient,
+		Name:              crd.Name,
+		Namespace:         crd.Namespace,
+		Prompt:            crd.Spec.Prompt,
+		Description:       crd.Spec.Description,
+		Parameters:        crd.Spec.Parameters,
+		Model:             resolvedModel,
+		Tools:             tools,
+		telemetryRecorder: telemetryProvider.AgentRecorder(),
+		ExecutionEngine:   crd.Spec.ExecutionEngine,
+		Annotations:       crd.Annotations,
+		OutputSchema:      crd.Spec.OutputSchema,
+		client:            k8sClient,
 	}, nil
 }

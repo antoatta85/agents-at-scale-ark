@@ -96,12 +96,12 @@ func createAgentExecutor(ctx context.Context, k8sClient client.Client, tool *ark
 	}
 
 	return &AgentToolExecutor{
-		AgentName:         tool.Spec.Agent.Name,
-		Namespace:         namespace,
-		AgentCRD:          agentCRD,
-		k8sClient:         k8sClient,
-		telemetryProvider: telemetryProvider,
-		eventingProvider:  eventingProvider,
+		AgentName: tool.Spec.Agent.Name,
+		Namespace: namespace,
+		AgentCRD:  agentCRD,
+		k8sClient: k8sClient,
+		telemetry: telemetryProvider,
+		eventing:  eventingProvider,
 	}, nil
 }
 
@@ -232,12 +232,12 @@ func (r *ToolRegistry) registerTool(ctx context.Context, k8sClient client.Client
 
 // AgentToolExecutor executes agent tools by calling other agents via MCP
 type AgentToolExecutor struct {
-	AgentName         string
-	Namespace         string
-	AgentCRD          *arkv1alpha1.Agent
-	k8sClient         client.Client
-	telemetryProvider telemetry.Provider
-	eventingProvider  eventing.Provider
+	AgentName string
+	Namespace string
+	AgentCRD  *arkv1alpha1.Agent
+	k8sClient client.Client
+	telemetry telemetry.Provider
+	eventing  eventing.Provider
 }
 
 func (a *AgentToolExecutor) Execute(ctx context.Context, call ToolCall) (ToolResult, error) {
@@ -275,7 +275,7 @@ func (a *AgentToolExecutor) Execute(ctx context.Context, call ToolCall) (ToolRes
 	log.Info("calling agent directly", "agent", a.AgentName, "namespace", a.Namespace, "input", inputStr)
 
 	// Create the Agent object using the Agent CRD
-	agent, err := MakeAgent(ctx, a.k8sClient, a.AgentCRD, a.telemetryProvider, a.eventingProvider)
+	agent, err := MakeAgent(ctx, a.k8sClient, a.AgentCRD, a.telemetry, a.eventing)
 	if err != nil {
 		return ToolResult{
 			ID:    call.ID,
