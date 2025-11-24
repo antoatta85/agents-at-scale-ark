@@ -7,6 +7,14 @@ import { useListA2ATasks } from '@/lib/services/a2a-tasks-hooks';
 
 vi.mock('@/lib/services/a2a-tasks-hooks');
 
+const mockPush = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
 describe('A2ATasksSection', () => {
   const mockUseListA2ATasks = useListA2ATasks as Mock;
 
@@ -97,5 +105,33 @@ describe('A2ATasksSection', () => {
     await userEvent.click(refreshButton);
 
     expect(mockRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('navigates to task details when a task is clicked', async () => {
+    const tasks = [
+      {
+        taskId: 'task-1',
+        name: 'Task 1',
+        phase: 'completed',
+        agentRef: { name: 'Agent 1' },
+        queryRef: { name: 'Query 1' },
+        creationTimestamp: '2023-01-01T00:00:00Z',
+      },
+    ];
+
+    mockUseListA2ATasks.mockReturnValue({
+      isPending: false,
+      data: { items: tasks },
+      error: null,
+      refetch: vi.fn(),
+      isFetching: false,
+    });
+
+    render(<A2ATasksSection />);
+
+    const taskRow = screen.getByText('Task 1');
+    await userEvent.click(taskRow);
+
+    expect(mockPush).toHaveBeenCalledWith('/tasks/Task 1');
   });
 });

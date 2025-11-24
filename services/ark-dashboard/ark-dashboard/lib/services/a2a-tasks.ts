@@ -31,4 +31,13 @@ export const a2aTasksService = {
       id: item.name,
     })) as A2ATask[];
   },
+  async get(id: string): Promise<A2ATask> {
+    const response = await apiClient.get<A2ATaskDetailResponse>(
+      `/api/v1/a2a-tasks/${id}`,
+    );
+    return {
+      ...response,
+      id: response.name,
+    } as A2ATask;
+  },
 };
