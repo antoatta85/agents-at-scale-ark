@@ -65,6 +65,14 @@ describe('A2ATasksSection', () => {
         queryRef: { name: 'Query 1' },
         creationTimestamp: '2023-01-01T00:00:00Z',
       },
+      {
+        taskId: 'task-2',
+        name: 'Task-2',
+        phase: 'pending',
+        agentRef: { name: 'Agent-1' },
+        queryRef: { name: 'Query-2' },
+        creationTimestamp: undefined,
+      },
     ];
 
     mockUseListA2ATasks.mockReturnValue({
@@ -76,9 +84,14 @@ describe('A2ATasksSection', () => {
     });
 
     render(<A2ATasksSection />);
-    expect(screen.getByText('Task 1')).toBeInTheDocument();
-    expect(screen.getByText('Agent 1')).toBeInTheDocument();
-    expect(screen.getByText('Query 1')).toBeInTheDocument();
+
+    const rows = screen.getAllByRole('row');
+    expect(rows.length).toBe(3);
+
+    expect(rows[1].textContent).toContain(
+      'task-1Task 1Agent 1Query 11/1/2023, 1:00:00 AM',
+    );
+    expect(rows[2].textContent).toContain('task-2Task-2Agent-1Query-2-');
   });
 
   it('calls refetch when refresh button is clicked', async () => {
