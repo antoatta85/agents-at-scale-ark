@@ -41,16 +41,11 @@ func (a *Agent) FullName() string {
 
 // Execute executes the agent with optional event emission for tool calls
 func (a *Agent) Execute(ctx context.Context, userInput Message, history []Message, memory MemoryInterface, eventStream EventStreamInterface) (*ExecutionResult, error) {
-	if a.Model == nil {
-		return nil, fmt.Errorf("agent %s has no model configured", a.FullName())
-	}
-
 	ctx, span := a.telemetryRecorder.StartAgentExecution(ctx, a.Name, a.Namespace)
 	defer span.End()
 
 	operationData := map[string]string{
 		"agent": a.FullName(),
-		"model": a.Model.Model,
 	}
 	ctx = a.eventingRecorder.Start(ctx, "AgentExecution", fmt.Sprintf("Executing agent %s", a.FullName()), operationData)
 
@@ -196,6 +191,10 @@ func (a *Agent) executeLocally(ctx context.Context, userInput Message, history [
 	agentMessages, err := a.prepareMessages(ctx, userInput, history)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Model == nil {
+		return nil, fmt.Errorf("agent %s has no model configured", a.FullName())
 	}
 
 	newMessages := []Message{}
