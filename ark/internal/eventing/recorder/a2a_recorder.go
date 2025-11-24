@@ -32,3 +32,27 @@ func (t *a2aRecorder) AgentDeletionFailed(ctx context.Context, obj runtime.Objec
 func (t *a2aRecorder) TaskPollingFailed(ctx context.Context, obj runtime.Object, reason string) {
 	t.emitter.EmitWarning(ctx, obj, "TaskPollingFailed", reason)
 }
+
+func (t *a2aRecorder) A2AMessageFailed(ctx context.Context, reason string) {
+	if qd := t.GetQueryDetails(ctx); qd != nil && qd.Query != nil {
+		t.emitter.EmitWarning(ctx, qd.Query, "A2AMessageFailed", reason)
+	}
+}
+
+func (t *a2aRecorder) A2AConnectionFailed(ctx context.Context, reason string) {
+	if qd := t.GetQueryDetails(ctx); qd != nil && qd.Query != nil {
+		t.emitter.EmitWarning(ctx, qd.Query, "A2AConnectionFailed", reason)
+	}
+}
+
+func (t *a2aRecorder) A2AHeaderResolutionFailed(ctx context.Context, reason string) {
+	if qd := t.GetQueryDetails(ctx); qd != nil && qd.Query != nil {
+		t.emitter.EmitWarning(ctx, qd.Query, "A2AHeaderResolutionFailed", reason)
+	}
+}
+
+func (t *a2aRecorder) A2AResponseParseError(ctx context.Context, reason string) {
+	if qd := t.GetQueryDetails(ctx); qd != nil && qd.Query != nil {
+		t.emitter.EmitWarning(ctx, qd.Query, "A2AResponseParseError", reason)
+	}
+}

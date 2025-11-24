@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"mckinsey.com/ark/internal/eventing"
 	"mckinsey.com/ark/internal/eventing/recorder/operations"
 	"mckinsey.com/ark/internal/eventing/recorder/tokens"
@@ -48,4 +50,12 @@ func (qr *queryRecorder) Fail(ctx context.Context, operation, message string, er
 	data["completionTokens"] = fmt.Sprintf("%d", tokenUsage.CompletionTokens)
 	data["totalTokens"] = fmt.Sprintf("%d", tokenUsage.TotalTokens)
 	qr.OperationTracker.Fail(ctx, operation, message, err, data)
+}
+
+func (qr *queryRecorder) QueryParameterResolutionFailed(ctx context.Context, obj runtime.Object, parameterName, reason string) {
+	qr.emitter.EmitWarning(ctx, obj, "QueryParameterResolutionFailed", fmt.Sprintf("Failed to resolve parameter %s: %s", parameterName, reason))
+}
+
+func (qr *queryRecorder) QueryParameterNotFound(ctx context.Context, obj runtime.Object, parameterName string) {
+	qr.emitter.EmitWarning(ctx, obj, "QueryParameterNotFound", fmt.Sprintf("Parameter not found: %s", parameterName))
 }

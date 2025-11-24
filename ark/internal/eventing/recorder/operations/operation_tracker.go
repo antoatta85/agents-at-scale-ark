@@ -53,7 +53,7 @@ func (ot *OperationTracker) InitializeQueryContext(ctx context.Context, query *a
 	return context.WithValue(ctx, queryDetailsKey, qd)
 }
 
-func (ot *OperationTracker) getQueryDetails(ctx context.Context) *QueryDetails {
+func (ot *OperationTracker) GetQueryDetails(ctx context.Context) *QueryDetails {
 	if v := ctx.Value(queryDetailsKey); v != nil {
 		if qd, ok := v.(*QueryDetails); ok {
 			return qd
@@ -74,7 +74,7 @@ func (ot *OperationTracker) getOperationDetails(ctx context.Context) map[string]
 func (ot *OperationTracker) buildOperationData(ctx context.Context, additionalData map[string]string) (map[string]string, *arkv1alpha1.Query) {
 	result := make(map[string]string)
 
-	qd := ot.getQueryDetails(ctx)
+	qd := ot.GetQueryDetails(ctx)
 	if qd == nil {
 		return result, nil
 	}

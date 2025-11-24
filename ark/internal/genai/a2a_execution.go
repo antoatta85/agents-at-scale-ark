@@ -81,7 +81,7 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 
 	// Execute A2A agent
 	queryName := getQueryName(ctx)
-	a2aResponse, err := ExecuteA2AAgent(ctx, e.client, a2aAddress, a2aServer.Spec.Headers, namespace, content, agentName, queryName, contextID, nil, &a2aServer)
+	a2aResponse, err := ExecuteA2AAgent(ctx, e.client, a2aAddress, a2aServer.Spec.Headers, namespace, content, agentName, queryName, contextID, e.eventingRecorder, &a2aServer)
 	if err != nil {
 		modelID := fmt.Sprintf("agent/%s", agentName)
 		StreamError(ctx, eventStream, err, "a2a_execution_failed", modelID)

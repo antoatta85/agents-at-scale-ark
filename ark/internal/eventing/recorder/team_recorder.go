@@ -49,3 +49,15 @@ func (tr *teamRecorder) Fail(ctx context.Context, operation, message string, err
 	data["totalTokens"] = fmt.Sprintf("%d", tokenUsage.TotalTokens)
 	tr.OperationTracker.Fail(ctx, operation, message, err, data)
 }
+
+func (tr *teamRecorder) ParticipantSelected(ctx context.Context, participantName string) {
+	if qd := tr.GetQueryDetails(ctx); qd != nil && qd.Query != nil {
+		tr.emitter.EmitNormal(ctx, qd.Query, "ParticipantSelected", fmt.Sprintf("Selected participant: %s", participantName))
+	}
+}
+
+func (tr *teamRecorder) SelectorAgentResponse(ctx context.Context, agentName, response string) {
+	if qd := tr.GetQueryDetails(ctx); qd != nil && qd.Query != nil {
+		tr.emitter.EmitNormal(ctx, qd.Query, "SelectorAgentResponse", fmt.Sprintf("Selector agent %s responded: %s", agentName, response))
+	}
+}

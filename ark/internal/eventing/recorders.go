@@ -34,6 +34,10 @@ type A2aRecorder interface {
 	AgentCreationFailed(ctx context.Context, obj runtime.Object, reason string)
 	AgentDeletionFailed(ctx context.Context, obj runtime.Object, reason string)
 	TaskPollingFailed(ctx context.Context, obj runtime.Object, reason string)
+	A2AMessageFailed(ctx context.Context, reason string)
+	A2AConnectionFailed(ctx context.Context, reason string)
+	A2AHeaderResolutionFailed(ctx context.Context, reason string)
+	A2AResponseParseError(ctx context.Context, reason string)
 }
 
 type AgentRecorder interface {
@@ -56,11 +60,15 @@ type MCPServerRecorder interface {
 type TeamRecorder interface {
 	OperationTracker
 	TokenCollector
+	ParticipantSelected(ctx context.Context, participantName string)
+	SelectorAgentResponse(ctx context.Context, agentName, response string)
 }
 
 type QueryRecorder interface {
 	OperationTracker
 	TokenCollector
+	QueryParameterResolutionFailed(ctx context.Context, obj runtime.Object, parameterName, reason string)
+	QueryParameterNotFound(ctx context.Context, obj runtime.Object, parameterName string)
 }
 
 type ToolRecorder interface {

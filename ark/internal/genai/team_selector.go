@@ -115,6 +115,7 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 	lastMsg := result.Messages[len(result.Messages)-1]
 	if lastMsg.OfAssistant != nil && lastMsg.OfAssistant.Content.OfString.Value != "" {
 		selectedName = strings.TrimSpace(lastMsg.OfAssistant.Content.OfString.Value)
+		t.eventingRecorder.SelectorAgentResponse(ctx, selectorAgent.Name, selectedName)
 	} else {
 		return nil, fmt.Errorf("selector agent returned invalid response")
 	}
@@ -128,6 +129,7 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 	// Find selected member
 	for _, member := range membersToSearch {
 		if member.GetName() == selectedName {
+			t.eventingRecorder.ParticipantSelected(ctx, selectedName)
 			return member, nil
 		}
 	}

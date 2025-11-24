@@ -228,7 +228,7 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	_ = r.updateStatusWithDuration(opCtx, &obj, queryStatus, duration)
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
-	r.Eventing.QueryRecorder().Complete(opCtx, "QueryExecution", "Query execution completed successfully", nil)
+	r.Eventing.QueryRecorder().Complete(opCtx, "QueryExecution", "Query execution completed", nil)
 }
 
 // finalizeEventStream sends a final chunk with complete query status, then closes the stream
