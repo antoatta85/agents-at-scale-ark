@@ -53,8 +53,7 @@ func (t *Team) executeGraph(ctx context.Context, userInput Message, history []Me
 		if err != nil {
 			t.telemetryRecorder.RecordError(turnSpan, err)
 			turnSpan.End()
-			operationData["result"] = fmt.Sprintf("Team turn failed: %v", err)
-			t.eventingRecorder.Fail(turnCtx, "TeamTurn", operationData["result"], err, operationData)
+			t.eventingRecorder.Fail(turnCtx, "TeamTurn", fmt.Sprintf("Team turn failed: %v", err), err, operationData)
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
@@ -63,8 +62,7 @@ func (t *Team) executeGraph(ctx context.Context, userInput Message, history []Me
 
 		t.telemetryRecorder.RecordSuccess(turnSpan)
 		turnSpan.End()
-		operationData["result"] = fmt.Sprintf("Team turn %d completed successfully", turns)
-		t.eventingRecorder.Complete(turnCtx, "TeamTurn", operationData["result"], operationData)
+		t.eventingRecorder.Complete(turnCtx, "TeamTurn", fmt.Sprintf("Team turn %d completed successfully", turns), operationData)
 
 		nextMember := transitionMap[currentMemberName]
 		if nextMember == "" {

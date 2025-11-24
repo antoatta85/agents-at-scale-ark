@@ -115,7 +115,6 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 	lastMsg := result.Messages[len(result.Messages)-1]
 	if lastMsg.OfAssistant != nil && lastMsg.OfAssistant.Content.OfString.Value != "" {
 		selectedName = strings.TrimSpace(lastMsg.OfAssistant.Content.OfString.Value)
-		t.eventingRecorder.SelectorAgentResponse(ctx, selectorAgent.Name, selectedName)
 	} else {
 		return nil, fmt.Errorf("selector agent returned invalid response")
 	}
@@ -129,7 +128,6 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 	// Find selected member
 	for _, member := range membersToSearch {
 		if member.GetName() == selectedName {
-			t.eventingRecorder.ParticipantSelected(ctx, selectedName)
 			return member, nil
 		}
 	}
@@ -264,8 +262,7 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 		if err != nil {
 			t.telemetryRecorder.RecordError(turnSpan, err)
 			turnSpan.End()
-			operationData["result"] = fmt.Sprintf("Team turn failed: %v", err)
-			t.eventingRecorder.Fail(turnCtx, "TeamTurn", operationData["result"], err, operationData)
+			t.eventingRecorder.Fail(turnCtx, "TeamTurn", fmt.Sprintf("Team turn failed: %v", err), err, operationData)
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
@@ -274,8 +271,7 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 
 		t.telemetryRecorder.RecordSuccess(turnSpan)
 		turnSpan.End()
-		operationData["result"] = fmt.Sprintf("Team turn %d completed successfully", turn)
-		t.eventingRecorder.Complete(turnCtx, "TeamTurn", operationData["result"], operationData)
+		t.eventingRecorder.Complete(turnCtx, "TeamTurn", fmt.Sprintf("Team turn %d completed successfully", turn), operationData)
 
 		previousMember = nextMember.GetName()
 

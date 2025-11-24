@@ -85,8 +85,7 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 	if err != nil {
 		modelID := fmt.Sprintf("agent/%s", agentName)
 		StreamError(ctx, eventStream, err, "a2a_execution_failed", modelID)
-		operationData["result"] = fmt.Sprintf("A2A execution failed: %v", err)
-		e.eventingRecorder.Fail(ctx, "A2AExecution", operationData["result"], err, operationData)
+		e.eventingRecorder.Fail(ctx, "A2AExecution", fmt.Sprintf("A2A execution failed: %v", err), err, operationData)
 		return nil, err
 	}
 
@@ -124,8 +123,7 @@ func (e *A2AExecutionEngine) Execute(ctx context.Context, agentName, namespace s
 		}
 	}
 
-	operationData["result"] = "A2A execution completed successfully"
-	e.eventingRecorder.Complete(ctx, "A2AExecution", operationData["result"], operationData)
+	e.eventingRecorder.Complete(ctx, "A2AExecution", "A2A execution completed successfully", operationData)
 
 	return &ExecutionResult{
 		Messages:    []Message{responseMessage},

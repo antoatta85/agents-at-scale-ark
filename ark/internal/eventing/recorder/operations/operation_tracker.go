@@ -2,6 +2,8 @@ package operations
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
@@ -11,11 +13,13 @@ import (
 type (
 	queryDetailsKeyType     struct{}
 	operationDetailsKeyType struct{}
+	operationStartTimeKey   struct{}
 )
 
 var (
 	queryDetailsKey     = queryDetailsKeyType{}
 	operationDetailsKey = operationDetailsKeyType{}
+	operationStartKey   = operationStartTimeKey{}
 )
 
 type QueryDetails struct {
@@ -71,6 +75,23 @@ func (ot *OperationTracker) getOperationDetails(ctx context.Context) map[string]
 	return nil
 }
 
+func (ot *OperationTracker) addTimestamp(data map[string]string, message string) (map[string]string, string) {
+	timestamp := time.Now().Format(time.RFC3339Nano)
+	data["message"] = message
+	data["timestamp"] = timestamp
+	messageWithTimestamp := fmt.Sprintf("%s (timestamp: %s)", message, timestamp)
+	return data, messageWithTimestamp
+}
+
+func (ot *OperationTracker) addDuration(ctx context.Context, data map[string]string) {
+	if v := ctx.Value(operationStartKey); v != nil {
+		if startTime, ok := v.(time.Time); ok {
+			duration := time.Since(startTime)
+			data["durationMs"] = fmt.Sprintf("%.2f", duration.Seconds()*1000)
+		}
+	}
+}
+
 func (ot *OperationTracker) buildOperationData(ctx context.Context, additionalData map[string]string) (map[string]string, *arkv1alpha1.Query) {
 	result := make(map[string]string)
 
@@ -97,14 +118,18 @@ func (ot *OperationTracker) buildOperationData(ctx context.Context, additionalDa
 }
 
 func (ot *OperationTracker) Start(ctx context.Context, operation, message string, data map[string]string) context.Context {
+	startTime := time.Now()
 	ctx = context.WithValue(ctx, operationDetailsKey, data)
+	ctx = context.WithValue(ctx, operationStartKey, startTime)
 
 	operationData, query := ot.buildOperationData(ctx, nil)
 	if query == nil {
 		return ctx
 	}
 
-	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, operation+"Start", message, operationData)
+	operationData, messageWithTimestamp := ot.addTimestamp(operationData, message)
+
+	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, operation+"Start", messageWithTimestamp, operationData)
 
 	return ctx
 }
@@ -115,7 +140,10 @@ func (ot *OperationTracker) Complete(ctx context.Context, operation, message str
 		return
 	}
 
-	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, operation+"Complete", message, operationData)
+	ot.addDuration(ctx, operationData)
+	operationData, messageWithTimestamp := ot.addTimestamp(operationData, message)
+
+	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeNormal, operation+"Complete", messageWithTimestamp, operationData)
 }
 
 func (ot *OperationTracker) Fail(ctx context.Context, operation, message string, err error, data map[string]string) {
@@ -129,5 +157,8 @@ func (ot *OperationTracker) Fail(ctx context.Context, operation, message string,
 		return
 	}
 
-	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeWarning, operation+"Error", message, operationData)
+	ot.addDuration(ctx, operationData)
+	operationData, messageWithTimestamp := ot.addTimestamp(operationData, message)
+
+	ot.emitter.EmitStructured(ctx, query, corev1.EventTypeWarning, operation+"Error", messageWithTimestamp, operationData)
 }

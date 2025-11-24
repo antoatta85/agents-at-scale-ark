@@ -93,8 +93,7 @@ func (t *Team) executeSequential(ctx context.Context, userInput Message, history
 		if err != nil {
 			t.telemetryRecorder.RecordError(turnSpan, err)
 			turnSpan.End()
-			operationData["result"] = fmt.Sprintf("Team turn failed: %v", err)
-			t.eventingRecorder.Fail(turnCtx, "TeamTurn", operationData["result"], err, operationData)
+			t.eventingRecorder.Fail(turnCtx, "TeamTurn", fmt.Sprintf("Team turn failed: %v", err), err, operationData)
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
@@ -103,8 +102,7 @@ func (t *Team) executeSequential(ctx context.Context, userInput Message, history
 
 		t.telemetryRecorder.RecordSuccess(turnSpan)
 		turnSpan.End()
-		operationData["result"] = fmt.Sprintf("Team turn %d completed successfully", i)
-		t.eventingRecorder.Complete(turnCtx, "TeamTurn", operationData["result"], operationData)
+		t.eventingRecorder.Complete(turnCtx, "TeamTurn", fmt.Sprintf("Team turn %d completed successfully", i), operationData)
 	}
 
 	return newMessages, nil
@@ -151,8 +149,7 @@ func (t *Team) executeRoundRobin(ctx context.Context, userInput Message, history
 		if err != nil {
 			t.telemetryRecorder.RecordError(turnSpan, err)
 			turnSpan.End()
-			operationData["result"] = fmt.Sprintf("Team turn failed: %v", err)
-			t.eventingRecorder.Fail(turnCtx, "TeamTurn", operationData["result"], err, operationData)
+			t.eventingRecorder.Fail(turnCtx, "TeamTurn", fmt.Sprintf("Team turn failed: %v", err), err, operationData)
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
@@ -163,8 +160,7 @@ func (t *Team) executeRoundRobin(ctx context.Context, userInput Message, history
 
 		t.telemetryRecorder.RecordSuccess(turnSpan)
 		turnSpan.End()
-		operationData["result"] = fmt.Sprintf("Team turn %d completed successfully", messageCount)
-		t.eventingRecorder.Complete(turnCtx, "TeamTurn", operationData["result"], operationData)
+		t.eventingRecorder.Complete(turnCtx, "TeamTurn", fmt.Sprintf("Team turn %d completed successfully", messageCount), operationData)
 
 		messageCount++                                   // Increment message count
 		memberIndex = (memberIndex + 1) % len(t.Members) // Move to next agent in round-robin
@@ -229,6 +225,7 @@ func (t *Team) executeWithTracking(execFunc func(context.Context, Message, []Mes
 	teamctx, span := t.telemetryRecorder.StartTeamExecution(ctx, t.Name, t.Namespace, t.Strategy, len(t.Members), maxTurns)
 	defer span.End()
 
+	teamctx = t.eventingRecorder.StartTokenCollection(teamctx)
 	operationData := map[string]string{
 		"teamName":    t.Name,
 		"strategy":    t.Strategy,
@@ -239,15 +236,16 @@ func (t *Team) executeWithTracking(execFunc func(context.Context, Message, []Mes
 	result, err := execFunc(teamctx, userInput, history)
 	if err != nil {
 		t.telemetryRecorder.RecordError(span, err)
-		operationData["result"] = fmt.Sprintf("Team execution failed: %v", err)
-		t.eventingRecorder.Fail(teamctx, "TeamExecution", operationData["result"], err, operationData)
+		t.eventingRecorder.Fail(teamctx, "TeamExecution", fmt.Sprintf("Team execution failed: %v", err), err, operationData)
 		return result, err
 	}
 
 	t.telemetryRecorder.RecordSuccess(span)
-	operationData["result"] = "Team execution completed successfully"
-	t.eventingRecorder.Complete(teamctx, "TeamExecution", operationData["result"], operationData)
 	usage := t.eventingRecorder.GetTokenSummary(teamctx)
+	operationData["promptTokens"] = fmt.Sprintf("%d", usage.PromptTokens)
+	operationData["completionTokens"] = fmt.Sprintf("%d", usage.CompletionTokens)
+	operationData["totalTokens"] = fmt.Sprintf("%d", usage.TotalTokens)
+	t.eventingRecorder.Complete(teamctx, "TeamExecution", "Team execution completed successfully", operationData)
 
 	t.telemetryRecorder.RecordTokenUsage(span, usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens)
 	t.eventingRecorder.AddTokenUsage(ctx, usage)
@@ -278,15 +276,13 @@ func (t *Team) executeMemberAndAccumulate(ctx context.Context, member TeamMember
 			*messages = append(*messages, result.Messages...)
 			*newMessages = append(*newMessages, result.Messages...)
 		}
-		operationData["result"] = fmt.Sprintf("Team member execution failed: %v", err)
-		t.eventingRecorder.Fail(ctx, "TeamMember", operationData["result"], err, operationData)
+		t.eventingRecorder.Fail(ctx, "TeamMember", fmt.Sprintf("Team member execution failed: %v", err), err, operationData)
 		return err
 	}
 
 	*messages = append(*messages, result.Messages...)
 	*newMessages = append(*newMessages, result.Messages...)
-	operationData["result"] = "Team member execution completed successfully"
-	t.eventingRecorder.Complete(ctx, "TeamMember", operationData["result"], operationData)
+	t.eventingRecorder.Complete(ctx, "TeamMember", "Team member execution completed successfully", operationData)
 	return nil
 }
 

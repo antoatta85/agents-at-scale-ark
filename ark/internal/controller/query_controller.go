@@ -183,6 +183,7 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	defer span.End()
 
 	opCtx = r.Eventing.QueryRecorder().InitializeQueryContext(opCtx, &obj)
+	opCtx = r.Eventing.QueryRecorder().StartTokenCollection(opCtx)
 	opCtx = r.Eventing.QueryRecorder().Start(opCtx, "QueryExecution", fmt.Sprintf("Executing query %s", obj.Name), nil)
 
 	impersonatedClient, memory, err := r.setupQueryExecution(opCtx, obj, sessionId)
@@ -228,7 +229,12 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	_ = r.updateStatusWithDuration(opCtx, &obj, queryStatus, duration)
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
-	r.Eventing.QueryRecorder().Complete(opCtx, "QueryExecution", "Query execution completed", nil)
+	operationData := map[string]string{
+		"promptTokens":     fmt.Sprintf("%d", tokenSummary.PromptTokens),
+		"completionTokens": fmt.Sprintf("%d", tokenSummary.CompletionTokens),
+		"totalTokens":      fmt.Sprintf("%d", tokenSummary.TotalTokens),
+	}
+	r.Eventing.QueryRecorder().Complete(opCtx, "QueryExecution", "Query execution completed", operationData)
 }
 
 // finalizeEventStream sends a final chunk with complete query status, then closes the stream
@@ -673,8 +679,7 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
 		r.handleTargetExecutionError(ctx, err, target, eventStream)
-		operationData["result"] = fmt.Sprintf("Target execution failed: %v", err)
-		r.Eventing.QueryRecorder().Fail(ctx, "TargetExecution", operationData["result"], err, operationData)
+		r.Eventing.QueryRecorder().Fail(ctx, "TargetExecution", fmt.Sprintf("Target execution failed: %v", err), err, operationData)
 		return nil, err
 	}
 
@@ -686,8 +691,7 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 	}
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
-	operationData["result"] = "Target execution completed successfully"
-	r.Eventing.QueryRecorder().Complete(ctx, "TargetExecution", operationData["result"], operationData)
+	r.Eventing.QueryRecorder().Complete(ctx, "TargetExecution", "Target execution completed successfully", operationData)
 
 	return result, nil
 }

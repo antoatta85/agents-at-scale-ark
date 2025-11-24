@@ -60,8 +60,6 @@ type MCPServerRecorder interface {
 type TeamRecorder interface {
 	OperationTracker
 	TokenCollector
-	ParticipantSelected(ctx context.Context, participantName string)
-	SelectorAgentResponse(ctx context.Context, agentName, response string)
 }
 
 type QueryRecorder interface {
