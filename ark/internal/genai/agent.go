@@ -222,7 +222,9 @@ func (a *Agent) executeLocally(ctx context.Context, userInput Message, history [
 
 		if err := a.executeToolCalls(ctx, choice.Message.ToolCalls, &agentMessages, &newMessages); err != nil {
 			logger := logf.FromContext(ctx)
-			logger.Error(err, "Tool execution failed", "agent", a.FullName())
+			if !IsTerminateTeam(err) {
+				logger.Error(err, "Tool execution failed", "agent", a.FullName())
+			}
 			return newMessages, err
 		}
 	}
