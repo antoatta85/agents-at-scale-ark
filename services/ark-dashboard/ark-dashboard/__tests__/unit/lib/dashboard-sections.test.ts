@@ -22,7 +22,7 @@ describe('Dashboard Sections - enabledWhen', () => {
   describe('DASHBOARD_SECTIONS filtering', () => {
     it('should return the expected total number of sections', () => {
       const allSections = Object.values(DASHBOARD_SECTIONS);
-      // 5 configurations + 5 operations + 4 runtime + 1 service = 14 total
+      // 5 configurations + 5 operations + 4 runtime + 1 service = 15 total
       expect(allSections).toHaveLength(15);
     });
   });
