@@ -1,5 +1,4 @@
-import { atom } from 'jotai';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   CONFIGURATION_SECTIONS,
@@ -8,15 +7,6 @@ import {
   RUNTIME_SECTIONS,
   SERVICE_SECTIONS,
 } from '@/lib/constants/dashboard-icons';
-import { A2A_TASKS_FEATURE_KEY } from '@/atoms/experimental-features';
-
-vi.mock('@/atoms/experimental-features', async (importOriginal) => {
-  const actual = await importOriginal() as any;
-  return {
-    ...actual,
-    isA2ATasksEnabledAtom: vi.fn().mockReturnValue(atom(true)),
-  }
-})
 
 describe('Dashboard Sections - enabledWhen', () => {
   describe('DASHBOARD_SECTIONS filtering', () => {
@@ -70,12 +60,6 @@ describe('Dashboard Sections - enabledWhen', () => {
       expect(opKeys).toContain('events');
       expect(opKeys).toContain('memory');
       expect(opKeys).toContain('tasks');
-    });
-
-    it('should define enabler feature for a2a-tasks section', () => {
-      const opKeys = OPERATION_SECTIONS.filter(s => s.key === 'tasks');
-      expect(opKeys).toHaveLength(1);
-      expect(opKeys[0].enablerFeature).toBe(A2A_TASKS_FEATURE_KEY);
     });
 
     it('should only contain sections with group "operations"', () => {

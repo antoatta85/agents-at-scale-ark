@@ -15,10 +15,6 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import {
-  A2A_TASKS_FEATURE_KEY,
-  isA2ATasksEnabledAtom,
-} from '@/atoms/experimental-features';
 import { NamespaceEditor } from '@/components/editors';
 import {
   Collapsible,
@@ -62,7 +58,6 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUser();
-  const isA2ATasksEnabled = useAtomValue(isA2ATasksEnabledAtom);
 
   const {
     availableNamespaces,
@@ -110,15 +105,6 @@ export function AppSidebar() {
   const getCurrentSection = () => {
     return pathname.split('/')[1];
   };
-
-  const enabledOperationSections = OPERATION_SECTIONS.filter(item => {
-    switch (item.enablerFeature) {
-      case A2A_TASKS_FEATURE_KEY:
-        return isA2ATasksEnabled;
-      default:
-        return true;
-    }
-  });
 
   return (
     <>
@@ -298,7 +284,7 @@ export function AppSidebar() {
               <CollapsibleContent>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {enabledOperationSections.map(item => {
+                    {OPERATION_SECTIONS.map(item => {
                       const isPlaceholder = isPlaceholderSection(item.key);
                       const isDisabled =
                         !isNamespaceResolved || loading || isPlaceholder;

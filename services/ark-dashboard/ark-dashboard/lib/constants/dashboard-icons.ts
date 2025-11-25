@@ -16,8 +16,6 @@ import {
   Zap,
 } from 'lucide-react';
 
-import { A2A_TASKS_FEATURE_KEY } from '@/atoms/experimental-features';
-
 export interface DashboardSection {
   key: string;
   title: string;
@@ -89,7 +87,6 @@ export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
     title: 'A2A Tasks',
     icon: ClipboardList,
     group: 'operations',
-    enablerFeature: A2A_TASKS_FEATURE_KEY,
   },
 
   // Runtime
