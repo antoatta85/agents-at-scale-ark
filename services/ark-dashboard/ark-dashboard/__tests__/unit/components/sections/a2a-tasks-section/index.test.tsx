@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type Mock, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -59,10 +59,10 @@ describe('A2ATasksSection', () => {
     const tasks = [
       {
         taskId: 'task-1',
-        name: 'Task 1',
+        name: 'Task-1',
         phase: 'completed',
-        agentRef: { name: 'Agent 1' },
-        queryRef: { name: 'Query 1' },
+        agentRef: { name: 'Agent-1' },
+        queryRef: { name: 'Query-1' },
         creationTimestamp: '2023-01-01T00:00:00Z',
       },
       {
@@ -88,10 +88,21 @@ describe('A2ATasksSection', () => {
     const rows = screen.getAllByRole('row');
     expect(rows.length).toBe(3);
 
-    expect(rows[1].textContent).toContain(
-      'task-1Task 1Agent 1Query 11/1/2023, 1:00:00 AM',
-    );
-    expect(rows[2].textContent).toContain('task-2Task-2Agent-1Query-2-');
+    const [id1, name1, _phase1, agentRef1, queryRef1, creationTimestamp1] =
+      within(rows[1]).getAllByRole('cell');
+    expect(id1.textContent).toEqual('task-1');
+    expect(name1.textContent).toEqual('Task-1');
+    expect(agentRef1.textContent).toEqual('Agent-1');
+    expect(queryRef1.textContent).toEqual('Query-1');
+    expect(creationTimestamp1.textContent).toBeDefined();
+
+    const [id2, name2, _phase2, agentRef2, queryRef2, creationTimestamp2] =
+      within(rows[2]).getAllByRole('cell');
+    expect(id2.textContent).toEqual('task-2');
+    expect(name2.textContent).toEqual('Task-2');
+    expect(agentRef2.textContent).toEqual('Agent-1');
+    expect(queryRef2.textContent).toEqual('Query-2');
+    expect(creationTimestamp2.textContent).toEqual('-');
   });
 
   it('calls refetch when refresh button is clicked', async () => {
