@@ -100,7 +100,7 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 		return nil, err
 	}
 
-	response, err := selectorAgent.Execute(ctx, NewUserMessage("Select the next participant to respond."), []Message{NewSystemMessage(buf.String())}, nil, nil)
+	result, err := selectorAgent.Execute(ctx, NewUserMessage("Select the next participant to respond."), []Message{NewSystemMessage(buf.String())}, nil, nil)
 	if err != nil {
 		if IsTerminateTeam(err) {
 			return nil, err
@@ -108,12 +108,12 @@ func (t *Team) selectMember(ctx context.Context, messages []Message, tmpl *templ
 		return nil, fmt.Errorf("selector agent call failed: %w", err)
 	}
 
-	if len(response) == 0 {
+	if len(result.Messages) == 0 {
 		return nil, fmt.Errorf("selector agent returned no messages")
 	}
 
 	var selectedName string
-	lastMsg := response[len(response)-1]
+	lastMsg := result.Messages[len(result.Messages)-1]
 	if lastMsg.OfAssistant != nil && lastMsg.OfAssistant.Content.OfString.Value != "" {
 		selectedName = strings.TrimSpace(lastMsg.OfAssistant.Content.OfString.Value)
 	} else {
@@ -271,7 +271,6 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 
 		// Start turn-level telemetry span
 		turnCtx, turnSpan := t.TeamRecorder.StartTurn(ctx, turn, nextMember.GetName(), nextMember.GetType())
-		defer turnSpan.End()
 
 		err = t.executeMemberAndAccumulate(turnCtx, nextMember, userInput, &messages, &newMessages, turn)
 
@@ -281,14 +280,16 @@ func (t *Team) executeSelector(ctx context.Context, userInput Message, history [
 		}
 
 		if err != nil {
+			t.TeamRecorder.RecordError(turnSpan, err)
+			turnSpan.End()
 			if IsTerminateTeam(err) {
 				return newMessages, nil
 			}
-			t.TeamRecorder.RecordError(turnSpan, err)
 			return newMessages, err
 		}
 
 		t.TeamRecorder.RecordSuccess(turnSpan)
+		turnSpan.End()
 
 		previousMember = nextMember.GetName()
 
