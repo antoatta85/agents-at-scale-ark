@@ -15,7 +15,7 @@ describe('mapTaskPhaseToVariant', () => {
     { phase: 'auth-required', expected: 'pending' },
     { phase: 'unknown', expected: 'unknown' },
     { phase: 'some-random-string', expected: 'unknown' },
-    { phase: undefined, expected: '' },
+    { phase: undefined, expected: 'unknown' },
   ])(
     'should return "$expected" variant for "$phase" phase',
     ({ phase, expected }) => {

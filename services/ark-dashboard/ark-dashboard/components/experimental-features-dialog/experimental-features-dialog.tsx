@@ -1,6 +1,6 @@
 import { useAtom } from 'jotai';
 import { RESET } from 'jotai/utils';
-import React, { Fragment, useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import {
   Dialog,
@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 
 import { experimentalFeatureGroups } from './experimental-features';

@@ -6,8 +6,9 @@ export const mapTaskPhaseToVariant = (
   phase?: A2ATaskPhase,
 ): StatusDotVariant => {
   if (!phase) {
-    return '' as StatusDotVariant;
+    return 'unknown';
   }
+
   const normalizedPhase = phase?.toLowerCase();
   switch (normalizedPhase) {
     case 'completed':
