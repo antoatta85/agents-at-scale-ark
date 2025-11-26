@@ -103,13 +103,25 @@ def a2a_task_to_detail_response(task: dict) -> A2ATaskDetailResponse:
             conditions=status.get("conditions")
         )
 
+    a2a_server_ref_data = spec.get("a2aServerRef")
+    if not a2a_server_ref_data or "name" not in a2a_server_ref_data:
+        raise ValueError("Missing required field 'a2aServerRef.name' in spec")
+
+    agent_ref_data = spec.get("agentRef")
+    if not agent_ref_data or "name" not in agent_ref_data:
+        raise ValueError("Missing required field 'agentRef.name' in spec")
+
+    query_ref_data = spec.get("queryRef")
+    if not query_ref_data or "name" not in query_ref_data:
+        raise ValueError("Missing required field 'queryRef.name' in spec")
+
     return A2ATaskDetailResponse(
         name=metadata.get("name", ""),
         namespace=metadata.get("namespace", ""),
         taskId=spec.get("taskId", ""),
-        a2aServerRef=A2AServerRef(**spec.get("a2aServerRef", {})),
-        agentRef=AgentRef(**spec.get("agentRef", {})),
-        queryRef=QueryRef(**spec.get("queryRef", {})),
+        a2aServerRef=A2AServerRef(**a2a_server_ref_data),
+        agentRef=AgentRef(**agent_ref_data),
+        queryRef=QueryRef(**query_ref_data),
         contextId=spec.get("contextId"),
         input=spec.get("input"),
         parameters=spec.get("parameters"),
