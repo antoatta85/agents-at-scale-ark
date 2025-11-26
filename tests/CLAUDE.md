@@ -2,6 +2,134 @@
 
 This document covers best practices for writing chainsaw tests in the ARK project.
 
+## Test Organization
+
+Tests are organized into directories by type:
+
+- **`llm-tests/`** - Tests that call real LLM APIs (Azure OpenAI, OpenAI, Bedrock)
+- **`evaluated-tests/`** - Tests that use the ark-evaluator service (labeled `evaluated: "true"`)
+- **Standard tests** - All other tests (existing structure)
+
+Future goal: Organize all tests into `llm-tests/`, `evaluated-tests/`, and `e2e-tests/` for clearer separation.
+
+## LLM Tests
+
+LLM tests call real language model APIs and are run against multiple providers in CI.
+
+### Directory Structure
+```
+tests/llm-tests/
+├── setup/
+│   ├── setup-azure-gpt-41.sh      # Azure GPT-4.1-mini setup
+│   ├── setup-openai-gpt-4o.sh     # OpenAI GPT-4o-mini setup
+│   └── setup-bedrock-claude.sh    # Bedrock Claude setup
+├── basic-agent/
+│   ├── chainsaw-test.yaml
+│   └── manifests/
+│       └── agent.yaml
+└── tool-usage/
+    ├── chainsaw-test.yaml
+    └── manifests/
+        └── ...
+```
+
+### Setup Scripts
+
+Each LLM configuration has a setup script that creates the Secret and Model resources:
+
+```bash
+#!/bin/bash
+set -e
+
+NAMESPACE="${1:?}"
+
+kubectl apply -n "$NAMESPACE" -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-model-token
+type: Opaque
+stringData:
+  token: ${E2E_TEST_AZURE_OPENAI_KEY:?}
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Model
+metadata:
+  name: test-model
+spec:
+  type: azure
+  model:
+    value: gpt-4.1-mini
+  config:
+    azure:
+      baseUrl:
+        value: ${E2E_TEST_AZURE_OPENAI_BASE_URL:?}
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: test-model-token
+            key: token
+      apiVersion:
+        value: ${E2E_TEST_AZURE_OPENAI_API_VERSION:-2024-12-01-preview}
+EOF
+```
+
+### LLM Test Pattern
+
+```yaml
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: basic-agent
+  labels:
+    # LLM tests call real language model APIs
+    llm: "true"
+spec:
+  steps:
+    - name: setup-model
+      try:
+        - script:
+            content: bash ../setup/setup-${MODEL}.sh ($namespace)
+
+    - name: create-agent
+      try:
+        - apply:
+            file: manifests/agent.yaml
+        - assert:
+            resource:
+              apiVersion: ark.mckinsey.com/v1alpha1
+              kind: Agent
+              metadata:
+                name: test-agent
+```
+
+### Running LLM Tests Locally
+
+```bash
+# Set required credentials for the provider
+export E2E_TEST_AZURE_OPENAI_KEY="your-key"
+export E2E_TEST_AZURE_OPENAI_BASE_URL="your-url"
+
+# Run all LLM tests with specific model
+MODEL=azure-gpt-41 chainsaw test tests/llm-tests/
+
+# Run specific test with specific model
+MODEL=openai-gpt-4o chainsaw test tests/llm-tests/basic-agent/
+
+# Available models:
+# - azure-gpt-41 (requires E2E_TEST_AZURE_OPENAI_KEY, E2E_TEST_AZURE_OPENAI_BASE_URL)
+# - openai-gpt-4o (requires E2E_TEST_OPENAI_API_KEY)
+# - bedrock-claude (requires E2E_TEST_BEDROCK_BEARER_TOKEN, E2E_TEST_BEDROCK_REGION)
+```
+
+### Adding New LLM Configurations
+
+1. Create setup script in `tests/llm-tests/setup/setup-<name>.sh`
+2. Add model name to CI matrix
+3. Add required environment variables to CI secrets
+
+## Standard Tests
+
 ### Basic Test Layout
 ```
 tests/
