@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { A2AServerCard } from '@/components/cards/a2a-server-card';
 import type { A2AServer } from '@/lib/services/a2a-servers';
 
@@ -71,7 +72,7 @@ describe('A2AServerCard', () => {
       />
     );
 
-    expect(screen.getByLabelText('Delete a2a server')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
   });
 
   it('should not render delete button when onDelete not provided', () => {
@@ -82,10 +83,10 @@ describe('A2AServerCard', () => {
       />
     );
 
-    expect(screen.queryByLabelText('Delete a2a server')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
   });
 
-  it('should show confirmation dialog on delete click', () => {
+  it('should show confirmation dialog on delete click', async () => {
     const onDelete = vi.fn();
     render(
       <A2AServerCard
@@ -95,13 +96,13 @@ describe('A2AServerCard', () => {
       />
     );
 
-    fireEvent.click(screen.getByLabelText('Delete a2a server'));
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }));
 
     expect(screen.getByTestId('confirmation-dialog')).toBeInTheDocument();
     expect(screen.getByText('Delete A2A Server')).toBeInTheDocument();
   });
 
-  it('should call onDelete with correct id when confirmed', () => {
+  it('should call onDelete with correct id when confirmed', async () => {
     const onDelete = vi.fn();
     render(
       <A2AServerCard
@@ -111,8 +112,8 @@ describe('A2AServerCard', () => {
       />
     );
 
-    fireEvent.click(screen.getByLabelText('Delete a2a server'));
-    fireEvent.click(screen.getByText('Delete'));
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }));
+    await userEvent.click(screen.getByText('Delete'));
 
     expect(onDelete).toHaveBeenCalledWith('test-id');
   });
@@ -164,10 +165,10 @@ describe('A2AServerCard', () => {
       />
     );
 
-    expect(screen.getByLabelText('View a2a server details')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /view/i })).toBeInTheDocument();
   });
 
-  it('should call onInfo when info button clicked', () => {
+  it('should call onInfo when info button clicked', async () => {
     const onInfo = vi.fn();
     render(
       <A2AServerCard
@@ -177,7 +178,7 @@ describe('A2AServerCard', () => {
       />
     );
 
-    fireEvent.click(screen.getByLabelText('View a2a server details'));
+    await userEvent.click(screen.getByRole('button', { name: /view/i }));
 
     expect(onInfo).toHaveBeenCalledWith(mockA2AServer);
   });
