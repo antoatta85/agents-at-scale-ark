@@ -662,9 +662,6 @@ jobs:
     needs: [setup-container-cache-registry, build-containers]
     runs-on: ubuntu-24.04
     if: ${{ needs.setup-container-cache-registry.outputs.is-fork-pr == 'false' }}
-    strategy:
-      matrix:
-        model: [azure-gpt-41, openai-gpt-4o]
     steps:
       - uses: actions/checkout@v4
 
@@ -677,16 +674,16 @@ jobs:
           ci-cache-registry-username: ${{ secrets.DOCKER_CICD_CACHE_REGISTRY_USERNAME || github.actor }}
           ci-cache-registry-password: ${{ secrets.DOCKER_CICD_CACHE_REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
 
-      - name: Install chainsaw
+      - name: Install chainsaw and jq
         run: |
           curl -s -L "https://github.com/kyverno/chainsaw/releases/download/v0.2.12/chainsaw_linux_amd64.tar.gz" | \
             tar xz -C /tmp
           sudo mv /tmp/chainsaw /usr/local/bin/chainsaw
           sudo chmod +x /usr/local/bin/chainsaw
+          sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Run LLM tests with ${{ matrix.model }}
+      - name: Run multi-provider LLM tests
         env:
-          MODEL: ${{ matrix.model }}
           E2E_TEST_AZURE_OPENAI_KEY: ${{ secrets.CICD_AZURE_OPENAI_KEY }}
           E2E_TEST_AZURE_OPENAI_BASE_URL: ${{ secrets.CICD_AZURE_OPENAI_BASE_URL }}
           E2E_TEST_AZURE_OPENAI_API_VERSION: ${{ secrets.CICD_AZURE_OPENAI_API_VERSION || '2024-12-01-preview' }}
@@ -700,12 +697,12 @@ jobs:
           ARK_CLUSTER_MEMORY_IMAGE_TAG: ${{ github.sha }}
         run: |
           cd tests
-          mkdir -p /tmp/chainsaw-report
-          chainsaw test llm-tests/ --config .chainsaw.yaml
+          chmod +x llm-tests/run-multi-provider.sh
+          ./llm-tests/run-multi-provider.sh
 
       - uses: ./.github/actions/collect-coverage-e2e
         with:
-          artifact-name: coverage-reports-llm-${{ matrix.model }}
+          artifact-name: coverage-reports-llm
 
   build-charts:
     runs-on: ubuntu-24.04

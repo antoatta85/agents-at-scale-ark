@@ -1,9 +1,8 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: basic-agent
+  name: agent-parameters
   labels:
-    # LLM tests call real language model APIs
     llm: "true"
 spec:
   steps:
@@ -25,8 +24,12 @@ spec:
                   - type: ModelAvailable
                     status: "True"
 
-    - name: create-agent
+    - name: create-resources
       try:
+        - apply:
+            file: manifests/configmap.yaml
+        - apply:
+            file: manifests/secret-params.yaml
         - apply:
             file: manifests/agent.yaml
         - assert:
@@ -34,6 +37,11 @@ spec:
               apiVersion: ark.mckinsey.com/v1alpha1
               kind: Agent
               metadata:
-                name: test-agent
-              status:
-                phase: ready
+                name: test-agent-with-params
+      catch:
+        - events: {}
+        - describe:
+            apiVersion: ark.mckinsey.com/v1alpha1
+            kind: Agent
+            name: test-agent-with-params
+

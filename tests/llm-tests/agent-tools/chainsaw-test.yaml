@@ -1,9 +1,8 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: basic-agent
+  name: agent-tools
   labels:
-    # LLM tests call real language model APIs
     llm: "true"
 spec:
   steps:
@@ -25,15 +24,27 @@ spec:
                   - type: ModelAvailable
                     status: "True"
 
-    - name: create-agent
+    - name: create-resources
       try:
         - apply:
-            file: manifests/agent.yaml
+            file: manifests/weather-tool.yaml
+        - apply:
+            file: manifests/weather-agent.yaml
+        - apply:
+            file: manifests/weather-query.yaml
         - assert:
             resource:
               apiVersion: ark.mckinsey.com/v1alpha1
-              kind: Agent
+              kind: Query
               metadata:
-                name: test-agent
+                name: weather-query
               status:
-                phase: ready
+                phase: done
+                (length(responses) > `0`): true
+      catch:
+        - events: {}
+        - describe:
+            apiVersion: ark.mckinsey.com/v1alpha1
+            kind: Query
+            name: weather-query
+

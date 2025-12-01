@@ -1,9 +1,8 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: basic-agent
+  name: queries
   labels:
-    # LLM tests call real language model APIs
     llm: "true"
 spec:
   steps:
@@ -25,15 +24,26 @@ spec:
                   - type: ModelAvailable
                     status: "True"
 
-    - name: create-agent
+    - name: create-agent-and-query
       try:
         - apply:
             file: manifests/agent.yaml
+        - apply:
+            file: manifests/query.yaml
         - assert:
             resource:
               apiVersion: ark.mckinsey.com/v1alpha1
-              kind: Agent
+              kind: Query
               metadata:
-                name: test-agent
+                name: test-query
               status:
-                phase: ready
+                phase: done
+                (length(responses) > `0`): true
+                (length(responses[0].content) > `10`): true
+      catch:
+        - events: {}
+        - describe:
+            apiVersion: ark.mckinsey.com/v1alpha1
+            kind: Query
+            name: test-query
+
