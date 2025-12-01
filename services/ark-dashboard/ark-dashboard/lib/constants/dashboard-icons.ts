@@ -16,6 +16,8 @@ import {
   Zap,
 } from 'lucide-react';
 
+import { A2A_TASKS_FEATURE_KEY } from '@/atoms/experimental-features';
+
 export interface DashboardSection {
   key: string;
   title: string;

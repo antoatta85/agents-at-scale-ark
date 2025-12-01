@@ -83,12 +83,12 @@ export function ExperimentalFeaturesDialog() {
                 {groupLabel && (
                   <Label className="text-base font-bold">{groupLabel}</Label>
                 )}
-                <div>
-                  {features.map((feature, index) => (
-                    <Fragment key={feature.feature}>
-                      {index !== 0 && <Separator />}
-                      <ExperimentalFeatureToggle feature={feature} />
-                    </Fragment>
+                <div className="space-y-4">
+                  {features.map(feature => (
+                    <ExperimentalFeatureToggle
+                      key={feature.feature}
+                      feature={feature}
+                    />
                   ))}
                 </div>
               </section>

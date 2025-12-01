@@ -41,3 +41,27 @@ export const isExperimentalExecutionEngineEnabledAtom = atom(get => {
     ? get(storedIsExperimentalExecutionEngineEnabledAtom)
     : false;
 });
+
+export const A2A_TASKS_FEATURE_KEY = 'experimental-a2a-tasks';
+export const storedIsA2ATasksEnabledAtom = atomWithStorage<boolean>(
+  A2A_TASKS_FEATURE_KEY,
+  false,
+  undefined,
+  { getOnInit: true },
+);
+
+export const isA2ATasksEnabledAtom = atom(get => {
+  return get(storedIsA2ATasksEnabledAtom);
+});
+
+export const CHAT_STREAMING_FEATURE_KEY = 'experimental-chat-streaming';
+export const storedIsChatStreamingEnabledAtom = atomWithStorage<boolean>(
+  CHAT_STREAMING_FEATURE_KEY,
+  false,
+  undefined,
+  { getOnInit: true },
+);
+
+export const isChatStreamingEnabledAtom = atom(get => {
+  return get(storedIsChatStreamingEnabledAtom);
+});
