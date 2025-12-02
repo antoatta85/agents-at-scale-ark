@@ -10,7 +10,6 @@ spec:
     - type: custom
       name: get-coordinates
       partial:
-        name: get-coordinates-of-ny
         parameters:
           - name: city
             value: New York
