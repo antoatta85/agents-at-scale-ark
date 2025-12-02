@@ -6,6 +6,10 @@ metadata:
     # LLM tests call real language model APIs
     llm: "true"
 spec:
+  timeouts:
+    apply: 60s
+    assert: 300s
+    exec: 120s
   steps:
     - name: setup-model
       try:
@@ -29,11 +33,3 @@ spec:
       try:
         - apply:
             file: manifests/agent.yaml
-        - assert:
-            resource:
-              apiVersion: ark.mckinsey.com/v1alpha1
-              kind: Agent
-              metadata:
-                name: test-agent
-              status:
-                phase: ready

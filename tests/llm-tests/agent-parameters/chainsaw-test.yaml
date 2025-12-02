@@ -5,6 +5,10 @@ metadata:
   labels:
     llm: "true"
 spec:
+  timeouts:
+    apply: 60s
+    assert: 300s
+    exec: 120s
   steps:
     - name: setup-model
       try:

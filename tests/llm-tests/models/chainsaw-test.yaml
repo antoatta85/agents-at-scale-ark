@@ -1,13 +1,13 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: agent-structured-output
+  name: models
   labels:
     llm: "true"
 spec:
   timeouts:
     apply: 60s
-    assert: 300s
+    assert: 300s  # 5 minutes for LLM calls
     exec: 120s
   steps:
     - name: setup-model
@@ -17,6 +17,9 @@ spec:
             env:
               - name: NAMESPACE
                 value: ($namespace)
+
+    - name: verify-model
+      try:
         - assert:
             resource:
               apiVersion: ark.mckinsey.com/v1alpha1
@@ -27,26 +30,10 @@ spec:
                 conditions:
                   - type: ModelAvailable
                     status: "True"
-
-    - name: create-resources
-      try:
-        - apply:
-            file: manifests/agent.yaml
-        - apply:
-            file: manifests/query.yaml
-        - assert:
-            resource:
-              apiVersion: ark.mckinsey.com/v1alpha1
-              kind: Query
-              metadata:
-                name: structured-output-test-query
-              status:
-                phase: done
-                (length(responses) > `0`): true
       catch:
         - events: {}
         - describe:
             apiVersion: ark.mckinsey.com/v1alpha1
-            kind: Query
-            name: structured-output-test-query
+            kind: Model
+            name: test-model
 
