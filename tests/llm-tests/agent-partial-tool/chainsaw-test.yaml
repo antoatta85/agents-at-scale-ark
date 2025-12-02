@@ -44,6 +44,14 @@ spec:
                 name: partial-tool-query
               status:
                 phase: done
+        - assert:
+            resource:
+              apiVersion: ark.mckinsey.com/v1alpha1
+              kind: Query
+              metadata:
+                name: partial-tool-query
+              status:
+                (responses != null): true
                 (length(responses) > `0`): true
       catch:
         - events: {}
