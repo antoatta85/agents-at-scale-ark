@@ -4,6 +4,7 @@ metadata:
   name: weather-query
 spec:
   input: What's the current weather like in New York City?
+  timeout: 2m
   targets:
   - type: agent
     name: weather-agent

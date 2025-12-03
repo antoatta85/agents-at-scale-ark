@@ -10,19 +10,26 @@ TOTAL_TESTS=0
 TOTAL_PASSED=0
 TOTAL_FAILED=0
 
-# Check which providers are configured
-if [ -n "${E2E_TEST_AZURE_OPENAI_KEY}" ] && [ -n "${E2E_TEST_AZURE_OPENAI_BASE_URL}" ]; then
-  MODELS+=("azure-gpt-41")
-  echo "✓ Azure OpenAI configured"
-else
-  echo "⊘ Azure OpenAI not configured (missing credentials)"
-fi
+# Warm up network connections to external APIs used by tests
+echo "Warming up network connections..."
+curl -s --max-time 10 https://api.open-meteo.com/v1/forecast?latitude=0&longitude=0&current_weather=true > /dev/null 2>&1 || true
+curl -s --max-time 10 https://geocoding-api.open-meteo.com/v1/search?name=test&count=1 > /dev/null 2>&1 || true
+echo "Network warm-up complete"
+echo ""
 
+# Check which providers are configured (OpenAI first for better network stability)
 if [ -n "${E2E_TEST_OPENAI_API_KEY}" ]; then
   MODELS+=("openai-gpt-4o")
   echo "✓ OpenAI configured"
 else
   echo "⊘ OpenAI not configured (missing credentials)"
+fi
+
+if [ -n "${E2E_TEST_AZURE_OPENAI_KEY}" ] && [ -n "${E2E_TEST_AZURE_OPENAI_BASE_URL}" ]; then
+  MODELS+=("azure-gpt-41")
+  echo "✓ Azure OpenAI configured"
+else
+  echo "⊘ Azure OpenAI not configured (missing credentials)"
 fi
 
 if [ ${#MODELS[@]} -eq 0 ]; then
