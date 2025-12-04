@@ -1,0 +1,91 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: agent-tools
+  labels:
+    multi-provider: "true"
+spec:
+  description: Test agent with weather tool functionality
+  steps:
+  - name: setup-and-test
+    try:
+    - script:
+        content: |
+          helm install mock-llm oci://ghcr.io/dwmkerr/charts/mock-llm \
+            --version 0.1.25 \
+            --namespace $NAMESPACE \
+            --values mock-llm-values.yaml \
+            --wait --timeout=120s
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+    - script:
+        content: |
+          helm install ark-tenant ../../charts/ark-tenant --namespace $NAMESPACE --create-namespace --wait
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+    - apply:
+        resource:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: test-model-token
+          type: Opaque
+          data:
+            token: (base64_encode($provider.token))
+    - apply:
+        file: (join('', ['manifests/a01-model-', $provider.type, '.yaml']))
+    - apply:
+        file: manifests/a03-weather-tool.yaml
+    - apply:
+        file: manifests/a04-weather-agent.yaml
+    - apply:
+        file: manifests/a05-weather-query.yaml
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Model
+          metadata:
+            name: test-model
+          status:
+            conditions:
+            - type: ModelAvailable
+              status: "True"
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Tool
+          metadata:
+            name: weather-tool
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Agent
+          metadata:
+            name: weather-agent
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Query
+          metadata:
+            name: weather-query
+          status:
+            (conditions[?type == 'Completed']):
+            - status: 'True'
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Query
+          metadata:
+            name: weather-query
+          status:
+            (length(responses)): 1
+            (contains(responses[*].target.name, 'weather-agent')): true
+            (length(join('', responses[*].content)) > `10`): true
+    catch:
+    - events: {}
+    - describe:
+        apiVersion: ark.mckinsey.com/v1alpha1
+        kind: Query
+        name: weather-query
