@@ -241,29 +241,12 @@ func extractTextFromTask(task *protocol.Task) (string, error) {
 	case TaskStateCompleted:
 		var text strings.Builder
 
-		for _, msg := range task.History {
-			if msg.Role == protocol.MessageRoleAgent && len(msg.Parts) > 0 {
-				msgText := extractTextFromParts(msg.Parts)
-				if msgText != "" {
-					if text.Len() > 0 {
-						text.WriteString("\n")
-					}
-					text.WriteString(msgText)
-				}
-			}
-		}
+		text.WriteString(extractTextFromHistory(task.History))
 
-		for _, artifact := range task.Artifacts {
-			if len(artifact.Parts) > 0 {
-				artifactText := extractTextFromParts(artifact.Parts)
-				if artifactText != "" {
-					if text.Len() > 0 {
-						text.WriteString("\n")
-					}
-					text.WriteString(artifactText)
-				}
-			}
+		if text.Len() > 0 && len(task.Artifacts) > 0 {
+			text.WriteString("\n")
 		}
+		text.WriteString(extractTextFromArtifacts(task.Artifacts))
 
 		return text.String(), nil
 
@@ -278,6 +261,38 @@ func extractTextFromTask(task *protocol.Task) (string, error) {
 	default:
 		return "", fmt.Errorf("task in state '%s' (expected %s or %s)", task.Status.State, TaskStateCompleted, TaskStateFailed)
 	}
+}
+
+func extractTextFromHistory(history []protocol.Message) string {
+	var text strings.Builder
+	for _, msg := range history {
+		if msg.Role == protocol.MessageRoleAgent && len(msg.Parts) > 0 {
+			msgText := extractTextFromParts(msg.Parts)
+			if msgText != "" {
+				if text.Len() > 0 {
+					text.WriteString("\n")
+				}
+				text.WriteString(msgText)
+			}
+		}
+	}
+	return text.String()
+}
+
+func extractTextFromArtifacts(artifacts []protocol.Artifact) string {
+	var text strings.Builder
+	for _, artifact := range artifacts {
+		if len(artifact.Parts) > 0 {
+			artifactText := extractTextFromParts(artifact.Parts)
+			if artifactText != "" {
+				if text.Len() > 0 {
+					text.WriteString("\n")
+				}
+				text.WriteString(artifactText)
+			}
+		}
+	}
+	return text.String()
 }
 
 // extractTextFromParts extracts text from message parts in a type-safe way
