@@ -48,21 +48,18 @@ func (r *modelRecorder) StartModelProbe(ctx context.Context, modelName, modelNam
 	)
 }
 
-func (r *modelRecorder) RecordInput(span telemetry.Span, messages any) {
+func (r *modelRecorder) RecordInput(span telemetry.Span, messages any, historyLength int) {
 	if messages == nil {
 		return
 	}
 
-	// For OpenInference/Phoenix compatibility, we need to set individual message attributes
-	// Format: llm.input_messages.{index}.message.{role|content}
 	switch msgs := messages.(type) {
 	case []openai.ChatCompletionMessageParamUnion:
-		for i, msg := range msgs {
-			prefix := fmt.Sprintf("llm.input_messages.%d.message", i)
-			recordMessage(span, msg, prefix)
+		for i := historyLength; i < len(msgs); i++ {
+			prefix := fmt.Sprintf("llm.input_messages.%d.message", i-historyLength)
+			recordMessage(span, msgs[i], prefix)
 		}
 	default:
-		// Fallback: just marshal to JSON string
 		messagesJSON, err := json.Marshal(messages)
 		if err != nil {
 			return

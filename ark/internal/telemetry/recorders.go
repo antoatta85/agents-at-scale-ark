@@ -75,7 +75,9 @@ type ModelRecorder interface {
 	StartModelProbe(ctx context.Context, modelName, modelNamespace string) (context.Context, Span)
 
 	// RecordInput records the input messages for the model call.
-	RecordInput(span Span, messages any)
+	// historyLength indicates how many messages from the beginning are history (already recorded).
+	// Only messages after historyLength will be recorded to avoid duplicates.
+	RecordInput(span Span, messages any, historyLength int)
 
 	// RecordOutput records the output message from the model.
 	// Can accept a string (simple text) or openai.ChatCompletionMessage (with tool calls).

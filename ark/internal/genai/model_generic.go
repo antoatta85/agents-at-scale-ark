@@ -51,7 +51,8 @@ func (m *Model) ChatCompletion(ctx context.Context, messages []Message, eventStr
 		otelMessages[i] = openai.ChatCompletionMessageParamUnion(msg)
 	}
 
-	m.telemetryRecorder.RecordInput(span, otelMessages)
+	historyLength := len(messages) - 1
+	m.telemetryRecorder.RecordInput(span, otelMessages, historyLength)
 	m.telemetryRecorder.RecordModelDetails(span, m.Model, m.Type)
 
 	if m.OutputSchema != nil {
