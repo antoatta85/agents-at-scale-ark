@@ -181,6 +181,92 @@ func TestExtractTextFromTask(t *testing.T) {
 			expected:    "Part 1 Part 2",
 			expectError: false,
 		},
+		{
+			name: "completed task with artifacts",
+			task: &protocol.Task{
+				ID: "task-artifacts-1",
+				Status: protocol.TaskStatus{
+					State: TaskStateCompleted,
+				},
+				History: []protocol.Message{
+					{
+						Role: protocol.MessageRoleUser,
+						Parts: []protocol.Part{
+							protocol.TextPart{Text: "Which items are in my chart?"},
+						},
+					},
+				},
+				Artifacts: []protocol.Artifact{
+					{
+						ArtifactID: "artifact-1",
+						Parts: []protocol.Part{
+							protocol.TextPart{Text: "Here is a list of items in your chart:\n1. Bread - 1kg, Apples - 10, Eggs - 12"},
+						},
+					},
+				},
+			},
+			expected:    "Here is a list of items in your chart:\n1. Bread - 1kg, Apples - 10, Eggs - 12",
+			expectError: false,
+		},
+		{
+			name: "completed task with multiple artifacts",
+			task: &protocol.Task{
+				ID: "task-artifacts-2",
+				Status: protocol.TaskStatus{
+					State: TaskStateCompleted,
+				},
+				Artifacts: []protocol.Artifact{
+					{
+						ArtifactID: "artifact-1",
+						Parts: []protocol.Part{
+							protocol.TextPart{Text: "First artifact"},
+						},
+					},
+					{
+						ArtifactID: "artifact-2",
+						Parts: []protocol.Part{
+							protocol.TextPart{Text: "Second artifact"},
+						},
+					},
+				},
+			},
+			expected:    "First artifact\nSecond artifact",
+			expectError: false,
+		},
+		{
+			name: "completed task with artifacts and history",
+			task: &protocol.Task{
+				ID: "task-artifacts-and-history",
+				Status: protocol.TaskStatus{
+					State: TaskStateCompleted,
+				},
+				History: []protocol.Message{
+					{
+						Role: protocol.MessageRoleAgent,
+						Parts: []protocol.Part{
+							protocol.TextPart{Text: "Part 1 "},
+							protocol.TextPart{Text: "Part 2"},
+						},
+					},
+				},
+				Artifacts: []protocol.Artifact{
+					{
+						ArtifactID: "artifact-1",
+						Parts: []protocol.Part{
+							protocol.TextPart{Text: "First artifact"},
+						},
+					},
+					{
+						ArtifactID: "artifact-2",
+						Parts: []protocol.Part{
+							protocol.TextPart{Text: "Second artifact"},
+						},
+					},
+				},
+			},
+			expected:    "Part 1 Part 2\nFirst artifact\nSecond artifact",
+			expectError: false,
+		},
 	}
 
 	for _, tt := range tests {

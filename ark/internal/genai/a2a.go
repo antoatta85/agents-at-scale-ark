@@ -239,8 +239,8 @@ func extractTextFromTask(task *protocol.Task) (string, error) {
 
 	switch task.Status.State {
 	case TaskStateCompleted:
-		// Extract all agent messages from history
 		var text strings.Builder
+
 		for _, msg := range task.History {
 			if msg.Role == protocol.MessageRoleAgent && len(msg.Parts) > 0 {
 				msgText := extractTextFromParts(msg.Parts)
@@ -249,6 +249,18 @@ func extractTextFromTask(task *protocol.Task) (string, error) {
 						text.WriteString("\n")
 					}
 					text.WriteString(msgText)
+				}
+			}
+		}
+
+		for _, artifact := range task.Artifacts {
+			if len(artifact.Parts) > 0 {
+				artifactText := extractTextFromParts(artifact.Parts)
+				if artifactText != "" {
+					if text.Len() > 0 {
+						text.WriteString("\n")
+					}
+					text.WriteString(artifactText)
 				}
 			}
 		}
