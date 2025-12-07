@@ -1,0 +1,13 @@
+apiVersion: v2
+name: otel-collector
+description: OpenTelemetry Collector with OTEL configuration for Ark
+type: application
+version: 0.1.0
+appVersion: 0.140.1
+annotations:
+  ark.mckinsey.com/service: otel-collector
+  ark.mckinsey.com/resources: service
+dependencies:
+  - name: opentelemetry-collector
+    version: 0.140.1
+    repository: https://open-telemetry.github.io/opentelemetry-helm-charts
