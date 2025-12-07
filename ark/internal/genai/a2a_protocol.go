@@ -65,34 +65,50 @@ func convertPartFromProtocol(part interface{}) arkv1alpha1.A2ATaskPart {
 			Kind: PartKindText,
 			Text: p.Text,
 		}
+	case protocol.TextPart:
+		return arkv1alpha1.A2ATaskPart{
+			Kind: PartKindText,
+			Text: p.Text,
+		}
 	case *protocol.DataPart:
 		return arkv1alpha1.A2ATaskPart{
 			Kind: PartKindData,
 			Data: fmt.Sprintf("%v", p.Data),
 		}
+	case protocol.DataPart:
+		return arkv1alpha1.A2ATaskPart{
+			Kind: PartKindData,
+			Data: fmt.Sprintf("%v", p.Data),
+		}
 	case *protocol.FilePart:
-		taskPart := arkv1alpha1.A2ATaskPart{
-			Kind: PartKindFile,
-		}
-		if fileWithURI, ok := p.File.(*protocol.FileWithURI); ok {
-			taskPart.URI = fileWithURI.URI
-			if fileWithURI.MimeType != nil {
-				taskPart.MimeType = *fileWithURI.MimeType
-			}
-		}
-		if fileWithBytes, ok := p.File.(*protocol.FileWithBytes); ok {
-			taskPart.Data = fileWithBytes.Bytes
-			if fileWithBytes.MimeType != nil {
-				taskPart.MimeType = *fileWithBytes.MimeType
-			}
-		}
-		return taskPart
+		return convertFilePartFromProtocol(p)
+	case protocol.FilePart:
+		return convertFilePartFromProtocol(&p)
 	default:
 		return arkv1alpha1.A2ATaskPart{
 			Kind: PartKindText,
 			Text: "unknown part type",
 		}
 	}
+}
+
+func convertFilePartFromProtocol(p *protocol.FilePart) arkv1alpha1.A2ATaskPart {
+	taskPart := arkv1alpha1.A2ATaskPart{
+		Kind: PartKindFile,
+	}
+	if fileWithURI, ok := p.File.(*protocol.FileWithURI); ok {
+		taskPart.URI = fileWithURI.URI
+		if fileWithURI.MimeType != nil {
+			taskPart.MimeType = *fileWithURI.MimeType
+		}
+	}
+	if fileWithBytes, ok := p.File.(*protocol.FileWithBytes); ok {
+		taskPart.Data = fileWithBytes.Bytes
+		if fileWithBytes.MimeType != nil {
+			taskPart.MimeType = *fileWithBytes.MimeType
+		}
+	}
+	return taskPart
 }
 
 func convertArtifactsFromProtocol(protocolArtifacts []protocol.Artifact) []arkv1alpha1.A2ATaskArtifact {
@@ -176,16 +192,15 @@ func convertMetadataToStringMap(metadata map[string]any) map[string]string {
 	return result
 }
 
-// PopulateA2ATaskStatusFromProtocol populates A2ATaskStatus fields from a protocol.Task
+// PopulateA2ATaskStatusFromProtocol populates A2ATaskStatus fields from a protocol.Task.
+// Per A2A protocol: status messages (TaskStatusUpdateEvent) should replace LastStatusMessage,
+// not accumulate in history. History contains only actual conversation turns from task.History.
 func PopulateA2ATaskStatusFromProtocol(status *arkv1alpha1.A2ATaskStatus, task *protocol.Task) {
 	artifacts := convertArtifactsFromProtocol(task.Artifacts)
 	history := convertHistoryFromProtocol(task.History)
 	taskMetadata := convertMetadataToStringMap(task.Metadata)
 
-	message, msgParts := convertStatusMessageFromProtocol(task.Status.Message)
-	if len(msgParts) > 0 {
-		history = append(history, *message)
-	}
+	message, _ := convertStatusMessageFromProtocol(task.Status.Message)
 
 	status.ProtocolState = string(task.Status.State)
 	status.ContextID = task.ContextID

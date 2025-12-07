@@ -573,8 +573,8 @@ func TestPopulateA2ATaskStatusFromProtocol(t *testing.T) {
 				if status.ContextID != "ctx-456" {
 					t.Errorf("ContextID = %q, want %q", status.ContextID, "ctx-456")
 				}
-				if len(status.History) != 2 {
-					t.Errorf("History length = %d, want 2 (original + status message)", len(status.History))
+				if len(status.History) != 1 {
+					t.Errorf("History length = %d, want 1 (status message should not be appended to history)", len(status.History))
 				}
 				if len(status.Artifacts) != 1 {
 					t.Errorf("Artifacts length = %d, want 1", len(status.Artifacts))
@@ -897,6 +897,9 @@ func TestSetTaskTimestamps(t *testing.T) {
 	}
 }
 
+// High complexity due to comprehensive test case coverage
+//
+//nolint:gocognit
 func TestUpdateA2ATaskStatus(t *testing.T) {
 	t.Run("updates status with protocol task data", func(t *testing.T) {
 		status := &arkv1alpha1.A2ATaskStatus{
@@ -940,6 +943,98 @@ func TestUpdateA2ATaskStatus(t *testing.T) {
 		UpdateA2ATaskStatus(status, nil)
 		if status.Phase != PhasePending {
 			t.Errorf("Phase should remain unchanged, got %q", status.Phase)
+		}
+	})
+
+	t.Run("status messages replace not accumulate", func(t *testing.T) {
+		status := &arkv1alpha1.A2ATaskStatus{
+			Phase: PhasePending,
+		}
+
+		userMessage := protocol.Message{
+			MessageID: "user-msg-1",
+			Role:      protocol.MessageRoleUser,
+			Parts: []protocol.Part{
+				protocol.TextPart{Text: "countdown from 3"},
+			},
+		}
+
+		task1 := &protocol.Task{
+			ID:        "task-123",
+			ContextID: "ctx-456",
+			Status: protocol.TaskStatus{
+				State:     "working",
+				Timestamp: "2025-01-15T10:00:01Z",
+				Message: &protocol.Message{
+					MessageID: "status-1",
+					Role:      protocol.MessageRoleAgent,
+					Parts: []protocol.Part{
+						protocol.TextPart{Text: "3 seconds remaining"},
+					},
+				},
+			},
+			History: []protocol.Message{userMessage},
+		}
+		UpdateA2ATaskStatus(status, task1)
+
+		if len(status.History) != 1 {
+			t.Errorf("After first update: History length = %d, want 1", len(status.History))
+		}
+		if status.LastStatusMessage == nil || status.LastStatusMessage.Parts[0].Text != "3 seconds remaining" {
+			t.Error("LastStatusMessage should be '3 seconds remaining'")
+		}
+
+		task2 := &protocol.Task{
+			ID:        "task-123",
+			ContextID: "ctx-456",
+			Status: protocol.TaskStatus{
+				State:     "working",
+				Timestamp: "2025-01-15T10:00:02Z",
+				Message: &protocol.Message{
+					MessageID: "status-2",
+					Role:      protocol.MessageRoleAgent,
+					Parts: []protocol.Part{
+						protocol.TextPart{Text: "2 seconds remaining"},
+					},
+				},
+			},
+			History: []protocol.Message{userMessage},
+		}
+		UpdateA2ATaskStatus(status, task2)
+
+		if len(status.History) != 1 {
+			t.Errorf("After second update: History length = %d, want 1 (status messages should not accumulate)", len(status.History))
+		}
+		if status.LastStatusMessage == nil || status.LastStatusMessage.Parts[0].Text != "2 seconds remaining" {
+			t.Error("LastStatusMessage should be '2 seconds remaining'")
+		}
+
+		task3 := &protocol.Task{
+			ID:        "task-123",
+			ContextID: "ctx-456",
+			Status: protocol.TaskStatus{
+				State:     "completed",
+				Timestamp: "2025-01-15T10:00:03Z",
+				Message: &protocol.Message{
+					MessageID: "status-3",
+					Role:      protocol.MessageRoleAgent,
+					Parts: []protocol.Part{
+						protocol.TextPart{Text: "Countdown complete!"},
+					},
+				},
+			},
+			History: []protocol.Message{userMessage},
+		}
+		UpdateA2ATaskStatus(status, task3)
+
+		if len(status.History) != 1 {
+			t.Errorf("After completion: History length = %d, want 1 (status messages should replace not accumulate)", len(status.History))
+		}
+		if status.LastStatusMessage == nil || status.LastStatusMessage.Parts[0].Text != "Countdown complete!" {
+			t.Error("LastStatusMessage should be 'Countdown complete!'")
+		}
+		if status.Phase != PhaseCompleted {
+			t.Errorf("Phase = %q, want %q", status.Phase, PhaseCompleted)
 		}
 	})
 }
