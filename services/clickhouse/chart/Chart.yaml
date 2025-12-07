@@ -1,0 +1,9 @@
+apiVersion: v2
+name: clickhouse
+description: ClickHouse database for Ark telemetry storage
+type: application
+version: 0.1.0
+appVersion: 25.11.2.24
+annotations:
+  ark.mckinsey.com/service: clickhouse
+  ark.mckinsey.com/resources: service

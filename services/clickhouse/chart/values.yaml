@@ -1,0 +1,92 @@
+global:
+  annotations:
+    ark.mckinsey.com/service: clickhouse
+
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs:
+    - name: localhost-gateway
+      namespace: ark-system
+  hostnames:
+    - "clickhouse-svc.clickhouse.127.0.0.1.nip.io"
+
+service:
+  name: clickhouse-svc
+  type: ClusterIP
+  ports:
+    native:
+      port: 9000
+      protocol: TCP
+    http:
+      port: 8123
+      protocol: TCP
+    interserver:
+      port: 9009
+      protocol: TCP
+
+namespace: clickhouse
+
+image:
+  repository: clickhouse/clickhouse-server
+  tag: 25.11.2.24
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+env:
+  CLICKHOUSE_USER: default
+  CLICKHOUSE_PASSWORD: ""
+  CLICKHOUSE_DB: default
+  CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "0"
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  mountPath: /var/lib/clickhouse
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+securityContext:
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
+  runAsNonRoot: true
+
+podAnnotations: {}
+
+podLabels: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /ping
+    port: 8123
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /ping
+    port: 8123
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3

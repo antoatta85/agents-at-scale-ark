@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: native
+    port: {{ .Values.service.ports.native.port }}
+    targetPort: native
+    protocol: {{ .Values.service.ports.native.protocol }}
+  - name: http
+    port: {{ .Values.service.ports.http.port }}
+    targetPort: http
+    protocol: {{ .Values.service.ports.http.protocol }}
+  - name: interserver
+    port: {{ .Values.service.ports.interserver.port }}
+    targetPort: interserver
+    protocol: {{ .Values.service.ports.interserver.protocol }}
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
