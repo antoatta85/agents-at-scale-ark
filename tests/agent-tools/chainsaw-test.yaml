@@ -2,8 +2,6 @@ apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: agent-tools
-  labels:
-    multi-provider: "true"
 spec:
   description: Test agent with weather tool functionality
   steps:
@@ -25,23 +23,14 @@ spec:
         env:
         - name: NAMESPACE
           value: ($namespace)
+    # mock-llm creates the Model via ark.model.enabled in values.yaml
+    # Just apply tool, agent, and query
     - apply:
-        resource:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: test-model-token
-          type: Opaque
-          data:
-            token: (base64_encode($provider.token))
+        file: manifests/a01-weather-tool.yaml
     - apply:
-        file: (join('', ['manifests/a01-model-', $provider.type, '.yaml']))
+        file: manifests/a02-weather-agent.yaml
     - apply:
-        file: manifests/a03-weather-tool.yaml
-    - apply:
-        file: manifests/a04-weather-agent.yaml
-    - apply:
-        file: manifests/a05-weather-query.yaml
+        file: manifests/a03-weather-query.yaml
     - assert:
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
