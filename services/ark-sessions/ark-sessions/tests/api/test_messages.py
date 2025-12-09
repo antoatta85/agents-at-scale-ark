@@ -16,7 +16,7 @@ class TestMessageAPI(unittest.TestCase):
     
     @patch('ark_sessions.api.messages.MessageStorage')
     @patch('ark_sessions.api.messages.get_session')
-    async def test_add_messages(self, mock_get_session, mock_message_storage_class):
+    def test_add_messages(self, mock_get_session, mock_message_storage_class):
         """Test adding messages via API."""
         # Setup
         mock_session = AsyncMock()
@@ -45,7 +45,7 @@ class TestMessageAPI(unittest.TestCase):
     
     @patch('ark_sessions.api.messages.MessageStorage')
     @patch('ark_sessions.api.messages.get_session')
-    async def test_get_messages(self, mock_get_session, mock_message_storage_class):
+    def test_get_messages(self, mock_get_session, mock_message_storage_class):
         """Test getting messages via API."""
         # Setup
         from ark_sessions.models import Message

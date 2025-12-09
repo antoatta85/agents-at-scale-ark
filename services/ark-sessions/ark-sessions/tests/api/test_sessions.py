@@ -18,7 +18,7 @@ class TestSessionsAPI(unittest.TestCase):
     
     @patch('ark_sessions.api.sessions.SessionStorage')
     @patch('ark_sessions.api.sessions.get_session')
-    async def test_list_sessions(self, mock_get_session, mock_session_storage_class):
+    def test_list_sessions(self, mock_get_session, mock_session_storage_class):
         """Test listing all sessions."""
         # Setup
         mock_session = AsyncMock()
@@ -40,7 +40,7 @@ class TestSessionsAPI(unittest.TestCase):
     @patch('ark_sessions.api.sessions.EventStorage')
     @patch('ark_sessions.api.sessions.SessionStorage')
     @patch('ark_sessions.api.sessions.get_session')
-    async def test_get_session_by_id(self, mock_get_session, mock_session_storage_class, mock_event_storage_class, mock_message_storage_class):
+    def test_get_session_by_id(self, mock_get_session, mock_session_storage_class, mock_event_storage_class, mock_message_storage_class):
         """Test getting a session by ID."""
         # Setup
         from datetime import datetime
@@ -87,7 +87,7 @@ class TestSessionsAPI(unittest.TestCase):
     
     @patch('ark_sessions.api.sessions.SessionStorage')
     @patch('ark_sessions.api.sessions.get_session')
-    async def test_get_session_not_found(self, mock_get_session, mock_session_storage_class):
+    def test_get_session_not_found(self, mock_get_session, mock_session_storage_class):
         """Test getting a session that doesn't exist."""
         # Setup
         mock_session = AsyncMock()

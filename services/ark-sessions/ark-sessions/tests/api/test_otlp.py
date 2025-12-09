@@ -82,7 +82,7 @@ class TestOTLPAPI(unittest.TestCase):
     
     @patch('ark_sessions.api.otlp.TraceStorage')
     @patch('ark_sessions.api.otlp.get_session')
-    async def test_receive_otlp_traces_empty_body(self, mock_get_session, mock_trace_storage_class):
+    def test_receive_otlp_traces_empty_body(self, mock_get_session, mock_trace_storage_class):
         """Test receiving OTLP traces with empty body."""
         # Setup
         mock_session = AsyncMock()
