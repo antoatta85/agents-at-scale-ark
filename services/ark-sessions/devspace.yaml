@@ -1,0 +1,59 @@
+# DevSpace configuration for ark-sessions service
+version: v2beta1
+
+images:
+  ark-sessions:
+    image: ark-sessions
+    dockerfile: Dockerfile
+    context: .
+
+pipelines:
+  deploy: |-
+    build_images --all
+    create_deployments --all
+  dev: |-
+    create_deployments --all
+    start_dev --all
+
+deployments:
+  ark-sessions:
+    namespace: default
+    helm:
+      chart:
+        path: ./chart
+      values:
+        app:
+          image:
+            repository: ${runtime.images.ark-sessions.image}
+            tag: ${runtime.images.ark-sessions.tag}
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+        httpRoute:
+          enabled: true
+
+dev:
+  ark-sessions:
+    imageSelector: ark-sessions
+    devImage: python:3.12-slim
+    command:
+      [
+        "sh",
+        "-c",
+        "cd /app/ark-sessions && pip install uv && uv sync && uv run python -m ark_sessions",
+      ]
+    namespace: default
+    logs:
+      lastLines: 50
+    sync:
+      - path: .:/app
+        startContainer: true
+        disableDownload: true
+        uploadExcludeFile: .dockerignore
+    ssh:
+      enabled: true
+
