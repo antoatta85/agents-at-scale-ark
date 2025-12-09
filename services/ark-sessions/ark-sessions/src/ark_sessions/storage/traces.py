@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ark_sessions.models import Span, SpanEvent, Trace
 from ark_sessions.storage.sessions import SessionStorage
@@ -29,8 +29,8 @@ class TraceStorage:
         
         # Create or update trace
         statement = select(Trace).where(Trace.trace_id == trace.trace_id)
-        result = await self.session.exec(statement)
-        existing_trace = result.first()
+        result = await self.session.execute(statement)
+        existing_trace = result.scalar_one_or_none()
         
         if existing_trace:
             # Update end_time if new trace has later end_time
@@ -45,8 +45,8 @@ class TraceStorage:
         # Create or update spans
         for span in spans:
             statement = select(Span).where(Span.span_id == span.span_id)
-            result = await self.session.exec(statement)
-            existing_span = result.first()
+            result = await self.session.execute(statement)
+            existing_span = result.scalar_one_or_none()
             
             if existing_span:
                 # Update end_time and status if provided
@@ -73,8 +73,8 @@ class TraceStorage:
             .where(Trace.session_id == session_id)
             .order_by(Trace.start_time)
         )
-        result = await self.session.exec(statement)
-        return list(result.all())
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
     
     async def get_spans_by_trace(self, trace_id: str) -> list[Span]:
         """Get all spans for a trace."""
@@ -83,8 +83,8 @@ class TraceStorage:
             .where(Span.trace_id == trace_id)
             .order_by(Span.start_time)
         )
-        result = await self.session.exec(statement)
-        return list(result.all())
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
     
     async def get_span_events_by_span(self, span_id: str) -> list[SpanEvent]:
         """Get all span events for a span."""
@@ -93,6 +93,6 @@ class TraceStorage:
             .where(SpanEvent.span_id == span_id)
             .order_by(SpanEvent.time)
         )
-        result = await self.session.exec(statement)
-        return list(result.all())
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
 

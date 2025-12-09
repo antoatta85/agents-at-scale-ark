@@ -2,8 +2,8 @@
 
 from collections.abc import AsyncGenerator
 
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlmodel import SQLModel
-from sqlmodel.ext.asyncio import AsyncSession, create_async_engine
 
 from ark_sessions.core.config import settings
 from ark_sessions.models import Message, Session, Span, SpanEvent, Trace  # noqa: F401 - Import to register models

@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import Depends, Path
 from fastapi.responses import StreamingResponse
-from sqlmodel.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ark_sessions.core.database import get_session
 from ark_sessions.models import SessionEvent

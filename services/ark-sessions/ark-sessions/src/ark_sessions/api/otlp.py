@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import Depends, Request, Response, status
 from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
-from sqlmodel.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ark_sessions.core.config import logger
 from ark_sessions.core.database import get_session

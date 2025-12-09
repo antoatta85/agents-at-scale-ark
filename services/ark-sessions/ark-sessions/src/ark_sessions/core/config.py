@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
@@ -15,8 +16,17 @@ class Settings(BaseSettings):
     
     database_url: str = os.getenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/ark_sessions?ssl=disable"
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/ark_sessions"
     )
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Ensure database URL uses asyncpg driver
+        if self.database_url.startswith("postgresql://"):
+            self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        # Remove sslmode parameter (asyncpg doesn't support it)
+        self.database_url = re.sub(r'[?&]sslmode=[^&]*', '', self.database_url)
+    
     port: int = int(os.getenv("PORT", "8080"))
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     

@@ -1,7 +1,7 @@
 """Event storage operations for event sourcing pattern."""
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ark_sessions.models import SessionEvent
 from ark_sessions.storage.sessions import SessionStorage
@@ -30,8 +30,8 @@ class EventStorage:
             .where(SessionEvent.session_id == session_id)
             .order_by(SessionEvent.timestamp)
         )
-        result = await self.session.exec(statement)
-        return list(result.all())
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
     
     async def get_events_by_query(self, query_id: str) -> list[SessionEvent]:
         """Get all events for a query, ordered by timestamp."""
@@ -40,6 +40,6 @@ class EventStorage:
             .where(SessionEvent.query_id == query_id)
             .order_by(SessionEvent.timestamp)
         )
-        result = await self.session.exec(statement)
-        return list(result.all())
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
 

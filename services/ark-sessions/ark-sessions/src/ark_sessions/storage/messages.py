@@ -3,7 +3,7 @@
 from typing import Any
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ark_sessions.models import Message
 from ark_sessions.storage.sessions import SessionStorage
@@ -54,6 +54,6 @@ class MessageStorage:
             statement = statement.where(*conditions)
         statement = statement.order_by(Message.created_at)
         
-        result = await self.session.exec(statement)
-        return list(result.all())
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
 

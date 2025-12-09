@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ark_sessions.models import Session
 
@@ -18,8 +18,8 @@ class SessionStorage:
         """Create a new session if it doesn't exist."""
         # Try to get existing session
         statement = select(Session).where(Session.id == session_id)
-        result = await self.session.exec(statement)
-        existing = result.first()
+        result = await self.session.execute(statement)
+        existing = result.scalar_one_or_none()
         
         if existing:
             # Update updated_at
@@ -38,12 +38,12 @@ class SessionStorage:
     async def get_session(self, session_id: str) -> Session | None:
         """Get session by ID."""
         statement = select(Session).where(Session.id == session_id)
-        result = await self.session.exec(statement)
-        return result.first()
+        result = await self.session.execute(statement)
+        return result.scalar_one_or_none()
     
     async def list_sessions(self) -> list[str]:
         """List all session IDs."""
         statement = select(Session.id)
-        result = await self.session.exec(statement)
-        return list(result.all())
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
 
