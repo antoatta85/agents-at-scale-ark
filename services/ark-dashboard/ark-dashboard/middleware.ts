@@ -20,14 +20,22 @@ async function middleware(request: NextRequest) {
       secret: process.env.AUTH_SECRET,
       cookieName: COOKIE_SESSION_TOKEN,
     });
-    // Read environment variables at runtime
-    const host = process.env.ARK_API_SERVICE_HOST || 'localhost';
-    const port = process.env.ARK_API_SERVICE_PORT || '8000';
-    const protocol = process.env.ARK_API_SERVICE_PROTOCOL || 'http';
-
+    
     // Remove the base path and /api prefix to get the backend path
     let backendPath = request.nextUrl.pathname.replace(basePath, '');
     backendPath = backendPath.replace('/api', '');
+    
+    // Route sessions endpoints to ark-sessions, everything else to ark-api
+    const isSessionsEndpoint = backendPath.startsWith('/sessions');
+    const host = isSessionsEndpoint
+      ? process.env.ARK_SESSIONS_SERVICE_HOST || 'localhost'
+      : process.env.ARK_API_SERVICE_HOST || 'localhost';
+    const port = isSessionsEndpoint
+      ? process.env.ARK_SESSIONS_SERVICE_PORT || '8080'
+      : process.env.ARK_API_SERVICE_PORT || '8000';
+    const protocol = isSessionsEndpoint
+      ? process.env.ARK_SESSIONS_SERVICE_PROTOCOL || 'http'
+      : process.env.ARK_API_SERVICE_PROTOCOL || 'http';
 
     // Construct the target URL
     const targetUrl = `${protocol}://${host}:${port}${backendPath}${request.nextUrl.search}`;

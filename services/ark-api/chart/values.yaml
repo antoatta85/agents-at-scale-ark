@@ -61,7 +61,7 @@ app:
 service:
   name: ark-api
   type: ClusterIP
-  port: 80
+  port: 8000
   targetPort: 8000
 
 # Ingress configuration (legacy routing method)
