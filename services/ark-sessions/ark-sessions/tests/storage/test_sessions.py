@@ -11,7 +11,7 @@ from ark_sessions.models import Session
 from ark_sessions.storage.sessions import SessionStorage
 
 
-class TestSessionStorage(unittest.TestCase):
+class TestSessionStorage(unittest.IsolatedAsyncioTestCase):
     """Test session storage functionality."""
     
     def setUp(self):

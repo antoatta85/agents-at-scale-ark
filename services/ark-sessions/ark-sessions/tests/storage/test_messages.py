@@ -10,7 +10,7 @@ from ark_sessions.models import Message
 from ark_sessions.storage.messages import MessageStorage
 
 
-class TestMessageStorage(unittest.TestCase):
+class TestMessageStorage(unittest.IsolatedAsyncioTestCase):
     """Test message storage functionality."""
     
     def setUp(self):
