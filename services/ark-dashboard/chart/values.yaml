@@ -20,7 +20,7 @@ app:
     hostname: "0.0.0.0"
     arkApiService:
       host: "ark-api"
-      port: "80"
+      port: "8000"
       protocol: "http"
   
   # Other environment variables
