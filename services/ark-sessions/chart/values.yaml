@@ -23,7 +23,7 @@ app:
     - name: PORT
       value: "8080"
     - name: DATABASE_URL
-      value: "postgresql+asyncpg://postgres:postgres@postgres-postgresql:5432/ark_sessions"
+      value: "postgresql+asyncpg://postgres:postgres@ark-sessions-postgresql:5432/ark_sessions"
 
 service:
   type: ClusterIP
@@ -38,10 +38,18 @@ memory:
   createMemoryCRD: true
   setAsDefault: false
 
-# PostgreSQL dependency (if using subchart)
 postgresql:
-  enabled: false
+  enabled: true
+  name: ark-sessions-postgresql
   auth:
-    postgresPassword: postgres
+    username: postgres
+    password: postgres
     database: ark_sessions
-
+  primary:
+    persistence:
+      enabled: true
+      size: 500Mi
+  image:
+    repository: postgres
+    tag: "17-alpine"
+    pullPolicy: IfNotPresent
