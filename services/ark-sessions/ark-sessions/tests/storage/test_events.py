@@ -18,13 +18,14 @@ class TestEventStorage(unittest.IsolatedAsyncioTestCase):
         self.mock_session = AsyncMock(spec=AsyncSession)
         self.storage = EventStorage(self.mock_session)
     
-    @patch('ark_sessions.storage.events.SessionStorage')
-    async def test_append_event(self, mock_session_storage_class):
+    async def test_append_event(self):
         """Test appending an event."""
         # Setup
-        mock_session_storage = AsyncMock()
-        mock_session_storage.create_session = AsyncMock()
-        mock_session_storage_class.return_value = mock_session_storage
+        from ark_sessions.models import Session
+        
+        # Mock the SessionStorage.create_session method directly on the storage instance
+        mock_session_obj = Session(id="test-session-123")
+        self.storage.session_storage.create_session = AsyncMock(return_value=mock_session_obj)
         
         event = SessionEvent(
             session_id="test-session-123",
@@ -41,7 +42,7 @@ class TestEventStorage(unittest.IsolatedAsyncioTestCase):
         # Verify
         self.mock_session.add.assert_called_once_with(event)
         self.mock_session.commit.assert_called_once()
-        mock_session_storage.create_session.assert_called_once_with("test-session-123")
+        self.storage.session_storage.create_session.assert_called_once_with("test-session-123")
     
     async def test_get_events_by_session(self):
         """Test getting events by session ID."""
@@ -67,7 +68,7 @@ class TestEventStorage(unittest.IsolatedAsyncioTestCase):
         # Mock database query
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = events
-        self.mock_session.execute.return_value = mock_result
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Execute
         result = await self.storage.get_events_by_session(session_id)
@@ -93,7 +94,7 @@ class TestEventStorage(unittest.IsolatedAsyncioTestCase):
         # Mock database query
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = events
-        self.mock_session.execute.return_value = mock_result
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Execute
         result = await self.storage.get_events_by_query(query_id)

@@ -1,10 +1,11 @@
 """Tests for session API endpoints."""
 
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock
 from fastapi.testclient import TestClient
 
 from ark_sessions.main import app
+from ark_sessions.core.database import get_session
 from ark_sessions.models import Message, SessionEvent
 from ark_sessions.api.sessions import _derive_queries_from_events, _derive_conversations_from_messages
 
@@ -15,45 +16,42 @@ class TestSessionsAPI(unittest.TestCase):
     def setUp(self):
         """Set up test client."""
         self.client = TestClient(app)
+        # Override database dependency
+        self.mock_session = AsyncMock()
+        async def mock_get_session():
+            yield self.mock_session
+        app.dependency_overrides[get_session] = mock_get_session
     
-    @patch('ark_sessions.api.sessions.SessionStorage')
-    @patch('ark_sessions.api.sessions.get_session')
-    def test_list_sessions(self, mock_get_session, mock_session_storage_class):
+    def tearDown(self):
+        """Clean up dependency overrides."""
+        app.dependency_overrides.clear()
+    
+    def test_list_sessions(self):
         """Test listing all sessions."""
         # Setup
-        mock_session = AsyncMock()
-        mock_get_session.return_value.__aenter__.return_value = mock_session
-        
         mock_storage = AsyncMock()
         mock_storage.list_sessions = AsyncMock(return_value=["session-1", "session-2"])
-        mock_session_storage_class.return_value = mock_storage
         
-        # Execute
-        response = self.client.get("/sessions")
-        
-        # Verify
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertEqual(len(data["sessions"]), 2)
+        # Patch SessionStorage to return our mock
+        with unittest.mock.patch('ark_sessions.api.sessions.SessionStorage', return_value=mock_storage):
+            # Execute
+            response = self.client.get("/sessions")
+            
+            # Verify
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(len(data["sessions"]), 2)
     
-    @patch('ark_sessions.api.sessions.MessageStorage')
-    @patch('ark_sessions.api.sessions.EventStorage')
-    @patch('ark_sessions.api.sessions.SessionStorage')
-    @patch('ark_sessions.api.sessions.get_session')
-    def test_get_session_by_id(self, mock_get_session, mock_session_storage_class, mock_event_storage_class, mock_message_storage_class):
+    def test_get_session_by_id(self):
         """Test getting a session by ID."""
         # Setup
         from datetime import datetime
-        
-        mock_session = AsyncMock()
-        mock_get_session.return_value.__aenter__.return_value = mock_session
         
         # Mock session storage
         mock_session_storage = AsyncMock()
         mock_session_obj = Mock()
         mock_session_obj.id = "test-session-123"
         mock_session_storage.get_session = AsyncMock(return_value=mock_session_obj)
-        mock_session_storage_class.return_value = mock_session_storage
         
         # Mock event storage
         mock_event_storage = AsyncMock()
@@ -68,44 +66,42 @@ class TestSessionsAPI(unittest.TestCase):
             ),
         ]
         mock_event_storage.get_events_by_session = AsyncMock(return_value=mock_events)
-        mock_event_storage_class.return_value = mock_event_storage
         
         # Mock message storage
         mock_message_storage = AsyncMock()
         mock_message_storage.get_messages = AsyncMock(return_value=[])
-        mock_message_storage_class.return_value = mock_message_storage
         
-        # Execute
-        response = self.client.get("/sessions/test-session-123")
-        
-        # Verify
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertEqual(data["id"], "test-session-123")
-        self.assertIn("queries", data)
-        self.assertIn("conversations", data)
+        # Patch all storage classes
+        with unittest.mock.patch('ark_sessions.api.sessions.SessionStorage', return_value=mock_session_storage), \
+             unittest.mock.patch('ark_sessions.api.sessions.EventStorage', return_value=mock_event_storage), \
+             unittest.mock.patch('ark_sessions.api.sessions.MessageStorage', return_value=mock_message_storage):
+            # Execute
+            response = self.client.get("/sessions/test-session-123")
+            
+            # Verify
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(data["id"], "test-session-123")
+            self.assertIn("queries", data)
+            self.assertIn("conversations", data)
     
-    @patch('ark_sessions.api.sessions.SessionStorage')
-    @patch('ark_sessions.api.sessions.get_session')
-    def test_get_session_not_found(self, mock_get_session, mock_session_storage_class):
+    def test_get_session_not_found(self):
         """Test getting a session that doesn't exist."""
         # Setup
-        mock_session = AsyncMock()
-        mock_get_session.return_value.__aenter__.return_value = mock_session
-        
         mock_storage = AsyncMock()
         mock_storage.get_session = AsyncMock(return_value=None)
-        mock_session_storage_class.return_value = mock_storage
         
-        # Execute
-        response = self.client.get("/sessions/non-existent-session")
-        
-        # Verify
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertEqual(data["id"], "non-existent-session")
-        self.assertEqual(data["queries"], [])
-        self.assertEqual(data["conversations"], [])
+        # Patch SessionStorage to return our mock
+        with unittest.mock.patch('ark_sessions.api.sessions.SessionStorage', return_value=mock_storage):
+            # Execute
+            response = self.client.get("/sessions/non-existent-session")
+            
+            # Verify
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(data["id"], "non-existent-session")
+            self.assertEqual(data["queries"], [])
+            self.assertEqual(data["conversations"], [])
 
 
 class TestSessionHelpers(unittest.TestCase):

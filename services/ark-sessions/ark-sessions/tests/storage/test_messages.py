@@ -18,10 +18,11 @@ class TestMessageStorage(unittest.IsolatedAsyncioTestCase):
         self.mock_session = AsyncMock(spec=AsyncSession)
         self.storage = MessageStorage(self.mock_session)
     
-    @patch('ark_sessions.storage.messages.SessionStorage')
-    async def test_add_messages(self, mock_session_storage_class):
+    async def test_add_messages(self):
         """Test adding messages to a session."""
         # Setup
+        from ark_sessions.models import Session
+        
         session_id = "test-session-123"
         query_id = "test-query-456"
         messages = [
@@ -29,10 +30,9 @@ class TestMessageStorage(unittest.IsolatedAsyncioTestCase):
             {"role": "assistant", "content": "Hi there!"}
         ]
         
-        # Mock session storage
-        mock_session_storage = AsyncMock()
-        mock_session_storage.create_session = AsyncMock()
-        mock_session_storage_class.return_value = mock_session_storage
+        # Mock session storage create_session method directly
+        mock_session_obj = Session(id=session_id)
+        self.storage.session_storage.create_session = AsyncMock(return_value=mock_session_obj)
         
         # Mock commit
         self.mock_session.commit = AsyncMock()
@@ -43,7 +43,7 @@ class TestMessageStorage(unittest.IsolatedAsyncioTestCase):
         # Verify
         self.assertEqual(self.mock_session.add.call_count, 2)
         self.mock_session.commit.assert_called_once()
-        mock_session_storage.create_session.assert_called_once_with(session_id)
+        self.storage.session_storage.create_session.assert_called_once_with(session_id)
     
     async def test_get_messages_by_session(self):
         """Test getting messages filtered by session_id."""
@@ -57,7 +57,7 @@ class TestMessageStorage(unittest.IsolatedAsyncioTestCase):
         # Mock database query
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = messages
-        self.mock_session.execute.return_value = mock_result
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Execute
         result = await self.storage.get_messages(session_id=session_id)
@@ -77,7 +77,7 @@ class TestMessageStorage(unittest.IsolatedAsyncioTestCase):
         # Mock database query
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = messages
-        self.mock_session.execute.return_value = mock_result
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Execute
         result = await self.storage.get_messages(query_id=query_id)
@@ -97,7 +97,7 @@ class TestMessageStorage(unittest.IsolatedAsyncioTestCase):
         # Mock database query
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = messages
-        self.mock_session.execute.return_value = mock_result
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Execute
         result = await self.storage.get_messages()

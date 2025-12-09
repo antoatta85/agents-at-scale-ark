@@ -28,8 +28,8 @@ class TestSessionStorage(unittest.IsolatedAsyncioTestCase):
         
         # Mock database query - session doesn't exist
         mock_result = Mock()
-        mock_result.scalars.return_value.first.return_value = None
-        self.mock_session.execute.return_value = mock_result
+        mock_result.scalar_one_or_none.return_value = None
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Mock commit and refresh
         self.mock_session.commit = AsyncMock()
@@ -53,8 +53,8 @@ class TestSessionStorage(unittest.IsolatedAsyncioTestCase):
         
         # Mock database query - session exists
         mock_result = Mock()
-        mock_result.scalars.return_value.first.return_value = existing_session
-        self.mock_session.execute.return_value = mock_result
+        mock_result.scalar_one_or_none.return_value = existing_session
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Mock commit and refresh
         self.mock_session.commit = AsyncMock()
@@ -77,8 +77,8 @@ class TestSessionStorage(unittest.IsolatedAsyncioTestCase):
         
         # Mock database query
         mock_result = Mock()
-        mock_result.scalars.return_value.first.return_value = session
-        self.mock_session.execute.return_value = mock_result
+        mock_result.scalar_one_or_none.return_value = session
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Execute
         result = await self.storage.get_session(session_id)
@@ -94,8 +94,8 @@ class TestSessionStorage(unittest.IsolatedAsyncioTestCase):
         
         # Mock database query - no session found
         mock_result = Mock()
-        mock_result.scalars.return_value.first.return_value = None
-        self.mock_session.execute.return_value = mock_result
+        mock_result.scalar_one_or_none.return_value = None
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Execute
         result = await self.storage.get_session(session_id)
@@ -111,7 +111,7 @@ class TestSessionStorage(unittest.IsolatedAsyncioTestCase):
         # Mock database query
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = session_ids
-        self.mock_session.execute.return_value = mock_result
+        self.mock_session.execute = AsyncMock(return_value=mock_result)
         
         # Execute
         result = await self.storage.list_sessions()

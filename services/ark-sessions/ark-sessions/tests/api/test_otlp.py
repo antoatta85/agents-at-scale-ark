@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, Mock, patch
 from fastapi.testclient import TestClient
 
 from ark_sessions.main import app
+from ark_sessions.core.database import get_session
 from ark_sessions.api.otlp import (
     extract_session_id_from_attributes,
     determine_session_id,
@@ -79,15 +80,18 @@ class TestOTLPAPI(unittest.TestCase):
     def setUp(self):
         """Set up test client."""
         self.client = TestClient(app)
+        # Override database dependency
+        self.mock_session = AsyncMock()
+        async def mock_get_session():
+            yield self.mock_session
+        app.dependency_overrides[get_session] = mock_get_session
     
-    @patch('ark_sessions.api.otlp.TraceStorage')
-    @patch('ark_sessions.api.otlp.get_session')
-    def test_receive_otlp_traces_empty_body(self, mock_get_session, mock_trace_storage_class):
+    def tearDown(self):
+        """Clean up dependency overrides."""
+        app.dependency_overrides.clear()
+    
+    def test_receive_otlp_traces_empty_body(self):
         """Test receiving OTLP traces with empty body."""
-        # Setup
-        mock_session = AsyncMock()
-        mock_get_session.return_value.__aenter__.return_value = mock_session
-        
         # Execute
         response = self.client.post(
             "/v1/traces",
