@@ -50,6 +50,13 @@ app:
       value: "1800000" #30 mins
     - name: AUTH_MODE
       value: "open"
+    # ClickHouse configuration for sessions
+    - name: CLICKHOUSE_URL
+      value: "http://clickhouse-svc.clickhouse.svc.cluster.local:8123"
+    - name: CLICKHOUSE_USERNAME
+      value: "default"
+    - name: CLICKHOUSE_PASSWORD
+      value: "clickhouse"
   
   # Optional: Import entire secrets/configmaps as env vars
   # envFrom:

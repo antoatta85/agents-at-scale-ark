@@ -8,6 +8,7 @@ import {
   Key,
   Lock,
   type LucideIcon,
+  Network,
   Search,
   Server,
   Settings,
@@ -76,6 +77,12 @@ export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
     key: 'events',
     title: 'Events',
     icon: Calendar,
+    group: 'operations',
+  },
+  sessions: {
+    key: 'sessions',
+    title: 'Sessions',
+    icon: Network,
     group: 'operations',
   },
   memory: {
