@@ -4,8 +4,11 @@ metadata:
   name: agent-tools
 spec:
   description: Test agent with weather tool functionality
+  timeouts:
+    apply: 30s
+    assert: 120s
   steps:
-  - name: setup-and-test
+  - name: setup-mock-llm
     try:
     - script:
         content: |
@@ -23,14 +26,12 @@ spec:
         env:
         - name: NAMESPACE
           value: ($namespace)
-    # mock-llm creates the Model via ark.model.enabled in values.yaml
-    # Just apply tool, agent, and query
-    - apply:
-        file: manifests/a01-weather-tool.yaml
-    - apply:
-        file: manifests/a02-weather-agent.yaml
-    - apply:
-        file: manifests/a03-weather-query.yaml
+    catch:
+    - events: {}
+
+  - name: wait-for-model
+    try:
+    # Wait for mock-llm Model to be available before applying dependent resources
     - assert:
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
@@ -41,6 +42,28 @@ spec:
             conditions:
             - type: ModelAvailable
               status: "True"
+    catch:
+    - script:
+        content: |
+          echo "=== Model not ready ==="
+          kubectl get model -n $NAMESPACE -o yaml 2>/dev/null || true
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+
+  - name: deploy-resources
+    try:
+    - apply:
+        file: manifests/a01-weather-tool.yaml
+    - apply:
+        file: manifests/a02-weather-agent.yaml
+    - apply:
+        file: manifests/a03-weather-query.yaml
+    catch:
+    - events: {}
+
+  - name: verify-resources
+    try:
     - assert:
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
@@ -74,7 +97,12 @@ spec:
             (length(join('', responses[*].content)) > `10`): true
     catch:
     - events: {}
-    - describe:
-        apiVersion: ark.mckinsey.com/v1alpha1
-        kind: Query
-        name: weather-query
+    - script:
+        content: |
+          echo "=== Debug: Checking resources ==="
+          kubectl get model,agent,tool,query -n $NAMESPACE 2>/dev/null || true
+          kubectl describe query weather-query -n $NAMESPACE 2>/dev/null || echo "Query not found"
+          kubectl logs -l app.kubernetes.io/name=mock-llm -n $NAMESPACE --tail=50 2>/dev/null || true
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
