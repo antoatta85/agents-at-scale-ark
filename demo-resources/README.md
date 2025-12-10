@@ -16,24 +16,24 @@ This directory contains all the ARK YAML resources needed for the banking custom
 - `teams/customer-service-team.yaml` - Sequential team workflow coordinating all agents
 
 ### **Model Configuration**
-- `models/default.yaml` - Default model using demo-bank-secrets
+- `models/default.yaml` - Demo model using demo-secrets
 
 ### **Infrastructure**
-- `model-and-rbac.yaml` - Model configuration and RBAC permissions
+- `model-and-rbac.yaml` - Model configuration
 - `banking-demo-all.yaml` - Complete demo deployment in single file
 
 ## **Quick Deploy**
 
 ### **Complete Setup (Recommended)**
 ```bash
-# 1. Create secrets from .ark.env (standalone approach)
+# 1. Create secrets from .ark.env
 ./setup-demo-secrets.sh
 
-# 2. Deploy everything (includes model, RBAC, agents, and team)
+# 2. Deploy everything (includes model, agents, and team)
 kubectl apply -f banking-demo-all.yaml
 
-# 3. Set context for convenience
-kubectl config set-context --current --namespace=demo-bank
+# 3. Wait for agents to be ready
+kubectl get agents -w
 ```
 
 ### **Alternative: Deploy Individual Resources**
@@ -42,19 +42,15 @@ kubectl config set-context --current --namespace=demo-bank
 ./setup-demo-secrets.sh
 
 # Deploy components separately
-kubectl apply -f models/          # Default model
-kubectl apply -f model-and-rbac.yaml  # RBAC permissions
+kubectl apply -f models/          # Demo model
 kubectl apply -f agents/          # All agents
 kubectl apply -f teams/           # Customer service team
-
-# Set context
-kubectl config set-context --current --namespace=demo-bank
 ```
 
 ## **Verify Deployment**
 
 ```bash
-# Check agents are ready (context should be set to demo-bank)
+# Check agents are ready
 kubectl get agents
 
 # Check team is configured
@@ -99,18 +95,18 @@ kubectl get agents -w  # Wait for AVAILABLE: True
 ## **Cleanup**
 
 ```bash
-# Remove entire demo
-kubectl delete namespace demo-bank
+# Remove demo resources
+kubectl delete -f banking-demo-all.yaml
 
-# Reset context
-kubectl config set-context --current --namespace=default
+# Remove demo secrets
+kubectl delete secret demo-secrets
 ```
 
 ## **Resource Details**
 
 ### **Agent Specifications**
-- **Namespace**: `demo-bank`
-- **Model**: Uses `default` model (configured in main ARK setup)
+- **Namespace**: `default`
+- **Model**: Uses `demo-model` (configured via demo-secrets)
 - **Labels**: Properly labeled for categorization and filtering
 - **Prompts**: Banking-specific with placeholder data for consistent demo results
 

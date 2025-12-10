@@ -14,13 +14,12 @@ This guide provides the exact commands to run the ARK banking demo as outlined i
 
 ### **Step 1: Setup Demo Environment**
 ```bash
-# Create secrets from .ark.env (standalone approach)
+# Create secrets from .ark.env
 ./demo-resources/setup-demo-secrets.sh
 
 # This script will:
-# - Create demo-bank namespace if it doesn't exist
 # - Load values from .ark.env
-# - Create demo-bank-secrets with API key, base URL, etc.
+# - Create demo-secrets in the default namespace
 # - Make the demo completely standalone
 ```
 
@@ -33,9 +32,6 @@ kubectl apply -f demo-resources/banking-demo-all.yaml
 # kubectl apply -f demo-resources/agents/
 # kubectl apply -f demo-resources/teams/
 # kubectl apply -f demo-resources/model-and-rbac.yaml
-
-# Set context to demo namespace for convenience
-kubectl config set-context --current --namespace=demo-bank
 
 # Wait for agents to be ready
 kubectl get agents -w
@@ -122,7 +118,7 @@ fark team customer-service-team "I need my account status and want to apply for 
 echo "🌐 Testing Agent API Endpoints"
 
 # Query individual agent via REST API (correct format)
-curl -s -X POST "http://localhost:8000/v1/namespaces/demo-bank/queries" \
+curl -s -X POST "http://localhost:8000/v1/namespaces/default/queries" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "demo-agent-query",
@@ -137,12 +133,12 @@ curl -s -X POST "http://localhost:8000/v1/namespaces/demo-bank/queries" \
 
 # Wait for completion and get result
 sleep 3
-curl -s "http://localhost:8000/v1/namespaces/demo-bank/queries/demo-agent-query" | jq '.status.responses[0].content'
+curl -s "http://localhost:8000/v1/namespaces/default/queries/demo-agent-query" | jq '.status.responses[0].content'
 
 echo
 
 # Query team via REST API (correct format)
-curl -s -X POST "http://localhost:8000/v1/namespaces/demo-bank/queries" \
+curl -s -X POST "http://localhost:8000/v1/namespaces/default/queries" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "demo-team-query", 
@@ -157,22 +153,22 @@ curl -s -X POST "http://localhost:8000/v1/namespaces/demo-bank/queries" \
 
 # Wait for team completion and get result (teams take longer)
 sleep 8
-curl -s "http://localhost:8000/v1/namespaces/demo-bank/queries/demo-team-query" | jq '.status.responses[0].content'
+curl -s "http://localhost:8000/v1/namespaces/default/queries/demo-team-query" | jq '.status.responses[0].content'
 
 echo
 
 # Check query history via API
-curl "http://localhost:8000/v1/namespaces/demo-bank/queries" | jq '.items[0:3]'
+curl "http://localhost:8000/v1/namespaces/default/queries" | jq '.items[0:3]'
 ```
 
 ### **Step 10: System Status via API**
 ```bash
 # Check all agents status
 echo "📊 System Status via API"
-curl -s "http://localhost:8000/v1/namespaces/demo-bank/agents" | jq '.items[] | {name: .name, available: .available}'
+curl -s "http://localhost:8000/v1/namespaces/default/agents" | jq '.items[] | {name: .name, available: .available}'
 
 # Check team status
-curl -s "http://localhost:8000/v1/namespaces/demo-bank/teams" | jq '.items[] | {name: .name, strategy: .strategy, members_count: .members_count}'
+curl -s "http://localhost:8000/v1/namespaces/default/teams" | jq '.items[] | {name: .name, strategy: .strategy, members_count: .members_count}'
 ```
 
 ---
@@ -201,11 +197,11 @@ echo "AI-specific metrics available in Langfuse integration"
 
 ### **Step 12: Demo Cleanup**
 ```bash
-# Remove demo resources
-kubectl delete namespace demo-bank
+# Remove demo resources (agents, team, model)
+kubectl delete -f demo-resources/banking-demo-all.yaml
 
-# Reset kubectl context to default
-kubectl config set-context --current --namespace=default
+# Remove demo secrets
+kubectl delete secret demo-secrets
 
 echo "✅ Demo cleanup complete"
 ```
@@ -222,7 +218,7 @@ When your `.ark.env` file changes (e.g., daily token updates), refresh the demo 
 
 # The script automatically:
 # - Loads new values from .ark.env
-# - Updates the demo-bank-secrets
+# - Updates the demo-secrets
 # - Triggers model restart to pick up new values
 # - No need to redeploy agents/teams
 

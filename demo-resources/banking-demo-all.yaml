@@ -3,77 +3,37 @@
 # Deploy all agents and team with: kubectl apply -f banking-demo-all.yaml
 
 ---
-# Default Model for demo-bank namespace
+# Demo Model for default namespace
 apiVersion: ark.mckinsey.com/v1alpha1
 kind: Model
 metadata:
-  name: default
-  namespace: demo-bank
+  name: demo-model
+  namespace: default
 spec:
   type: azure
   model:
     valueFrom:
       secretKeyRef:
         key: model-version
-        name: demo-bank-secrets
+        name: demo-secrets
   config:
     azure:
       apiKey:
         valueFrom:
           secretKeyRef:
             key: api-key
-            name: demo-bank-secrets
+            name: demo-secrets
       apiVersion:
         valueFrom:
           secretKeyRef:
             key: api-version
-            name: demo-bank-secrets
+            name: demo-secrets
       baseUrl:
         valueFrom:
           secretKeyRef:
             key: base-url
-            name: demo-bank-secrets
+            name: demo-secrets
   pollInterval: 1m
-
----
-# ServiceAccount for demo-bank namespace
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ark-service-account
-  namespace: demo-bank
-
----
-# ClusterRole with ARK permissions
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: ark-demo-role
-rules:
-- apiGroups: ["ark.mckinsey.com"]
-  resources: ["*"]
-  verbs: ["*"]
-- apiGroups: [""]
-  resources: ["*"]
-  verbs: ["*"]
-
----
-# Bind the ClusterRole to the ServiceAccount
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: ark-demo-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: ark-demo-role
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: demo-bank
-- kind: ServiceAccount
-  name: ark-service-account
-  namespace: demo-bank
 
 ---
 # Inquiry Router Agent
@@ -81,7 +41,7 @@ apiVersion: ark.mckinsey.com/v1alpha1
 kind: Agent
 metadata:
   name: inquiry-router
-  namespace: demo-bank
+  namespace: default
   labels:
     category: banking
     capability: classification
@@ -111,7 +71,7 @@ spec:
 
     Always be helpful, professional, and accurate in your classifications.
   modelRef:
-    name: default
+    name: demo-model
 
 ---
 # Account Helper Agent
@@ -119,7 +79,7 @@ apiVersion: ark.mckinsey.com/v1alpha1
 kind: Agent
 metadata:
   name: account-helper
-  namespace: demo-bank
+  namespace: default
   labels:
     category: banking
     capability: account-services
@@ -156,7 +116,7 @@ spec:
 
     Always prioritize customer satisfaction and accuracy.
   modelRef:
-    name: default
+    name: demo-model
 
 ---
 # Loan Advisor Agent
@@ -164,7 +124,7 @@ apiVersion: ark.mckinsey.com/v1alpha1
 kind: Agent
 metadata:
   name: loan-advisor
-  namespace: demo-bank
+  namespace: default
   labels:
     category: banking
     capability: loan-advisory
@@ -207,7 +167,7 @@ spec:
 
     Always encourage customers to speak with a loan officer for personalized advice.
   modelRef:
-    name: default
+    name: demo-model
 
 ---
 # Customer Service Team
@@ -215,7 +175,7 @@ apiVersion: ark.mckinsey.com/v1alpha1
 kind: Team
 metadata:
   name: customer-service-team
-  namespace: demo-bank
+  namespace: default
   labels:
     category: banking
     capability: customer-service

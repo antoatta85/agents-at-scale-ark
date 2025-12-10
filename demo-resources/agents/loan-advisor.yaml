@@ -5,7 +5,7 @@ apiVersion: ark.mckinsey.com/v1alpha1
 kind: Agent
 metadata:
   name: loan-advisor
-  namespace: demo-bank
+  namespace: default
   labels:
     category: banking
     capability: loan-advisory
@@ -48,4 +48,4 @@ spec:
 
     Always encourage customers to speak with a loan officer for personalized advice.
   modelRef:
-    name: default
+    name: demo-model

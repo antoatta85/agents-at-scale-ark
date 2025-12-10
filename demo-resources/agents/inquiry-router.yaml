@@ -5,7 +5,7 @@ apiVersion: ark.mckinsey.com/v1alpha1
 kind: Agent
 metadata:
   name: inquiry-router
-  namespace: demo-bank
+  namespace: default
   labels:
     category: banking
     capability: classification
@@ -35,4 +35,4 @@ spec:
 
     Always be helpful, professional, and accurate in your classifications.
   modelRef:
-    name: default
+    name: demo-model

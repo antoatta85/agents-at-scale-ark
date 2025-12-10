@@ -5,7 +5,7 @@ apiVersion: ark.mckinsey.com/v1alpha1
 kind: Team
 metadata:
   name: customer-service-team
-  namespace: demo-bank
+  namespace: default
   labels:
     category: banking
     capability: customer-service

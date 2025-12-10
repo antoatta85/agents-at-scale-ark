@@ -5,7 +5,7 @@ apiVersion: ark.mckinsey.com/v1alpha1
 kind: Agent
 metadata:
   name: account-helper
-  namespace: demo-bank
+  namespace: default
   labels:
     category: banking
     capability: account-services
@@ -42,4 +42,4 @@ spec:
 
     Always prioritize customer satisfaction and accuracy.
   modelRef:
-    name: default
+    name: demo-model
