@@ -17,6 +17,8 @@ from .ark_services import router as ark_services_router
 from .events import router as events_router
 from .evaluations import router as evaluations_router
 from .evaluators import router as evaluators_router
+from .api_keys import router as api_keys_router
+from .a2a_tasks import router as a2a_tasks_router
 
 router = APIRouter(prefix="/v1", tags=["v1"])
 
@@ -30,6 +32,7 @@ router.include_router(queries_router)
 router.include_router(tools_router)
 router.include_router(mcp_servers_router)
 router.include_router(a2a_servers_router)
+router.include_router(a2a_tasks_router)
 router.include_router(memories_router)
 router.include_router(memory_messages_router)
 router.include_router(sessions_router)
@@ -38,3 +41,4 @@ router.include_router(ark_services_router)
 router.include_router(events_router)
 router.include_router(evaluations_router)
 router.include_router(evaluators_router)
+router.include_router(api_keys_router)

@@ -16,6 +16,12 @@ spec:
         outputs:
         - name: azure
           value: (json_parse($stdout))
+    - script:
+        content: |
+          helm install ark-tenant ../../charts/ark-tenant --namespace $NAMESPACE --create-namespace --wait
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
     - apply:
         file: manifests/*.yaml
 
@@ -50,7 +56,8 @@ spec:
           metadata:
             name: test-query-jq-filtered
           status:
-            phase: done
+            (conditions[?type == 'Completed']):
+            - status: 'True'
     catch:
     - events: {}
     - describe:
@@ -67,7 +74,8 @@ spec:
           metadata:
             name: test-query-unfiltered
           status:
-            phase: done
+            (conditions[?type == 'Completed']):
+            - status: 'True'
     catch:
     - events: {}
     - describe:

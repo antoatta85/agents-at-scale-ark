@@ -3,35 +3,17 @@
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-type HeaderValue struct {
-	// +kubebuilder:validation:Optional
-	Value string `json:"value,omitempty"`
-	// +kubebuilder:validation:Optional
-	ValueFrom *HeaderValueSource `json:"valueFrom,omitempty"`
-}
-
-type HeaderValueSource struct {
-	// +kubebuilder:validation:Optional
-	SecretKeyRef *corev1.SecretKeySelector `json:"secretKeyRef,omitempty"`
-}
-
-type Header struct {
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name"`
-	// +kubebuilder:validation:Required
-	Value HeaderValue `json:"value"`
-}
 
 type MCPServerSpec struct {
 	// +kubebuilder:validation:Required
 	Address ValueSource `json:"address"`
 	// +kubebuilder:validation:Optional
 	Headers []Header `json:"headers,omitempty"`
+	// Timeout specifies the maximum duration for MCP tool calls to this server.
+	// Use this to support long-running operations (e.g., "5m", "10m", "30m").
+	// Defaults to "30s" if not specified.
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="30s"
 	Timeout string `json:"timeout,omitempty"`
@@ -63,7 +45,7 @@ type MCPServerStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status",description="Ready status"
+// +kubebuilder:printcolumn:name="Available",type="string",JSONPath=".status.conditions[?(@.type=='Available')].status"
 // +kubebuilder:printcolumn:name="Discovering",type="string",JSONPath=".status.conditions[?(@.type=='Discovering')].status",description="Discovery status"
 // +kubebuilder:printcolumn:name="Tools",type="integer",JSONPath=".status.toolCount",description="Number of tools"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Age"

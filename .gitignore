@@ -6,16 +6,18 @@
 scratch.md
 .ark.env
 .env
-tools/fark/fark
+tools/fark/bin/fark
 services/a2agw/a2agw
 .artifacts/
 local.mk
 .vscode/
 /local.mk
 .venv/
+venv/
 help.mk
 
 .venv/
+testenv/
 
 # Coverage reports
 coverage/
@@ -30,11 +32,13 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+*.egg-info/
+.pytest_cache/
 
 # Local development
 .ark-sdk-local/
 .ark.env
-
+ark-export.yaml
 
 # Icon must end with two \r
 Icon
@@ -124,6 +128,7 @@ terraform.rc
 *.iws
 *.iml
 *.ipr
+screenshots
 
 # Runtime binaries
 runtime/bin/controller-gen*
@@ -151,3 +156,9 @@ node_modules/
 .devspace/
 services/*/ark_sdk-*.whl
 services/ark-dashboard/ark-dashboard/lib/api/generated/openapi.json
+
+# Helm chart dependencies
+**/charts/*.tgz
+
+# Personal/local artifacts and experimental files
+vibe_artifacts/

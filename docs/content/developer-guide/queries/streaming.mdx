@@ -30,7 +30,7 @@ The Ark OpenAI completions API returns a streaming response when `stream: true` 
 
 ```bash
 # Curl the ark api completions endpoint with streaming enabled.
-curl -N -X POST http://localhost:8080/openai/v1/chat/completions \
+curl -N -X POST http://ark-api.default.127.0.0.1.nip.io:8080/openai/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "model/gpt-4",
@@ -103,6 +103,8 @@ This means that OpenAI compability is not possible when querying teams with stre
 
 The `ark` metadata field identifies which agent is currently contributing, as well as other parameters for the query. This is essential when trying to process responses from targets such as teams, which will contain stream chunks for multiple agents and tools.
 
+All chunks include `ark` metadata:
+
 ```json
 {
   "ark": {
@@ -115,6 +117,38 @@ The `ark` metadata field identifies which agent is currently contributing, as we
   }
 }
 ```
+
+The final chunk also includes the complete query object:
+
+```json
+{
+  "ark": {
+    "query": "789",
+    "completedQuery": {              // Complete Query object (final chunk only)
+      "metadata": {
+        "name": "my-query",
+        "annotations": {
+          "ark.mckinsey.com/a2a-context-id": "ctx-abc123"
+        }
+      },
+      "spec": {
+        "input": "...",
+        "sessionId": "sess-123"
+      },
+      "status": {
+        "phase": "done",
+        "tokenUsage": {...},
+        "a2a": {                     // A2A protocol metadata
+          "contextId": "ctx-abc123",
+          "taskId": "task-xyz789"
+        }
+      }
+    }
+  }
+}
+```
+
+The `completedQuery` field contains the complete [Query object](/reference/resources/query) including metadata, spec, and status. This provides access to annotations, labels, token usage, and A2A metadata. This field is only present in the final chunk.
 
 Clients aware of this field can display rich multi-agent interactions and tool calls. The `ark` CLI demonstrates this with the `chat` function, which shows team member responses and intermediate tool calls.
 
@@ -149,27 +183,27 @@ All OpenAI-compatible chunks are passed through as-is, including text content, t
 
 If a query target does not support streaming (as is currently the case for some models), then as-per the OpenAI specification the streaming APIs will return the entire response in a single chunk at the end of query execution.
 
-### Event Streaming Backend
+### Event Streaming Service
 
-A `Memory` resource that implements the [Event Stream API](#event-stream-api) provides the streaming backend. Set the `ark.mckinsey.com/memory-event-stream-enabled` annotation to indicate that a memory supports streaming:
+An Event Streaming Service is any service that implements the [Event Stream API](#event-stream-api). To configure event streaming, deploy a ConfigMap that specifies the service that should be used:
 
 ```yaml
-apiVersion: ark.mckinsey.com/v1alpha1
-kind: Memory
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: streaming-memory
-  annotations:
-    # Indicates that this memory service offers the event stream API.
-    ark.mckinsey.com/memory-event-stream-enabled: "true"
-spec:
-  address:
-    valueFrom:
-      serviceRef:
-        name: streaming-memory
-        port: 8080
+  name: ark-config-streaming
+  namespace: default
+data:
+  enabled: "true"
+  serviceRef: |
+    name: ark-cluster-memory  # Service that implements the Event Stream API
+    port: "http"              # Port name from the service definition
+    namespace: ""             # Optional: namespace (defaults to current namespace)
 ```
 
-The `ark-cluster-memory` service implements this API. In future releases, a dedicated EventStream resource will be introduced. 
+When this ConfigMap is present and `enabled` is set to `"true"`, the Query Controller will use the specified service for event streaming. If the ConfigMap is not present or `enabled` is `"false"`, streaming is disabled. If a query is issued with the `streaming-enabled` annotation set to `true` and no event streaming service is available, a warning will be logged.
+
+The `ark-cluster-memory` service implements this API when deployed with streaming enabled. 
 
 ### Tool/Function Calling in Streams
 

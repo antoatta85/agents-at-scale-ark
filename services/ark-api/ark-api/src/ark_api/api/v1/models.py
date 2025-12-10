@@ -1,7 +1,8 @@
 """Kubernetes models API endpoints."""
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
+from typing import Optional
 
 from ark_sdk.client import with_ark_client
 
@@ -17,7 +18,7 @@ from .exceptions import handle_k8s_errors
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/namespaces/{namespace}/models", tags=["models"])
+router = APIRouter(prefix="/models", tags=["models"])
 
 # CRD configuration
 VERSION = "v1alpha1"
@@ -55,12 +56,15 @@ def model_to_detail_response(model: dict) -> ModelDetailResponse:
     # Process config to preserve value/valueFrom structure
     raw_config = spec.get("config", {})
     processed_config = {}
-    
+
     for provider, provider_config in raw_config.items():
         if isinstance(provider_config, dict):
             processed_config[provider] = {}
             for key, value_obj in provider_config.items():
-                if isinstance(value_obj, dict):
+                if key == "headers" and isinstance(value_obj, list):
+                    # Preserve headers as a list structure, not wrapped in value
+                    processed_config[provider][key] = value_obj
+                elif isinstance(value_obj, dict):
                     # Preserve the full structure for both value and valueFrom
                     processed_config[provider][key] = value_obj
                 else:
@@ -81,7 +85,7 @@ def model_to_detail_response(model: dict) -> ModelDetailResponse:
 
 @router.get("", response_model=ModelListResponse)
 @handle_k8s_errors(operation="list", resource_type="model")
-async def list_models(namespace: str) -> ModelListResponse:
+async def list_models(namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> ModelListResponse:
     """
     List all Model CRs in a namespace.
     
@@ -106,7 +110,7 @@ async def list_models(namespace: str) -> ModelListResponse:
 
 @router.post("", response_model=ModelDetailResponse)
 @handle_k8s_errors(operation="create", resource_type="model")
-async def create_model(namespace: str, body: ModelCreateRequest) -> ModelDetailResponse:
+async def create_model(body: ModelCreateRequest, namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> ModelDetailResponse:
     """
     Create a new Model CR.
     
@@ -124,16 +128,20 @@ async def create_model(namespace: str, body: ModelCreateRequest) -> ModelDetailR
         if body.config.openai and body.type == "openai":
             config_dict["openai"] = {}
             # Convert to the expected format with value/valueFrom
-            for field, value in body.config.openai.model_dump(by_alias=True).items():
-                if isinstance(value, dict) and ("value" in value or "valueFrom" in value):
+            for field, value in body.config.openai.model_dump(by_alias=True, exclude_none=True).items():
+                if field == "headers" and value is not None:
+                    config_dict["openai"][field] = value
+                elif isinstance(value, dict) and ("value" in value or "valueFrom" in value):
                     config_dict["openai"][field] = value
                 elif isinstance(value, str):
                     config_dict["openai"][field] = {"value": value}
                     
         elif body.config.azure and body.type == "azure":
             config_dict["azure"] = {}
-            for field, value in body.config.azure.model_dump(by_alias=True).items():
-                if isinstance(value, dict) and ("value" in value or "valueFrom" in value):
+            for field, value in body.config.azure.model_dump(by_alias=True, exclude_none=True).items():
+                if field == "headers" and value is not None:
+                    config_dict["azure"][field] = value
+                elif isinstance(value, dict) and ("value" in value or "valueFrom" in value):
                     config_dict["azure"][field] = value
                 elif isinstance(value, str):
                     config_dict["azure"][field] = {"value": value}
@@ -178,7 +186,7 @@ async def create_model(namespace: str, body: ModelCreateRequest) -> ModelDetailR
 
 @router.get("/{model_name}", response_model=ModelDetailResponse)
 @handle_k8s_errors(operation="get", resource_type="model")
-async def get_model(namespace: str, model_name: str) -> ModelDetailResponse:
+async def get_model(model_name: str, namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> ModelDetailResponse:
     """
     Get a specific Model CR by name.
     
@@ -197,7 +205,7 @@ async def get_model(namespace: str, model_name: str) -> ModelDetailResponse:
 
 @router.put("/{model_name}", response_model=ModelDetailResponse)
 @handle_k8s_errors(operation="update", resource_type="model")
-async def update_model(namespace: str, model_name: str, body: ModelUpdateRequest) -> ModelDetailResponse:
+async def update_model(model_name: str, body: ModelUpdateRequest, namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> ModelDetailResponse:
     """
     Update a Model CR by name.
     
@@ -225,16 +233,20 @@ async def update_model(namespace: str, model_name: str, body: ModelUpdateRequest
             
             if body.config.openai and model_type == "openai":
                 config_dict["openai"] = {}
-                for field, value in body.config.openai.model_dump(by_alias=True).items():
-                    if isinstance(value, dict) and ("value" in value or "valueFrom" in value):
+                for field, value in body.config.openai.model_dump(by_alias=True, exclude_none=True).items():
+                    if field == "headers" and value is not None:
+                        config_dict["openai"][field] = value
+                    elif isinstance(value, dict) and ("value" in value or "valueFrom" in value):
                         config_dict["openai"][field] = value
                     elif isinstance(value, str):
                         config_dict["openai"][field] = {"value": value}
                         
             elif body.config.azure and model_type == "azure":
                 config_dict["azure"] = {}
-                for field, value in body.config.azure.model_dump(by_alias=True).items():
-                    if isinstance(value, dict) and ("value" in value or "valueFrom" in value):
+                for field, value in body.config.azure.model_dump(by_alias=True, exclude_none=True).items():
+                    if field == "headers" and value is not None:
+                        config_dict["azure"][field] = value
+                    elif isinstance(value, dict) and ("value" in value or "valueFrom" in value):
                         config_dict["azure"][field] = value
                     elif isinstance(value, str):
                         config_dict["azure"][field] = {"value": value}
@@ -267,7 +279,7 @@ async def update_model(namespace: str, model_name: str, body: ModelUpdateRequest
 
 @router.delete("/{model_name}", status_code=204)
 @handle_k8s_errors(operation="delete", resource_type="model")
-async def delete_model(namespace: str, model_name: str) -> None:
+async def delete_model(model_name: str, namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> None:
     """
     Delete a Model CR by name.
     

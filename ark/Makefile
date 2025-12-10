@@ -50,7 +50,7 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition (CRD) objects.
 	$(CONTROLLER_GEN) rbac:roleName=ark-controller-role,fileName=ark_controller_role.yaml crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
@@ -67,30 +67,12 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet setup-envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test -v $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
 # TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
 # CertManager is installed by default; skip with:
 # - CERT_MANAGER_INSTALL_SKIP=true
-KIND_CLUSTER ?= ark-test-e2e
-
-.PHONY: setup-test-e2e
-setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
-	@command -v $(KIND) >/dev/null 2>&1 || { \
-		echo "Kind is not installed. Please install Kind manually."; \
-		exit 1; \
-	}
-	$(KIND) create cluster --name $(KIND_CLUSTER)
-
-.PHONY: test-e2e
-test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	KIND_CLUSTER=$(KIND_CLUSTER) go test ./test/e2e/ -v -ginkgo.v
-	$(MAKE) cleanup-test-e2e
-
-.PHONY: cleanup-test-e2e
-cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
-	@$(KIND) delete cluster --name $(KIND_CLUSTER)
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
@@ -107,7 +89,7 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 ##@ Build
 
 .PHONY: build
-build: manifests generate fmt vet ## Build manager binary.
+build: validate-chart-crds manifests generate fmt vet ## Build manager binary.
 	go build $(LDFLAGS) -o bin/manager cmd/main.go
 
 .PHONY: run
@@ -145,6 +127,10 @@ chart: manifests
 	@echo ""
 	@exit 1
 
+.PHONY: validate-chart-crds
+validate-chart-crds: ## Validate that CRDs in Helm chart match source CRDs
+	@./scripts/validate-chart-crds.sh
+
 .PHONY: build-container
 build-container: ## Build the ark-controller
 	$(CONTAINER_TOOL) build \
@@ -164,6 +150,7 @@ deploy: manifests ## Deploy controller and cert-manager to the K8s cluster speci
 		--set crds.enabled=true
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
 	../scripts/build-and-push.sh -i $(IMAGE) -t $(IMAGE_TAG) -f Dockerfile -c . -b VERSION=$(VERSION) -b GIT_COMMIT=$(GIT_COMMIT)
+	# Deploy controller with impersonation enabled for development
 	helm upgrade --install ark-controller ./dist/chart \
 		--namespace ark-system \
 		--create-namespace \
@@ -171,16 +158,12 @@ deploy: manifests ## Deploy controller and cert-manager to the K8s cluster speci
 		--set controllerManager.container.image.repository=$(IMAGE) \
 		--set controllerManager.container.image.tag=$(IMAGE_TAG) \
 		--set controllerManager.container.image.pullPolicy=IfNotPresent \
-		--set rbac.enable=true
-	# Apply default namespace RBAC separately (not included in Helm chart)
-	$(KUBECTL) apply -f config/rbac/ark_tenant_role.yaml
-	$(KUBECTL) apply -f config/rbac/ark_tenant_role_binding.yaml
+		--set rbac.enable=true \
+		--set rbac.impersonation.enabled=true
 
 .PHONY: undeploy
 undeploy: ## Remove ARK controller from the cluster
 	helm uninstall ark-controller -n ark-system --ignore-not-found
-	$(KUBECTL) delete -f config/rbac/ark_tenant_role_binding.yaml --ignore-not-found=true
-	$(KUBECTL) delete -f config/rbac/ark_tenant_role.yaml --ignore-not-found=true
 	# Clean up ARK CRDs that might conflict with Helm ownership
 	$(KUBECTL) get crd -o name | grep ark.mckinsey.com | xargs -r $(KUBECTL) delete --ignore-not-found=true || true
 	# Clean up ARK ClusterRoles and ClusterRoleBindings that might conflict with Helm ownership

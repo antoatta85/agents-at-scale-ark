@@ -143,7 +143,10 @@ class TeamGenerator {
           {name: 'Sequential - Agents execute in order', value: 'sequential'},
           {name: 'Round Robin - Agents take turns', value: 'round-robin'},
           {name: 'Graph - Custom workflow with dependencies', value: 'graph'},
-          {name: 'Selector - AI chooses the next agent', value: 'selector'},
+          {
+            name: 'Selector - AI chooses the next agent (can add graph constraints)',
+            value: 'selector',
+          },
         ],
         default: 'sequential',
       },
@@ -584,14 +587,14 @@ class TeamGenerator {
         );
         console.log(
           chalk.gray(
-            `  3. Deploy with: helm upgrade --install ${config.projectName} .`
+            `  3. Deploy with: helm upgrade --install ${config.projectName} . --namespace ${config.projectName}`
           )
         );
         console.log(chalk.gray(`  4. Test with: kubectl get teams,queries`));
       } else {
         console.log(
           chalk.gray(
-            `  2. Deploy with: helm upgrade --install ${config.projectName} .`
+            `  2. Deploy with: helm upgrade --install ${config.projectName} . --namespace ${config.projectName}`
           )
         );
         console.log(chalk.gray(`  3. Test with: kubectl get teams`));

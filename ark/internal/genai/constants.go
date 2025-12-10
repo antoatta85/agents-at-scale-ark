@@ -1,5 +1,10 @@
 package genai
 
+// Common string constants
+const (
+	TrueString = "true"
+)
+
 // Model type constants
 const (
 	ModelTypeAzure   = "azure"
@@ -23,7 +28,20 @@ const (
 
 // Tool type constants
 const (
-	ToolTypeHTTP  = "http"
-	ToolTypeMCP   = "mcp"
-	ToolTypeAgent = "agent"
+	ToolTypeHTTP    = "http"
+	ToolTypeMCP     = "mcp"
+	ToolTypeAgent   = "agent"
+	ToolTypeTeam    = "team"
+	ToolTypeBuiltin = "builtin"
+)
+
+// Team member type constants
+const (
+	MemberTypeAgent = "agent"
+)
+
+// Built-in tool name constants
+const (
+	BuiltinToolNoop      = "noop"
+	BuiltinToolTerminate = "terminate"
 )

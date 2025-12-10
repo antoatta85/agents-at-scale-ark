@@ -9,6 +9,8 @@ Agents are the core execution units in Agents at Scale. They receive inputs, pro
 
 An agent wraps an AI model with a specific prompt and configuration, creating a reusable component that can be queried by other agents or directly through queries. Agents can reference tools and models to extend their capabilities.
 
+Agents support [overrides](/user-guide/overrides) to dynamically inject headers when interacting with models and MCP servers.
+
 ## Specification
 
 ```yaml
@@ -61,6 +63,12 @@ After all the above steps, we can now query the agent using fark as below:
 fark query weather-query
 ```
 
+Or:
+
+```bash
+ark query agent/sample-agent "What's the weather in London?"
+```
+
 ## Modifying Agents
 
 You can modify existing agents in several ways:
@@ -107,9 +115,6 @@ kubectl describe agent weather
 
 # View the full agent configuration
 kubectl get agent weather -o yaml
-
-# Check agent status through ARK CLI
-ark check status
 ```
 
 ### Verify Agent Functionality

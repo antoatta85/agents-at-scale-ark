@@ -14,6 +14,12 @@ spec:
         outputs:
         - name: azure
           value: (json_parse($stdout))
+    - script:
+        content: |
+          helm install ark-tenant ../../charts/ark-tenant --namespace $NAMESPACE --create-namespace --wait
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
     - apply:
         file: manifests/*.yaml
   - name: wait-for-query-completion
@@ -25,8 +31,9 @@ spec:
           metadata:
             name: test-graph-team
           status:
-            phase: done
-        timeout: 60s
+            (conditions[?type == 'Completed']):
+            - status: 'True'
+        timeout: 180s
 
   - name: validate-graph-execution
     try:

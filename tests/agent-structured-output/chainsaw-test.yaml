@@ -6,6 +6,8 @@ spec:
   description: Test agent structured output with JSON schema
   timeouts:
     apply: 30s
+    # Extended timeout as model probes can take time to validate availability
+    assert: 120s
     cleanup: 30s
   steps:
   - name: deploy-resources
@@ -18,6 +20,12 @@ spec:
         outputs:
         - name: azure
           value: (json_parse($stdout))
+    - script:
+        content: |
+          helm install ark-tenant ../../charts/ark-tenant --namespace $NAMESPACE --create-namespace --wait
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
     - apply:
         file: manifests/*.yaml
 
@@ -55,7 +63,8 @@ spec:
             name: structured-output-test-query
             namespace: ($namespace)
           status:
-            phase: done
+            (conditions[?type == 'Completed']):
+            - status: 'True'
     catch:
     - events: {}
     - describe:
@@ -74,7 +83,8 @@ spec:
             name: structured-output-test-query
             namespace: ($namespace)
           status:
-            phase: done
+            (conditions[?type == 'Completed']):
+            - status: 'True'
             (contains(['positive', 'negative', 'neutral'], json_parse(responses[0].content).sentiment)): true
             (json_parse(responses[0].content).confidence >= `0`): true
             (json_parse(responses[0].content).confidence <= `1`): true

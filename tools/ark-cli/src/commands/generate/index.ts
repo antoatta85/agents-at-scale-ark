@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import path from 'path';
 import {fileURLToPath} from 'url';
+import type {ArkConfig} from '../../lib/config.js';
 import {
   createProjectGenerator,
   createAgentGenerator,
@@ -70,7 +71,7 @@ function getDefaultDestination(): string {
   }
 }
 
-export function createGenerateCommand(): Command {
+export function createGenerateCommand(_: ArkConfig): Command {
   const generate = new Command('generate');
   generate
     .alias('g')
@@ -111,7 +112,7 @@ ${chalk.cyan('Getting started:')}
   1. ${chalk.yellow('ark generate project my-first-project')}  # Create project
   2. ${chalk.yellow('cd my-first-project')}                   # Enter directory
   3. ${chalk.yellow('source .env')}                          # Set environment
-  4. ${chalk.yellow('make quickstart')}                     # Deploy to cluster
+  4. ${chalk.yellow('devspace dev')}                         # Deploy to cluster
 `
     );
 
@@ -284,11 +285,10 @@ ${chalk.cyan('Use Cases:')}
           : undefined
       )
       .option(
-        '-i, --interactive',
+        '--no-interactive',
         type === 'marketplace'
           ? 'Not supported for marketplace'
-          : 'Force additional configuration prompts (generators prompt by default when info is missing)',
-        false
+          : 'Skip interactive prompts and use defaults (prompts by default)'
       );
 
     if (helpText?.examples) {
@@ -462,7 +462,7 @@ ${chalk.cyan('Use Cases:')}
       console.log(chalk.cyan('\n📖 Quick Start:'));
       console.log(chalk.gray('  1. ark generate project my-first-project'));
       console.log(chalk.gray('  2. cd my-first-project && source .env'));
-      console.log(chalk.gray('  3. make quickstart'));
+      console.log(chalk.gray('  3. devspace dev'));
 
       console.log(chalk.cyan('\n🔧 Usage:'));
       console.log(chalk.gray('  ark generate <type> [name] [options]'));

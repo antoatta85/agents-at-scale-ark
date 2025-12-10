@@ -29,6 +29,9 @@ docs: # run the documentation site with live-reload
 quickstart: # HELP: get everything up and running and ready to go
 	@./scripts/quickstart.sh
 
+quickstart-force: # Force quickstart to run
+	@FORCE=true ./scripts/quickstart.sh -f
+
 .PHONY: quickstart-reconfigure-default-model
 quickstart-reconfigure-default-model: # HELP: reconfigure the default model with fresh credentials
 	@./scripts/quickstart-reconfigure-default-model.sh
@@ -53,7 +56,7 @@ test-all: libs-test-all services-test-all tools-test-all # test all libraries, s
 
 
 .PHONY: dashboard
-dashboard: $(ARK_DASHBOARD_STAMP_INSTALL) routes # HELP: install ark dashboard and show all available routes
+dashboard: $(ARK_DASHBOARD_STAMP_INSTALL) # HELP: install ark dashboard
 
 .PHONY: standup
 standup: $(STAMP_QUICKSTART) $(ARK_DASHBOARD_STAMP_INSTALL) # HELP: standup the system from scratch
@@ -69,12 +72,8 @@ install-all: $(INSTALL_TARGETS) # install core services
 uninstall-all: $(UNINSTALL_TARGETS) # uninstall core services
 
 .PHONY: clean
-clean: 
+clean:
 	@rm -rf $(OUT) $(CLEAN_TARGETS)
-
-.PHONY: routes
-routes: # HELP: Show available Gateway routes and their URLs
-	@NAMESPACE=ark-system PORT=8080 $(LOCALHOST_GATEWAY_SERVICE_DIR)/scripts/show-routes.sh
 
 .PHONY: status
 status: # HELP: Show status of localhost-gateway installation

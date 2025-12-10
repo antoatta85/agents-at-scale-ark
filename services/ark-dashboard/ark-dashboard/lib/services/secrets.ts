@@ -1,53 +1,54 @@
-import { apiClient } from '@/lib/api/client'
-import type { components } from '@/lib/api/generated/types'
+import { apiClient } from '@/lib/api/client';
+import type { components } from '@/lib/api/generated/types';
 
 // Use the generated type from OpenAPI
-export type Secret = components['schemas']['SecretResponse']
-export type SecretListResponse = components['schemas']['SecretListResponse']
-export type SecretCreateRequest = components['schemas']['SecretCreateRequest']
-export type SecretUpdateRequest = components['schemas']['SecretUpdateRequest']
-export type SecretDetailResponse = components['schemas']['SecretDetailResponse']
+export type Secret = components['schemas']['SecretResponse'];
+export type SecretListResponse = components['schemas']['SecretListResponse'];
+export type SecretCreateRequest = components['schemas']['SecretCreateRequest'];
+export type SecretUpdateRequest = components['schemas']['SecretUpdateRequest'];
+export type SecretDetailResponse =
+  components['schemas']['SecretDetailResponse'];
 
 // Service with list operation
 export const secretsService = {
   // Get all secrets for a given namespace
-  async getAll(namespace: string): Promise<Secret[]> {
-    const response = await apiClient.get<SecretListResponse>(`/api/v1/namespaces/${namespace}/secrets`)
-    return response.items
+  async getAll(): Promise<Secret[]> {
+    const response = await apiClient.get<SecretListResponse>(`/api/v1/secrets`);
+    return response.items;
   },
 
   // Create a new secret
-  async create(namespace: string, name: string, password: string): Promise<SecretDetailResponse> {
+  async create(name: string, password: string): Promise<SecretDetailResponse> {
     const request: SecretCreateRequest = {
       name,
       string_data: {
-        token: password
+        token: password,
       },
-      type: 'Opaque'
-    }
+      type: 'Opaque',
+    };
     const response = await apiClient.post<SecretDetailResponse>(
-      `/api/v1/namespaces/${namespace}/secrets`,
-      request
-    )
-    return response
+      `/api/v1/secrets`,
+      request,
+    );
+    return response;
   },
 
   // Update an existing secret
-  async update(namespace: string, name: string, password: string): Promise<SecretDetailResponse> {
+  async update(name: string, password: string): Promise<SecretDetailResponse> {
     const request: SecretUpdateRequest = {
       string_data: {
-        token: password
-      }
-    }
+        token: password,
+      },
+    };
     const response = await apiClient.put<SecretDetailResponse>(
-      `/api/v1/namespaces/${namespace}/secrets/${name}`,
-      request
-    )
-    return response
+      `/api/v1/secrets/${name}`,
+      request,
+    );
+    return response;
   },
 
   // Delete a secret
-  async delete(namespace: string, name: string): Promise<void> {
-    await apiClient.delete(`/api/v1/namespaces/${namespace}/secrets/${name}`)
-  }
-}
+  async delete(name: string): Promise<void> {
+    await apiClient.delete(`/api/v1/secrets/${name}`);
+  },
+};

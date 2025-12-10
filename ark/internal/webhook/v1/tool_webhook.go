@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -79,8 +79,12 @@ func (v *ToolCustomValidator) validateTool(_ context.Context, tool *arkv1alpha1.
 		return v.validateMCPTool(tool.Spec.MCP)
 	case genai.ToolTypeAgent:
 		return v.validateAgentTool(tool.Spec.Agent.Name)
+	case genai.ToolTypeTeam:
+		return v.validateTeamTool(tool.Spec.Team.Name)
+	case genai.ToolTypeBuiltin:
+		return v.validateBuiltinTool(tool.Name)
 	default:
-		return warnings, fmt.Errorf("unsupported tool type '%s': supported types are: http, mcp", tool.Spec.Type)
+		return warnings, fmt.Errorf("unsupported tool type '%s': supported types are: http, mcp, agent, team, builtin", tool.Spec.Type)
 	}
 }
 
@@ -140,6 +144,30 @@ func (v *ToolCustomValidator) validateAgentTool(agent string) (admission.Warning
 	}
 
 	return warnings, nil
+}
+
+// validateTeamTool validates Team-specific configuration
+func (v *ToolCustomValidator) validateTeamTool(team string) (admission.Warnings, error) {
+	var warnings admission.Warnings
+	if team == "" {
+		return warnings, fmt.Errorf("team field is required for team type")
+	}
+
+	return warnings, nil
+}
+
+// validateBuiltinTool validates Builtin-specific configuration
+func (v *ToolCustomValidator) validateBuiltinTool(toolName string) (admission.Warnings, error) {
+	var warnings admission.Warnings
+
+	supportedBuiltinTools := []string{genai.BuiltinToolNoop, genai.BuiltinToolTerminate}
+	for _, supportedTool := range supportedBuiltinTools {
+		if toolName == supportedTool {
+			return warnings, nil
+		}
+	}
+
+	return warnings, fmt.Errorf("unsupported builtin tool '%s': supported builtin tools are: %v", toolName, supportedBuiltinTools)
 }
 
 // validateInputSchema validates the tool's inputSchema using jsonschema

@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/api/client";
+import { apiClient } from '@/lib/api/client';
 
 // Event interface for UI compatibility
 export interface Event {
@@ -62,21 +62,21 @@ function buildEventApiParams(filters: EventFilters): URLSearchParams {
   const params = new URLSearchParams();
 
   if (filters.type) {
-    params.append("type", filters.type);
+    params.append('type', filters.type);
   }
   if (filters.kind) {
-    params.append("kind", filters.kind);
+    params.append('kind', filters.kind);
   }
   if (filters.name) {
-    params.append("name", filters.name);
+    params.append('name', filters.name);
   }
   if (filters.limit) {
-    params.append("limit", filters.limit.toString());
+    params.append('limit', filters.limit.toString());
   }
   if (filters.page !== undefined) {
-    params.append("page", filters.page.toString());
+    params.append('page', filters.page.toString());
   } else {
-    params.append("page", "1");
+    params.append('page', '1');
   }
 
   return params;
@@ -84,52 +84,50 @@ function buildEventApiParams(filters: EventFilters): URLSearchParams {
 
 // Helper function to log API request details
 function logApiRequest(
-  namespace: string,
   filters: EventFilters,
   params: URLSearchParams,
-  url: string
+  url: string,
 ): void {
-  console.log("Building events API request with params:", {
-    namespace,
+  console.log('Building events API request with params:', {
     filters,
     paramsEntries: [...params.entries()].map(([k, v]) => `${k}=${v}`),
-    originalParams: params.toString()
+    originalParams: params.toString(),
   });
-  console.log("Final API URL:", url);
+  console.log('Final API URL:', url);
 }
 
 // Helper function to log API response details
 function logApiResponse(url: string, response: EventListResponse | null): void {
-  console.log("Events API response:", {
+  console.log('Events API response:', {
     url,
     hasItems: !!response?.items,
     itemsCount: response?.items?.length ?? 0,
     totalProvided: response?.total,
     responseKeys: response ? Object.keys(response) : [],
-    responseItems: response?.items ? response.items.length : 0
+    responseItems: response?.items ? response.items.length : 0,
   });
 }
 
 // Helper function to map API response to Event interface
 function mapEventApiResponseToEvent(response: EventApiResponse): Event {
   return {
-    id: response.uid ?? response.name ?? "",
-    name: response.name ?? "",
-    namespace: response.namespace ?? "",
-    type: response.type ?? "",
-    reason: response.reason ?? "",
-    message: response.message ?? "",
+    id: response.uid ?? response.name ?? '',
+    name: response.name ?? '',
+    namespace: response.namespace ?? '',
+    type: response.type ?? '',
+    reason: response.reason ?? '',
+    message: response.message ?? '',
     sourceComponent: response.source_component ?? undefined,
     sourceHost: response.source_host ?? undefined,
-    involvedObjectKind: response.involved_object_kind ?? "",
-    involvedObjectName: response.involved_object_name ?? "",
+    involvedObjectKind: response.involved_object_kind ?? '',
+    involvedObjectName: response.involved_object_name ?? '',
     involvedObjectNamespace: response.involved_object_namespace ?? undefined,
     involvedObjectUid: response.involved_object_uid ?? undefined,
     firstTimestamp: response.first_timestamp ?? undefined,
     lastTimestamp: response.last_timestamp ?? undefined,
     count: response.count ?? 0,
-    creationTimestamp: response.creation_timestamp ?? "",
-    uid: response.uid ?? ""
+    creationTimestamp: response.creation_timestamp ?? '',
+    uid: response.uid ?? '',
   };
 }
 
@@ -137,7 +135,7 @@ function mapEventApiResponseToEvent(response: EventApiResponse): Event {
 function calculateTotalCount(
   response: EventListResponse,
   filters: EventFilters,
-  itemsLength: number
+  itemsLength: number,
 ): number {
   let totalCount = response.total;
 
@@ -156,21 +154,18 @@ function calculateTotalCount(
 }
 
 export const eventsService = {
-  // Get all events in a namespace with optional filters
+  // Get all events with optional filters
   async getAll(
-    namespace: string,
-    filters?: EventFilters
+    filters?: EventFilters,
   ): Promise<{ items: Event[]; total: number }> {
     try {
       const effectiveFilters = filters || {};
       const params = buildEventApiParams(effectiveFilters);
 
       const queryString = params.toString();
-      const url = `/api/v1/namespaces/${namespace}/events${
-        queryString ? `?${queryString}` : ""
-      }`;
+      const url = `/api/v1/events${queryString ? `?${queryString}` : ''}`;
 
-      logApiRequest(namespace, effectiveFilters, params, url);
+      logApiRequest(effectiveFilters, params, url);
 
       const response = await apiClient.get<EventListResponse>(url);
 
@@ -184,23 +179,23 @@ export const eventsService = {
       const totalCount = calculateTotalCount(
         response,
         effectiveFilters,
-        items.length
+        items.length,
       );
 
       return {
         items,
-        total: totalCount
+        total: totalCount,
       };
     } catch (error) {
-      console.error("Failed to fetch events:", error);
+      console.error('Failed to fetch events:', error);
       return { items: [], total: 0 };
     }
   },
 
   // Get a single event by name
-  async get(namespace: string, eventName: string): Promise<Event> {
+  async get(eventName: string): Promise<Event> {
     try {
-      const url = `/api/v1/namespaces/${namespace}/events/${eventName}`;
+      const url = `/api/v1/events/${eventName}`;
       const response = await apiClient.get<EventApiResponse>(url);
 
       return mapEventApiResponseToEvent(response);
@@ -211,45 +206,45 @@ export const eventsService = {
   },
 
   // Helper to fetch events for filter population
-  async _getEventsForFilters(namespace: string): Promise<Event[]> {
+  async _getEventsForFilters(): Promise<Event[]> {
     try {
-      const result = await this.getAll(namespace, { limit: 200 });
+      const result = await this.getAll({ limit: 200 });
       return result.items;
     } catch (error) {
-      console.error("Failed to fetch events for filters:", error);
+      console.error('Failed to fetch events for filters:', error);
       return [];
     }
   },
 
   // Get all filter options
-  async getAllFilterOptions(namespace: string): Promise<{
+  async getAllFilterOptions(): Promise<{
     types: string[];
     kinds: string[];
     names: string[];
   }> {
     try {
-      const events = await this._getEventsForFilters(namespace);
+      const events = await this._getEventsForFilters();
 
-      const types = new Set(events.map((event) => event.type).filter(Boolean));
+      const types = new Set(events.map(event => event.type).filter(Boolean));
       const kinds = new Set(
-        events.map((event) => event.involvedObjectKind).filter(Boolean)
+        events.map(event => event.involvedObjectKind).filter(Boolean),
       );
       const names = new Set(
-        events.map((event) => event.involvedObjectName).filter(Boolean)
+        events.map(event => event.involvedObjectName).filter(Boolean),
       );
 
       return {
         types: Array.from(types).sort((a, b) => a.localeCompare(b)),
         kinds: Array.from(kinds).sort((a, b) => a.localeCompare(b)),
-        names: Array.from(names).sort((a, b) => a.localeCompare(b))
+        names: Array.from(names).sort((a, b) => a.localeCompare(b)),
       };
     } catch (error) {
-      console.error("Failed to fetch filter options:", error);
+      console.error('Failed to fetch filter options:', error);
       return {
         types: [],
         kinds: [],
-        names: []
+        names: [],
       };
     }
-  }
+  },
 };

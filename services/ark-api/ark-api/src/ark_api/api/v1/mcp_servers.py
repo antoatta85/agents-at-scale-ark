@@ -1,7 +1,8 @@
 """Kubernetes MCP servers API endpoints."""
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
+from typing import Optional
 from ark_sdk.models.mcp_server_v1alpha1 import MCPServerV1alpha1
 from ark_sdk.models.mcp_server_v1alpha1_spec import MCPServerV1alpha1Spec
 
@@ -14,11 +15,13 @@ from ...models.mcp_servers import (
     MCPServerUpdateRequest,
     MCPServerDetailResponse
 )
+from ...models.common import AvailabilityStatus, extract_availability_from_conditions
 from .exceptions import handle_k8s_errors
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/namespaces/{namespace}/mcp-servers", tags=["mcp-servers"])
+router = APIRouter(
+    prefix="/mcp-servers", tags=["mcp-servers"])
 
 # CRD configuration
 VERSION = "v1alpha1"
@@ -28,33 +31,25 @@ def mcp_server_to_response(mcp_server: dict) -> MCPServerResponse:
     metadata = mcp_server.get("metadata", {})
     spec = mcp_server.get("spec", {})
     status = mcp_server.get("status", {})
-
     resolved_address = status.get("resolvedAddress")
-
     conditions = status.get("conditions", [])
-    ready = None
-    discovering = None
+    availability = extract_availability_from_conditions(conditions, "Available")
+    #discovering = None
     status_message = None
 
-    for condition in conditions:
-        if condition.get("type") == "Ready":
-            ready = condition.get("status") == "True"
-            if not ready:
-                status_message = condition.get("message")
-        elif condition.get("type") == "Discovering":
-            discovering = condition.get("status") == "True"
-
+    if availability == AvailabilityStatus.FALSE:
+        available_cond = next(filter(lambda c: c.get("type") == "Available", conditions))
+        if available_cond:
+            status_message = available_cond.get("message")
+    
     return MCPServerResponse(
         name=metadata.get("name", ""),
         namespace=metadata.get("namespace", ""),
-        description=spec.get("description"),
-        labels=metadata.get("labels"),
+        status_message=status_message,
         address=resolved_address,
         annotations=metadata.get("annotations"),
         transport=spec.get("transport"),
-        ready=ready,
-        discovering=discovering,
-        status_message=status_message,
+        available=availability,
         tool_count=status.get("toolCount")
     )
 
@@ -64,21 +59,28 @@ def mcp_server_to_detail_response(mcp_server: dict) -> MCPServerDetailResponse:
     metadata = mcp_server.get("metadata", {})
     spec = mcp_server.get("spec", {})
     status = mcp_server.get("status", {})
-    
+    conditions = status.get("conditions", [])
+    availability = extract_availability_from_conditions(conditions, "Available")
+    headers = spec.get("headers", [])
+    logger.info(f"Spec: {status}")
     return MCPServerDetailResponse(
         name=metadata.get("name", ""),
         namespace=metadata.get("namespace", ""),
         description=spec.get("description"),
         labels=metadata.get("labels"),
+        headers=headers,
         annotations=metadata.get("annotations"),
-        spec=spec,
-        status=status
+        available=availability,
+        status=status,
+        address=status.get("resolvedAddress"),
+        transport=spec.get("transport"),
+        tool_count=status.get("toolCount")
     )
 
 
 @router.get("", response_model=MCPServerListResponse)
 @handle_k8s_errors(operation="list", resource_type="mcp server")
-async def list_mcp_servers(namespace: str) -> MCPServerListResponse:
+async def list_mcp_servers(namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> MCPServerListResponse:
     """
     List all MCPServer CRs in a namespace.
     
@@ -101,9 +103,9 @@ async def list_mcp_servers(namespace: str) -> MCPServerListResponse:
         )
 
 
-@router.post("", response_model=MCPServerDetailResponse, include_in_schema=False)
+@router.post("", response_model=MCPServerDetailResponse, include_in_schema=True)
 @handle_k8s_errors(operation="create", resource_type="mcp server")
-async def create_mcp_server(namespace: str, body: MCPServerCreateRequest) -> MCPServerDetailResponse:
+async def create_mcp_server(body: MCPServerCreateRequest, namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> MCPServerDetailResponse:
     """
     Create a new MCPServer CR.
     
@@ -117,7 +119,6 @@ async def create_mcp_server(namespace: str, body: MCPServerCreateRequest) -> MCP
     async with with_ark_client(namespace, VERSION) as ark_client:
         # Build the MCP server spec
         mcp_server_spec = body.spec.model_dump(exclude_none=True)
-        
         # Create the MCPServerV1alpha1 object
         mcp_server_resource = MCPServerV1alpha1(
             metadata={
@@ -130,13 +131,12 @@ async def create_mcp_server(namespace: str, body: MCPServerCreateRequest) -> MCP
         )
         
         created_mcp_server = await ark_client.mcpservers.a_create(mcp_server_resource)
-        
         return mcp_server_to_detail_response(created_mcp_server.to_dict())
 
 
 @router.get("/{mcp_server_name}", response_model=MCPServerDetailResponse)
 @handle_k8s_errors(operation="get", resource_type="mcp server")
-async def get_mcp_server(namespace: str, mcp_server_name: str) -> MCPServerDetailResponse:
+async def get_mcp_server(mcp_server_name: str, namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> MCPServerDetailResponse:
     """
     Get a specific MCPServer CR by name.
     
@@ -155,7 +155,7 @@ async def get_mcp_server(namespace: str, mcp_server_name: str) -> MCPServerDetai
 
 @router.put("/{mcp_server_name}", response_model=MCPServerDetailResponse, include_in_schema=False)
 @handle_k8s_errors(operation="update", resource_type="mcp server")
-async def update_mcp_server(namespace: str, mcp_server_name: str, body: MCPServerUpdateRequest) -> MCPServerDetailResponse:
+async def update_mcp_server(mcp_server_name: str, body: MCPServerUpdateRequest, namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> MCPServerDetailResponse:
     """
     Update a MCPServer CR by name.
     
@@ -192,7 +192,7 @@ async def update_mcp_server(namespace: str, mcp_server_name: str, body: MCPServe
 
 @router.delete("/{mcp_server_name}", status_code=204)
 @handle_k8s_errors(operation="delete", resource_type="mcp server")
-async def delete_mcp_server(namespace: str, mcp_server_name: str) -> None:
+async def delete_mcp_server(mcp_server_name: str, namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> None:
     """
     Delete a MCPServer CR by name.
     

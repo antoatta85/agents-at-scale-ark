@@ -44,6 +44,19 @@ controllerManager:
 # [RBAC]: To enable RBAC (Permissions) configurations
 rbac:
   enable: true
+  # Service account impersonation for multi-tenancy
+  impersonation:
+    # Enable impersonation to allow the controller to execute queries using the
+    # service account specified in each Query resource. This is required for
+    # multi-tenancy and namespace isolation.
+    #
+    # When enabled (default), the controller can impersonate ANY service account.
+    # When disabled, queries can only run with the controller's own identity.
+    #
+    # Note: In future releases, query execution will be handled by per-namespace
+    # 'query executor' pods, separating concerns between the controller (validation,
+    # admission, mutation) and query execution (running with proper identity).
+    enabled: true
 
 # [CRDs]: To enable the CRDs
 crd:
@@ -70,6 +83,8 @@ metrics:
 # the edit command with the '--force' flag
 webhook:
   enable: true
+  timeoutSeconds: 30
+  failurePolicy: Fail
 
 # [PROMETHEUS]: To enable a ServiceMonitor to export metrics to Prometheus set true
 prometheus:
@@ -90,3 +105,10 @@ containerRegistry:
   username: ""
   password: ""
   email: ""
+
+# Custom CA certificate configuration
+# When set, mounts a CA certificate from a Kubernetes secret to trust custom certificate authorities
+customCACert:
+  enabled: false
+  secretName: "custom-ca-cert"
+  key: "ca.crt"

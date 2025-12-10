@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,41 +14,41 @@ import (
 	"mckinsey.com/ark/internal/annotations"
 )
 
-func parseEvaluatorSelector(selectorStrings []string) (*metav1.LabelSelector, error) {
-	if len(selectorStrings) == 0 {
-		return nil, nil
-	}
-
-	matchLabels := make(map[string]string)
-	for _, selector := range selectorStrings {
-		parts := strings.SplitN(selector, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid evaluator selector format: %s (expected key=value)", selector)
-		}
-		matchLabels[parts[0]] = parts[1]
-	}
-
-	return &metav1.LabelSelector{
-		MatchLabels: matchLabels,
-	}, nil
-}
-
-func createQuery(input string, targets []arkv1alpha1.QueryTarget, namespace string, params []arkv1alpha1.Parameter, sessionId string, evaluators []string, evaluatorSelectorStrings []string) (*arkv1alpha1.Query, error) {
-	queryName := fmt.Sprintf("query-%d", time.Now().Unix())
+func createQuery(input string, targets []arkv1alpha1.QueryTarget, namespace string, params []arkv1alpha1.Parameter, sessionId string, timeout *time.Duration) (*arkv1alpha1.Query, error) {
+	queryName := fmt.Sprintf("cli-query-%d", time.Now().Unix())
 
 	spec := &arkv1alpha1.QuerySpec{
-		Input:      input,
+		Input:      runtime.RawExtension{Raw: []byte(input)},
 		Targets:    targets,
 		Parameters: params,
 		SessionId:  sessionId,
 	}
 
-	queryObjectMeta := &metav1.ObjectMeta{
-		Name:      queryName,
-		Namespace: namespace,
+	// Set timeout if provided
+	if timeout != nil {
+		spec.Timeout = &metav1.Duration{Duration: *timeout}
 	}
 
-	return getQuery(evaluators, evaluatorSelectorStrings, spec, queryObjectMeta)
+	// Set TTL to 720 hours (30 days) to keep query resource around like other queries
+	spec.TTL = &metav1.Duration{Duration: 720 * time.Hour}
+
+	queryObjectMeta := &metav1.ObjectMeta{
+		Name:       queryName,
+		Namespace:  namespace,
+		Finalizers: []string{"ark.mckinsey.com/finalizer"},
+		Annotations: map[string]string{
+			"ark.mckinsey.com/fark-created": "true",
+		},
+	}
+
+	return &arkv1alpha1.Query{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "ark.mckinsey.com/v1alpha1",
+			Kind:       "Query",
+		},
+		ObjectMeta: *queryObjectMeta,
+		Spec:       *spec,
+	}, nil
 }
 
 func submitQuery(config *Config, query *arkv1alpha1.Query) error {
@@ -58,6 +57,7 @@ func submitQuery(config *Config, query *arkv1alpha1.Query) error {
 		return fmt.Errorf("failed to convert query: %v", err)
 	}
 
+	// Create the query with finalizer and annotation already set
 	_, err = config.DynamicClient.Resource(GetGVR(ResourceQuery)).Namespace(query.Namespace).Create(
 		context.TODO(),
 		unstructuredQuery,
@@ -67,9 +67,24 @@ func submitQuery(config *Config, query *arkv1alpha1.Query) error {
 }
 
 func convertToUnstructured(query *arkv1alpha1.Query) (*unstructured.Unstructured, error) {
-	unstructuredQuery, err := runtime.DefaultUnstructuredConverter.ToUnstructured(query)
+	// Create a copy of the query without the RawExtension field to avoid conversion issues
+	queryCopy := query.DeepCopy()
+	originalInput := queryCopy.Spec.Input
+	queryCopy.Spec.Input = runtime.RawExtension{} // Clear the RawExtension field temporarily
+
+	// Convert the query without RawExtension. DefaultUnstructuredConverter cannot handle RawExtension
+	unstructuredQuery, err := runtime.DefaultUnstructuredConverter.ToUnstructured(queryCopy)
 	if err != nil {
 		return nil, err
+	}
+
+	// Manually set the Input field as raw JSON in the unstructured map
+	if originalInput.Raw != nil {
+		var inputValue interface{}
+		if err := json.Unmarshal(originalInput.Raw, &inputValue); err != nil {
+			inputValue = string(originalInput.Raw)
+		}
+		unstructured.SetNestedField(unstructuredQuery, inputValue, "spec", "input")
 	}
 
 	unstructuredObj := &unstructured.Unstructured{}
@@ -151,49 +166,37 @@ func getSessionId(provided, existing string) string {
 	return existing
 }
 
-func createTriggerQuery(existingQuery *arkv1alpha1.Query, input string, params []arkv1alpha1.Parameter, sessionId string, evaluators []string, evaluatorSelectorStrings []string) (*arkv1alpha1.Query, error) {
-	queryName := fmt.Sprintf("trigger-%d", time.Now().Unix())
+func createTriggerQuery(existingQuery *arkv1alpha1.Query, input runtime.RawExtension, params []arkv1alpha1.Parameter, sessionId string, timeout *time.Duration) (*arkv1alpha1.Query, error) {
+	queryName := fmt.Sprintf("cli-trigger-%d", time.Now().Unix())
 
 	spec := &arkv1alpha1.QuerySpec{
-		Input:             input,
-		Targets:           existingQuery.Spec.Targets,
-		Selector:          existingQuery.Spec.Selector,
-		Parameters:        params,
-		Memory:            existingQuery.Spec.Memory,
-		ServiceAccount:    existingQuery.Spec.ServiceAccount,
-		SessionId:         getSessionId(sessionId, existingQuery.Spec.SessionId),
-		Evaluators:        existingQuery.Spec.Evaluators,
-		EvaluatorSelector: existingQuery.Spec.EvaluatorSelector,
+		Input:          input,
+		Targets:        existingQuery.Spec.Targets,
+		Selector:       existingQuery.Spec.Selector,
+		Parameters:     params,
+		Memory:         existingQuery.Spec.Memory,
+		ServiceAccount: existingQuery.Spec.ServiceAccount,
+		SessionId:      getSessionId(sessionId, existingQuery.Spec.SessionId),
 	}
 
+	// Set timeout - use provided timeout or inherit from existing query
+	if timeout != nil {
+		spec.Timeout = &metav1.Duration{Duration: *timeout}
+	} else {
+		spec.Timeout = existingQuery.Spec.Timeout
+	}
+
+	// Set TTL to 720 hours (30 days) to keep query resource around like other queries
+	spec.TTL = &metav1.Duration{Duration: 720 * time.Hour}
+
 	queryObjectMeta := &metav1.ObjectMeta{
-		Name:      queryName,
-		Namespace: existingQuery.Namespace,
+		Name:        queryName,
+		Namespace:   existingQuery.Namespace,
+		Annotations: existingQuery.ObjectMeta.Annotations,
 		Labels: map[string]string{
 			annotations.TriggeredFrom: existingQuery.Name,
 		},
-	}
-
-	return getQuery(evaluators, evaluatorSelectorStrings, spec, queryObjectMeta)
-}
-
-func getQuery(evaluators []string, evaluatorSelectorStrings []string, spec *arkv1alpha1.QuerySpec, objectMeta *metav1.ObjectMeta) (*arkv1alpha1.Query, error) {
-	if len(evaluators) > 0 {
-		evaluatorRefs := make([]arkv1alpha1.EvaluatorRef, len(evaluators))
-		for i, evaluator := range evaluators {
-			evaluatorRefs[i] = arkv1alpha1.EvaluatorRef{
-				Name: evaluator,
-			}
-		}
-		spec.Evaluators = evaluatorRefs
-	}
-
-	if len(evaluatorSelectorStrings) > 0 {
-		evaluatorSelector, err := parseEvaluatorSelector(evaluatorSelectorStrings)
-		if err != nil {
-			return nil, err
-		}
-		spec.EvaluatorSelector = evaluatorSelector
+		Finalizers: []string{"ark.mckinsey.com/finalizer"},
 	}
 
 	return &arkv1alpha1.Query{
@@ -201,7 +204,7 @@ func getQuery(evaluators []string, evaluatorSelectorStrings []string, spec *arkv
 			APIVersion: "ark.mckinsey.com/v1alpha1",
 			Kind:       "Query",
 		},
-		ObjectMeta: *objectMeta,
+		ObjectMeta: *queryObjectMeta,
 		Spec:       *spec,
 	}, nil
 }

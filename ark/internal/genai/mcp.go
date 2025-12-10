@@ -4,69 +4,77 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
+	"net/http"
+	"net/url"
+	"path"
 	"strings"
 	"syscall"
 	"time"
 
-	mcpclient "github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/client/transport"
-	"github.com/mark3labs/mcp-go/mcp"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
-	arkv1prealpha1 "mckinsey.com/ark/api/v1prealpha1"
 	"mckinsey.com/ark/internal/common"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+type MCPSettings struct {
+	ToolCalls []mcp.CallToolParams `json:"toolCalls,omitempty"`
+	Headers   map[string]string    `json:"headers,omitempty"`
+}
+
 type MCPClient struct {
 	baseURL string
 	headers map[string]string
-	client  *mcpclient.Client
+	client  *mcp.ClientSession
 }
 
-func NewMCPClient(ctx context.Context, baseURL string, headers map[string]string, transportType string) (*MCPClient, error) {
-	return createMCPClientWithRetry(ctx, baseURL, headers, transportType, 5, 120*time.Second)
-}
+const (
+	connectMaxReties = 5
 
-func createSSEClient(baseURL string, headers map[string]string) (*mcpclient.Client, error) {
-	var opts []transport.ClientOption
-	if len(headers) > 0 {
-		opts = append(opts, transport.WithHeaders(headers))
-	}
-	mcpClient, err := mcpclient.NewSSEMCPClient(baseURL, opts...)
+	sseTransport  = "sse"
+	httpTransport = "http"
+
+	sseEndpointPath  = "sse"
+	httpEndpointPath = "mcp"
+)
+
+var (
+	ErrConnectionRetryFailed = "context timeout while retrying MCP client creation for server"
+	ErrUnsupportedTransport  = "unsupported transport type"
+)
+
+func NewMCPClient(ctx context.Context, baseURL string, headers map[string]string, transportType string, timeout time.Duration, mcpSetting MCPSettings) (*MCPClient, error) {
+	mergedHeaders := make(map[string]string)
+	maps.Copy(mergedHeaders, headers)
+	maps.Copy(mergedHeaders, mcpSetting.Headers)
+
+	mcpClient, err := createMCPClientWithRetry(ctx, baseURL, mergedHeaders, transportType, timeout, connectMaxReties)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create SSE MCP client for %s: %w", baseURL, err)
+		return nil, err
 	}
+
+	if len(mcpSetting.ToolCalls) > 0 {
+		for _, setting := range mcpSetting.ToolCalls {
+			if _, err := mcpClient.client.CallTool(ctx, &setting); err != nil {
+				return nil, fmt.Errorf("failed to execute MCP setting tool call %s: %w", setting.Name, err)
+			}
+		}
+	}
+
 	return mcpClient, nil
 }
 
-func createHTTPClient(baseURL string, headers map[string]string) (*mcpclient.Client, error) {
-	var opts []transport.StreamableHTTPCOption
-
-	if len(headers) > 0 {
-		opts = append(opts, transport.WithHTTPHeaders(headers))
+func createHTTPClient() *mcp.Client {
+	impl := &mcp.Implementation{
+		Name:    arkv1alpha1.GroupVersion.Group,
+		Version: arkv1alpha1.GroupVersion.Version,
 	}
 
-	mcpClient, err := mcpclient.NewStreamableHttpClient(baseURL, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create MCP client for %s: %w", baseURL, err)
-	}
-	return mcpClient, nil
-}
-
-func createMCPClientByTransport(baseURL string, headers map[string]string, transportType string) (*mcpclient.Client, error) {
-	switch transportType {
-	case "sse":
-		return createSSEClient(baseURL, headers)
-	case "http":
-		return createHTTPClient(baseURL, headers)
-	default:
-		return nil, fmt.Errorf("unsupported transport type: %s", transportType)
-	}
+	mcpClient := mcp.NewClient(impl, nil)
+	return mcpClient
 }
 
 func performBackoff(ctx context.Context, attempt int, baseURL string) error {
@@ -76,60 +84,121 @@ func performBackoff(ctx context.Context, attempt int, baseURL string) error {
 
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("context timeout while retrying MCP client creation for %s: %w", baseURL, ctx.Err())
+		return fmt.Errorf("%s %s: %w", ErrConnectionRetryFailed, baseURL, ctx.Err())
 	case <-time.After(backoff):
 		return nil
 	}
 }
 
-func attemptMCPConnection(ctx, connectCtx context.Context, mcpClient *mcpclient.Client, baseURL string) error {
-	log := logf.FromContext(ctx)
-	if err := mcpClient.Start(ctx); err != nil {
-		if isRetryableError(err) {
-			log.V(1).Info("retryable error starting MCP transport", "error", err)
-			return err
+func createTransport(baseURL string, headers map[string]string, timeout time.Duration, transportType string) (mcp.Transport, error) {
+	// Create HTTP client with headers
+	var httpClient *http.Client
+	if transportType == sseTransport {
+		httpClient = &http.Client{
+			// No timeout for SSE: connections are long-lived
 		}
-		return fmt.Errorf("failed to start MCP transport for %s: %w", baseURL, err)
+	} else {
+		httpClient = &http.Client{
+			Timeout: timeout,
+		}
 	}
 
-	_, err := mcpClient.Initialize(connectCtx, mcp.InitializeRequest{})
-	if err != nil {
-		if isRetryableError(err) {
-			log.V(1).Info("retryable error initializing MCP client", "error", err)
-			return err
+	// If we have headers, wrap the transport
+	if len(headers) > 0 {
+		httpClient.Transport = &headerTransport{
+			headers: headers,
+			base:    http.DefaultTransport,
 		}
-		return fmt.Errorf("failed to initialize MCP client for %s: transport error: %w", baseURL, err)
 	}
 
-	return nil
+	switch transportType {
+	case sseTransport:
+		u, _ := url.Parse(baseURL)
+		u.Path = path.Join(u.Path, sseEndpointPath)
+		fullURL := u.String()
+		transport := &mcp.SSEClientTransport{
+			Endpoint:   fullURL,
+			HTTPClient: httpClient,
+		}
+		return transport, nil
+	case httpTransport:
+		u, _ := url.Parse(baseURL)
+		u.Path = path.Join(u.Path, httpEndpointPath)
+		fullURL := u.String()
+		transport := &mcp.StreamableClientTransport{
+			Endpoint:   fullURL,
+			HTTPClient: httpClient,
+			MaxRetries: 5,
+		}
+		return transport, nil
+	default:
+		return nil, fmt.Errorf("%s: %s", ErrUnsupportedTransport, transportType)
+	}
 }
 
-func createMCPClientWithRetry(ctx context.Context, baseURL string, headers map[string]string, transportType string, maxRetries int, timeout time.Duration) (*MCPClient, error) {
-	log := logf.FromContext(ctx)
+type headerTransport struct {
+	headers map[string]string
+	base    http.RoundTripper
+}
 
-	mcpClient, err := createMCPClientByTransport(baseURL, headers, transportType)
-	if err != nil {
-		return nil, err
+func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	for k, v := range t.headers {
+		req.Header.Set(k, v)
 	}
 
-	connectCtx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	return t.base.RoundTrip(req)
+}
+
+func attemptMCPConnection(ctx context.Context, mcpClient *mcp.Client, baseURL string, headers map[string]string, httpTimeout time.Duration, transportType string) (*mcp.ClientSession, error) {
+	log := logf.FromContext(ctx)
+
+	transport, err := createTransport(baseURL, headers, httpTimeout, transportType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create MCP client transport for %s: %w", baseURL, err)
+	}
+
+	// For SSE, the context passed here controls the connection lifetime
+	// It should be the caller's context, not a temporary one
+	session, err := mcpClient.Connect(ctx, transport, nil)
+	if err != nil {
+		if isRetryableError(err) {
+			log.V(1).Info("retryable error connecting MCP client", "error", err)
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to connect MCP client for %s: %w", baseURL, err)
+	}
+
+	return session, nil
+}
+
+func createMCPClientWithRetry(ctx context.Context, baseURL string, headers map[string]string, transportType string, httpTimeout time.Duration, maxRetries int) (*MCPClient, error) {
+	mcpClient := createHTTPClient()
+
+	// Create a context with timeout ONLY for the retry loop
+	// The caller's context (ctx) is used for the actual connection and should control its lifetime
+	retryCtx, retryCancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer retryCancel()
 
 	var lastErr error
+
 	for attempt := range maxRetries {
 		if attempt > 0 {
-			if err := performBackoff(connectCtx, attempt, baseURL); err != nil {
+			if err := performBackoff(retryCtx, attempt, baseURL); err != nil {
 				return nil, err
 			}
 		}
 
-		err := attemptMCPConnection(ctx, connectCtx, mcpClient, baseURL)
+		// Use the caller's context for the connection
+		// For SSE: This context controls the connection lifetime - when ctx is canceled, connection closes
+		// For HTTP: This context is used per-request
+		session, err := attemptMCPConnection(ctx, mcpClient, baseURL, headers, httpTimeout, transportType)
 		if err == nil {
-			log.Info("MCP client connected successfully", "server", baseURL, "attempts", attempt+1)
 			return &MCPClient{
 				baseURL: baseURL,
 				headers: headers,
-				client:  mcpClient,
+				client:  session,
 			}, nil
 		}
 
@@ -176,8 +245,8 @@ func isRetryableError(err error) bool {
 	return false
 }
 
-func (c *MCPClient) ListTools(ctx context.Context) ([]mcp.Tool, error) {
-	response, err := c.client.ListTools(ctx, mcp.ListToolsRequest{})
+func (c *MCPClient) ListTools(ctx context.Context) ([]*mcp.Tool, error) {
+	response, err := c.client.ListTools(ctx, &mcp.ListToolsParams{})
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +260,7 @@ type MCPExecutor struct {
 	ToolName  string
 }
 
-func (m *MCPExecutor) Execute(ctx context.Context, call ToolCall, recorder EventEmitter) (ToolResult, error) {
+func (m *MCPExecutor) Execute(ctx context.Context, call ToolCall) (ToolResult, error) {
 	log := logf.FromContext(ctx)
 
 	if m.MCPClient == nil {
@@ -213,10 +282,10 @@ func (m *MCPExecutor) Execute(ctx context.Context, call ToolCall, recorder Event
 	}
 
 	log.Info("calling mcp", "tool", m.ToolName, "server", m.MCPClient.baseURL)
-	response, err := m.MCPClient.client.CallTool(ctx, mcp.CallToolRequest{Params: mcp.CallToolParams{
+	response, err := m.MCPClient.client.CallTool(ctx, &mcp.CallToolParams{
 		Name:      m.ToolName,
 		Arguments: arguments,
-	}})
+	})
 	if err != nil {
 		log.Info("tool call error", "tool", m.ToolName, "error", err, "errorType", fmt.Sprintf("%T", err))
 		return ToolResult{ID: call.ID, Name: call.Function.Name, Content: ""}, err
@@ -224,7 +293,7 @@ func (m *MCPExecutor) Execute(ctx context.Context, call ToolCall, recorder Event
 	log.V(2).Info("tool call response", "tool", m.ToolName, "response", response)
 	var result strings.Builder
 	for _, content := range response.Content {
-		if textContent, ok := content.(mcp.TextContent); ok {
+		if textContent, ok := content.(*mcp.TextContent); ok {
 			result.WriteString(textContent.Text)
 		} else {
 			jsonBytes, _ := json.MarshalIndent(content, "", "  ")
@@ -259,45 +328,4 @@ func BuildMCPServerURL(ctx context.Context, k8sClient client.Client, mcpServerCR
 	// Handle other ValueSource types (secrets, configmaps) using the ValueSourceResolver
 	resolver := common.NewValueSourceResolver(k8sClient)
 	return resolver.ResolveValueSource(ctx, address, mcpServerCRD.Namespace)
-}
-
-// ResolveHeaderValue resolves header values from secrets (v1alpha1)
-func ResolveHeaderValue(ctx context.Context, k8sClient client.Client, header arkv1alpha1.Header, namespace string) (string, error) {
-	if header.Value.Value != "" {
-		return header.Value.Value, nil
-	}
-
-	if header.Value.ValueFrom != nil && header.Value.ValueFrom.SecretKeyRef != nil {
-		secretRef := header.Value.ValueFrom.SecretKeyRef
-		secret := &corev1.Secret{}
-
-		secretKey := types.NamespacedName{
-			Name:      secretRef.Name,
-			Namespace: namespace,
-		}
-
-		if err := k8sClient.Get(ctx, secretKey, secret); err != nil {
-			return "", fmt.Errorf("failed to get secret %s/%s: %w", namespace, secretRef.Name, err)
-		}
-
-		value, exists := secret.Data[secretRef.Key]
-		if !exists {
-			return "", fmt.Errorf("key %s not found in secret %s/%s", secretRef.Key, namespace, secretRef.Name)
-		}
-
-		return string(value), nil
-	}
-
-	return "", fmt.Errorf("header value must specify either value or valueFrom.secretKeyRef")
-}
-
-// ResolveHeaderValueV1PreAlpha1 resolves header values from secrets (v1prealpha1)
-// Since v1prealpha1.Header uses arkv1alpha1.HeaderValue, we can reuse the existing function
-func ResolveHeaderValueV1PreAlpha1(ctx context.Context, k8sClient client.Client, header arkv1prealpha1.Header, namespace string) (string, error) {
-	// Convert to v1alpha1.Header since the Value field is the same type
-	v1alpha1Header := arkv1alpha1.Header{
-		Name:  header.Name,
-		Value: header.Value, // Same type: arkv1alpha1.HeaderValue
-	}
-	return ResolveHeaderValue(ctx, k8sClient, v1alpha1Header, namespace)
 }

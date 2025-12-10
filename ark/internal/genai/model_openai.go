@@ -8,7 +8,7 @@ import (
 	"mckinsey.com/ark/internal/common"
 )
 
-func loadOpenAIConfig(ctx context.Context, resolver *common.ValueSourceResolver, config *arkv1alpha1.OpenAIModelConfig, namespace string, model *Model) error {
+func loadOpenAIConfig(ctx context.Context, resolver *common.ValueSourceResolver, config *arkv1alpha1.OpenAIModelConfig, namespace string, model *Model, additionalHeaders map[string]string) error {
 	if config == nil {
 		return fmt.Errorf("openai configuration is required for openai model type")
 	}
@@ -21,6 +21,15 @@ func loadOpenAIConfig(ctx context.Context, resolver *common.ValueSourceResolver,
 	apiKey, err := resolver.ResolveValueSource(ctx, config.APIKey, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to resolve OpenAI apiKey: %w", err)
+	}
+
+	headers, err := resolveModelHeaders(ctx, resolver.Client, config.Headers, namespace)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range additionalHeaders {
+		headers[k] = v
 	}
 
 	var properties map[string]string
@@ -39,6 +48,7 @@ func loadOpenAIConfig(ctx context.Context, resolver *common.ValueSourceResolver,
 		Model:      model.Model,
 		BaseURL:    baseURL,
 		APIKey:     apiKey,
+		Headers:    headers,
 		Properties: properties,
 	}
 	model.Provider = openaiProvider

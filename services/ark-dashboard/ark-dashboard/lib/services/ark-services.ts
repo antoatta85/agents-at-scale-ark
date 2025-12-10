@@ -3,13 +3,14 @@ import type { components } from '@/lib/api/generated/types';
 
 export type HTTPRouteInfo = components['schemas']['HTTPRouteInfo'];
 export type ArkService = components['schemas']['ArkService'];
-export type ArkServiceListResponse = components['schemas']['ArkServiceListResponse'];
+export type ArkServiceListResponse =
+  components['schemas']['ArkServiceListResponse'];
 
 export const arkServicesService = {
   /**
-   * Get all ARK services in a namespace
+   * Get all ARK services
    */
-  async getAll(namespace: string): Promise<ArkServiceListResponse> {
-    return apiClient.get<ArkServiceListResponse>(`/api/v1/namespaces/${namespace}/ark-services`);
-  }
+  async getAll(): Promise<ArkServiceListResponse> {
+    return apiClient.get<ArkServiceListResponse>(`/api/v1/ark-services`);
+  },
 };

@@ -60,6 +60,38 @@ type Parameter struct {
 	ValueFrom *ValueFromSource `json:"valueFrom,omitempty"`
 }
 
+type HeaderValue struct {
+	// +kubebuilder:validation:Optional
+	Value string `json:"value,omitempty"`
+	// +kubebuilder:validation:Optional
+	ValueFrom *HeaderValueSource `json:"valueFrom,omitempty"`
+}
+
+type HeaderValueSource struct {
+	// +kubebuilder:validation:Optional
+	SecretKeyRef *corev1.SecretKeySelector `json:"secretKeyRef,omitempty"`
+	// +kubebuilder:validation:Optional
+	ConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"configMapKeyRef,omitempty"`
+}
+
+type Header struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+	// +kubebuilder:validation:Required
+	Value HeaderValue `json:"value"`
+}
+
+type Override struct {
+	// +kubebuilder:validation:Required
+	Headers []Header `json:"headers"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=model;mcpserver
+	ResourceType string `json:"resourceType"`
+	// +kubebuilder:validation:Optional
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
+}
+
 type ExpressionRule struct {
 	// Name identifies the rule
 	// +kubebuilder:validation:Required

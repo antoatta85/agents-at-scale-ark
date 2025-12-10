@@ -11,63 +11,24 @@ import (
 
 	"github.com/openai/openai-go"
 	"mckinsey.com/ark/internal/common"
+	"mckinsey.com/ark/internal/eventing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Simple message structure for fallback parsing
-type simpleMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content,omitempty"`
-}
-
-// unmarshalMessageRobust tries discriminated union first, then falls back to simple role/content extraction
-func unmarshalMessageRobust(rawJSON json.RawMessage) (openai.ChatCompletionMessageParamUnion, error) {
-	// Step 1: Try discriminated union first (the normal case)
-	var openaiMessage openai.ChatCompletionMessageParamUnion
-	if err := json.Unmarshal(rawJSON, &openaiMessage); err == nil {
-		return openaiMessage, nil
-	}
-
-	// Step 2: Fallback - try to extract role/content from simple format
-	var simple simpleMessage
-	if err := json.Unmarshal(rawJSON, &simple); err != nil {
-		return openai.ChatCompletionMessageParamUnion{}, fmt.Errorf("malformed JSON: %v", err)
-	}
-
-	// Step 3: Validate role is present (any role is acceptable for future compatibility)
-	if simple.Role == "" {
-		return openai.ChatCompletionMessageParamUnion{}, fmt.Errorf("missing required 'role' field")
-	}
-
-	// Step 4: Convert simple format to proper OpenAI message based on known roles
-	// For unknown roles, try user message as fallback (most permissive)
-	switch simple.Role {
-	case RoleUser:
-		return openai.UserMessage(simple.Content), nil
-	case RoleAssistant:
-		return openai.AssistantMessage(simple.Content), nil
-	case RoleSystem:
-		return openai.SystemMessage(simple.Content), nil
-	default:
-		// Future-proof: accept any role by treating as user message
-		// The OpenAI SDK will handle validation of the actual role
-		return openai.UserMessage(simple.Content), nil
-	}
-}
-
+// HTTPMemory handles memory operations for ARK queries
 type HTTPMemory struct {
-	client     client.Client
-	httpClient *http.Client
-	baseURL    string
-	sessionId  string
-	queryName  string
-	name       string
-	namespace  string
-	recorder   EventEmitter
+	client           client.Client
+	httpClient       *http.Client
+	baseURL          string
+	sessionId        string
+	name             string
+	namespace        string
+	eventingRecorder eventing.MemoryRecorder
 }
 
-func NewHTTPMemory(ctx context.Context, k8sClient client.Client, memoryName, namespace string, recorder EventEmitter, config Config) (MemoryInterface, error) {
+// NewHTTPMemory creates a new HTTP-based memory implementation
+func NewHTTPMemory(ctx context.Context, k8sClient client.Client, memoryName, namespace string, config Config, memoryRecorder eventing.MemoryRecorder) (MemoryInterface, error) {
 	if k8sClient == nil || memoryName == "" || namespace == "" {
 		return nil, fmt.Errorf("invalid parameters")
 	}
@@ -87,20 +48,20 @@ func NewHTTPMemory(ctx context.Context, k8sClient client.Client, memoryName, nam
 		sessionId = string(memory.UID)
 	}
 
+	// Create HTTP client with timeout for memory operations
 	httpClient := common.NewHTTPClientWithLogging(ctx)
 	if config.Timeout > 0 {
 		httpClient.Timeout = config.Timeout
 	}
 
 	return &HTTPMemory{
-		client:     k8sClient,
-		httpClient: httpClient,
-		baseURL:    strings.TrimSuffix(*memory.Status.LastResolvedAddress, "/"),
-		sessionId:  sessionId,
-		queryName:  config.QueryName,
-		name:       memoryName,
-		namespace:  namespace,
-		recorder:   recorder,
+		client:           k8sClient,
+		httpClient:       httpClient,
+		baseURL:          strings.TrimSuffix(*memory.Status.LastResolvedAddress, "/"),
+		sessionId:        sessionId,
+		name:             memoryName,
+		namespace:        namespace,
+		eventingRecorder: memoryRecorder,
 	}, nil
 }
 
@@ -139,22 +100,20 @@ func (m *HTTPMemory) resolveAndUpdateAddress(ctx context.Context) error {
 	return nil
 }
 
+// AddMessages stores messages to the memory backend
 func (m *HTTPMemory) AddMessages(ctx context.Context, queryID string, messages []Message) error {
 	if len(messages) == 0 {
 		return nil
 	}
 
+	ctx = m.eventingRecorder.Start(ctx, "MemoryAddMessages", "Adding messages to memory", nil)
+
 	// Resolve address dynamically
 	if err := m.resolveAndUpdateAddress(ctx); err != nil {
+		operationData := map[string]string{"result": fmt.Sprintf("Failed to resolve memory address: %v", err)}
+		m.eventingRecorder.Fail(ctx, "MemoryAddMessages", operationData["result"], err, operationData)
 		return err
 	}
-
-	tracker := NewOperationTracker(m.recorder, ctx, "MemoryAddMessages", m.name, map[string]string{
-		"namespace": m.namespace,
-		"sessionId": m.sessionId,
-		"queryId":   queryID,
-		"messages":  fmt.Sprintf("%d", len(messages)),
-	})
 
 	// Convert messages to the request format
 	openaiMessages := make([]openai.ChatCompletionMessageParamUnion, len(messages))
@@ -168,14 +127,16 @@ func (m *HTTPMemory) AddMessages(ctx context.Context, queryID string, messages [
 		Messages:  openaiMessages,
 	})
 	if err != nil {
-		tracker.Fail(fmt.Errorf("failed to serialize messages: %w", err))
+		operationData := map[string]string{"result": fmt.Sprintf("Failed to serialize messages: %v", err)}
+		m.eventingRecorder.Fail(ctx, "MemoryAddMessages", operationData["result"], err, operationData)
 		return fmt.Errorf("failed to serialize messages: %w", err)
 	}
 
 	requestURL := fmt.Sprintf("%s%s", m.baseURL, MessagesEndpoint)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewReader(reqBody))
 	if err != nil {
-		tracker.Fail(fmt.Errorf("failed to create request: %w", err))
+		operationData := map[string]string{"result": fmt.Sprintf("Failed to create request: %v", err)}
+		m.eventingRecorder.Fail(ctx, "MemoryAddMessages", operationData["result"], err, operationData)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -184,36 +145,43 @@ func (m *HTTPMemory) AddMessages(ctx context.Context, queryID string, messages [
 
 	resp, err := m.httpClient.Do(req)
 	if err != nil {
-		tracker.Fail(fmt.Errorf("HTTP request failed: %w", err))
+		operationData := map[string]string{"result": fmt.Sprintf("HTTP request failed: %v", err)}
+		m.eventingRecorder.Fail(ctx, "MemoryAddMessages", operationData["result"], err, operationData)
 		return fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		err := fmt.Errorf("HTTP status %d", resp.StatusCode)
-		tracker.Fail(err)
+		operationData := map[string]string{"result": err.Error()}
+		m.eventingRecorder.Fail(ctx, "MemoryAddMessages", operationData["result"], err, operationData)
 		return err
 	}
 
-	tracker.Complete("messages added")
+	operationData := map[string]string{
+		"messages": fmt.Sprintf("%d", len(messages)),
+		"result":   "Memory add messages completed successfully",
+	}
+	m.eventingRecorder.Complete(ctx, "MemoryAddMessages", operationData["result"], operationData)
 	return nil
 }
 
+// GetMessages retrieves messages from the memory backend
 func (m *HTTPMemory) GetMessages(ctx context.Context) ([]Message, error) {
+	ctx = m.eventingRecorder.Start(ctx, "MemoryGetMessages", "Getting messages from memory", nil)
+
 	// Resolve address dynamically
 	if err := m.resolveAndUpdateAddress(ctx); err != nil {
+		operationData := map[string]string{"result": fmt.Sprintf("Failed to resolve memory address: %v", err)}
+		m.eventingRecorder.Fail(ctx, "MemoryGetMessages", operationData["result"], err, operationData)
 		return nil, err
 	}
-
-	tracker := NewOperationTracker(m.recorder, ctx, "MemoryGetMessages", m.name, map[string]string{
-		"namespace": m.namespace,
-		"sessionId": m.sessionId,
-	})
 
 	requestURL := fmt.Sprintf("%s%s?session_id=%s", m.baseURL, MessagesEndpoint, url.QueryEscape(m.sessionId))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
-		tracker.Fail(fmt.Errorf("failed to create request: %w", err))
+		operationData := map[string]string{"result": fmt.Sprintf("Failed to create request: %v", err)}
+		m.eventingRecorder.Fail(ctx, "MemoryGetMessages", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -222,20 +190,23 @@ func (m *HTTPMemory) GetMessages(ctx context.Context) ([]Message, error) {
 
 	resp, err := m.httpClient.Do(req)
 	if err != nil {
-		tracker.Fail(fmt.Errorf("HTTP request failed: %w", err))
+		operationData := map[string]string{"result": fmt.Sprintf("HTTP request failed: %v", err)}
+		m.eventingRecorder.Fail(ctx, "MemoryGetMessages", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		err := fmt.Errorf("HTTP status %d", resp.StatusCode)
-		tracker.Fail(err)
+		operationData := map[string]string{"result": err.Error()}
+		m.eventingRecorder.Fail(ctx, "MemoryGetMessages", operationData["result"], err, operationData)
 		return nil, err
 	}
 
 	var response MessagesResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		tracker.Fail(fmt.Errorf("failed to decode response: %w", err))
+		operationData := map[string]string{"result": fmt.Sprintf("Failed to decode response: %v", err)}
+		m.eventingRecorder.Fail(ctx, "MemoryGetMessages", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -243,19 +214,22 @@ func (m *HTTPMemory) GetMessages(ctx context.Context) ([]Message, error) {
 	for i, record := range response.Messages {
 		openaiMessage, err := unmarshalMessageRobust(record.Message)
 		if err != nil {
-			err := fmt.Errorf("failed to unmarshal message at index %d: %w", i, err)
-			tracker.Fail(err)
-			return nil, err
+			operationData := map[string]string{"result": fmt.Sprintf("Failed to unmarshal message at index %d: %v", i, err)}
+			m.eventingRecorder.Fail(ctx, "MemoryGetMessages", operationData["result"], err, operationData)
+			return nil, fmt.Errorf("failed to unmarshal message at index %d: %w", i, err)
 		}
 		messages = append(messages, Message(openaiMessage))
 	}
 
-	// Update metadata with message count
-	tracker.metadata["messages"] = fmt.Sprintf("%d", len(messages))
-	tracker.Complete("retrieved")
+	operationData := map[string]string{
+		"messages": fmt.Sprintf("%d", len(messages)),
+		"result":   "Memory get messages completed successfully",
+	}
+	m.eventingRecorder.Complete(ctx, "MemoryGetMessages", operationData["result"], operationData)
 	return messages, nil
 }
 
+// Close closes the HTTP client connections
 func (m *HTTPMemory) Close() error {
 	if m.httpClient != nil {
 		m.httpClient.CloseIdleConnections()
@@ -263,16 +237,43 @@ func (m *HTTPMemory) Close() error {
 	return nil
 }
 
-// NotifyCompletion notifies the memory service that the query has completed
-// This is part of the streaming API which will be fully implemented in a future release
-func (m *HTTPMemory) NotifyCompletion(ctx context.Context) error {
-	// No-op for now - will be implemented when streaming is fully supported
-	return nil
+// unmarshalMessageRobust tries discriminated union first, then falls back to simple role/content extraction
+func unmarshalMessageRobust(rawJSON json.RawMessage) (openai.ChatCompletionMessageParamUnion, error) {
+	// Step 1: Try discriminated union first (the normal case)
+	var openaiMessage openai.ChatCompletionMessageParamUnion
+	if err := json.Unmarshal(rawJSON, &openaiMessage); err == nil {
+		return openaiMessage, nil
+	}
+
+	// Step 2: Fallback - try to extract role/content from simple format
+	var simple simpleMessage
+	if err := json.Unmarshal(rawJSON, &simple); err != nil {
+		return openai.ChatCompletionMessageParamUnion{}, fmt.Errorf("malformed JSON: %v", err)
+	}
+
+	// Step 3: Validate role is present (any role is acceptable for future compatibility)
+	if simple.Role == "" {
+		return openai.ChatCompletionMessageParamUnion{}, fmt.Errorf("missing required 'role' field")
+	}
+
+	// Step 4: Convert simple format to proper OpenAI message based on known roles
+	// For unknown roles, try user message as fallback (most permissive)
+	switch simple.Role {
+	case RoleUser:
+		return openai.UserMessage(simple.Content), nil
+	case RoleAssistant:
+		return openai.AssistantMessage(simple.Content), nil
+	case RoleSystem:
+		return openai.SystemMessage(simple.Content), nil
+	default:
+		// Future-proof: accept any role by treating as user message
+		// The OpenAI SDK will handle validation of the actual role
+		return openai.UserMessage(simple.Content), nil
+	}
 }
 
-// StreamChunk sends a streaming chunk to the memory service
-// This is part of the streaming API which will be fully implemented in a future release
-func (m *HTTPMemory) StreamChunk(ctx context.Context, chunk interface{}) error {
-	// No-op for now - will be implemented when streaming is fully supported
-	return nil
+// Simple message structure for fallback parsing
+type simpleMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content,omitempty"`
 }

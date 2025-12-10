@@ -1,8 +1,17 @@
 """Pydantic models for Query resources."""
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 from datetime import datetime
 from pydantic import BaseModel
+from enum import Enum
+from openai.types.chat import ChatCompletionMessageParam
+from .agents import Override
+
+
+class InputType(str, Enum):
+    """Input type enumeration."""
+    USER = "user"
+    MESSAGES = "messages"
 
 
 class Memory(BaseModel):
@@ -67,7 +76,8 @@ class QueryResponse(BaseModel):
     """Basic query response for list operations."""
     name: str
     namespace: str
-    input: str
+    type: Optional[InputType] = InputType.USER
+    input: Union[str, List[ChatCompletionMessageParam]]
     memory: Optional[Memory] = None
     sessionId: Optional[str] = None
     status: Optional[Dict[str, Any]] = None
@@ -83,7 +93,8 @@ class QueryListResponse(BaseModel):
 class QueryCreateRequest(BaseModel):
     """Request body for creating a query."""
     name: str
-    input: str
+    type: Optional[InputType] = InputType.USER
+    input: Union[str, List[ChatCompletionMessageParam]]
     memory: Optional[Memory] = None
     parameters: Optional[List[Parameter]] = None
     selector: Optional[LabelSelector] = None
@@ -93,6 +104,7 @@ class QueryCreateRequest(BaseModel):
     timeout: Optional[str] = None
     ttl: Optional[str] = None
     cancel: Optional[bool] = None
+    overrides: Optional[List[Override]] = None
     evaluators: Optional[List[Memory]] = None
     evaluatorSelector: Optional[LabelSelector] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -100,7 +112,8 @@ class QueryCreateRequest(BaseModel):
 
 class QueryUpdateRequest(BaseModel):
     """Request body for updating a query."""
-    input: Optional[str] = None
+    type: Optional[InputType] = None
+    input: Optional[Union[str, List[ChatCompletionMessageParam]]] = None
     memory: Optional[Memory] = None
     parameters: Optional[List[Parameter]] = None
     selector: Optional[LabelSelector] = None
@@ -110,15 +123,15 @@ class QueryUpdateRequest(BaseModel):
     timeout: Optional[str] = None
     ttl: Optional[str] = None
     cancel: Optional[bool] = None
-    evaluators: Optional[List[Memory]] = None
-    evaluatorSelector: Optional[LabelSelector] = None
+    overrides: Optional[List[Override]] = None
 
 
 class QueryDetailResponse(BaseModel):
     """Detailed query response."""
     name: str
     namespace: str
-    input: str
+    type: Optional[InputType] = InputType.USER
+    input: Union[str, List[ChatCompletionMessageParam]]
     memory: Optional[Memory] = None
     parameters: Optional[List[Parameter]] = None
     selector: Optional[LabelSelector] = None
@@ -128,7 +141,15 @@ class QueryDetailResponse(BaseModel):
     timeout: Optional[str] = None
     ttl: Optional[str] = None
     cancel: Optional[bool] = None
-    evaluators: Optional[List[Memory]] = None  # Using Memory model as it has same structure (name, namespace)
-    evaluatorSelector: Optional[LabelSelector] = None
+    overrides: Optional[List[Override]] = None
     metadata: Optional[Dict[str, Any]] = None
     status: Optional[Dict[str, Any]] = None
+
+
+class ArkOpenAICompletionsMetadata(BaseModel):
+    """Ark-specific metadata for OpenAI chat completions.
+
+    Passed via the 'ark' key in request metadata as a JSON string.
+    Follows the pattern used by OpenAI for provider-specific extensions.
+    """
+    annotations: Optional[Dict[str, str]] = None

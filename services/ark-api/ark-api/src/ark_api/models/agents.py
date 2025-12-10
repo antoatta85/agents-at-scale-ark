@@ -32,10 +32,25 @@ class SecretKeyRef(BaseModel):
     optional: Optional[bool] = None
 
 
+class QueryParameterRef(BaseModel):
+    """Reference to a parameter in a query."""
+    name: str
+
+
+class ServiceRef(BaseModel):
+    """Reference to a service."""
+    name: str
+    namespace: Optional[str] = None
+    port: Optional[str] = None
+    path: Optional[str] = None
+
+
 class ValueFrom(BaseModel):
     """Reference to external sources for parameter values."""
     configMapKeyRef: Optional[ConfigMapKeyRef] = None
     secretKeyRef: Optional[SecretKeyRef] = None
+    serviceRef: Optional[ServiceRef] = None
+    queryParameterRef: Optional[QueryParameterRef] = None
 
 
 class Parameter(BaseModel):
@@ -62,6 +77,25 @@ class Tool(BaseModel):
     """Tool configuration for an agent."""
     type: str  # "built-in" or "custom"
     name: Optional[str] = None
+    labelSelector: Optional[LabelSelector] = None
+
+
+class HeaderValue(BaseModel):
+    """Value configuration for a header."""
+    value: Optional[str] = None
+    valueFrom: Optional[ValueFrom] = None
+
+
+class Header(BaseModel):
+    """HTTP header configuration."""
+    name: str
+    value: HeaderValue
+
+
+class Override(BaseModel):
+    """Header override configuration for models and MCP servers."""
+    headers: List[Header]
+    resourceType: str
     labelSelector: Optional[LabelSelector] = None
 
 
@@ -99,6 +133,7 @@ class AgentCreateRequest(BaseModel):
     parameters: Optional[List[Parameter]] = None
     prompt: Optional[str] = None
     tools: Optional[List[Tool]] = None
+    overrides: Optional[List[Override]] = None
 
 
 class AgentUpdateRequest(BaseModel):
@@ -109,6 +144,7 @@ class AgentUpdateRequest(BaseModel):
     parameters: Optional[List[Parameter]] = None
     prompt: Optional[str] = None
     tools: Optional[List[Tool]] = None
+    overrides: Optional[List[Override]] = None
 
 
 class AgentDetailResponse(BaseModel):
@@ -121,6 +157,7 @@ class AgentDetailResponse(BaseModel):
     parameters: Optional[List[Parameter]] = None
     prompt: Optional[str] = None
     tools: Optional[List[Tool]] = None
+    overrides: Optional[List[Override]] = None
     skills: Optional[List[Skill]] = None
     isA2A: bool = False
     available: Optional[AvailabilityStatus] = None

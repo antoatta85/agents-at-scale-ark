@@ -1,6 +1,12 @@
 name: 'Deploy - GCP'
 
 on:
+  workflow_run:
+    workflows: [CI/CD]
+    branches:
+      - "main"
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       ark_version:
@@ -17,7 +23,8 @@ permissions:
 
 jobs:
   resolve_version:
-    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       clean_version: ${{ steps.resolve.outputs.clean_version }}
@@ -33,7 +40,7 @@ jobs:
           ark_version: ${{ github.event.inputs.ark_version }}
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ${{vars.GH_RUNNER_LABEL || 'ubuntu-latest' }}
     needs: [resolve_version]
     steps:
       - name: Validate version tag exists

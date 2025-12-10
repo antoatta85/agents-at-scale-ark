@@ -17,11 +17,12 @@ const (
 	A2AServerName    = ARKPrefix + "a2a-server-name"
 	A2AServerAddress = ARKPrefix + "a2a-server-address"
 	A2AServerSkills  = ARKPrefix + "a2a-server-skills"
+	A2AContextID     = ARKPrefix + "a2a-context-id"
 )
 
 // MCP annotations
 const (
-	MCPServerName = ARKPrefix + "mcp-server-name"
+	MCPServerSettings = ARKPrefix + "mcp-server-settings"
 )
 
 // ARK service annotations
@@ -46,7 +47,12 @@ const (
 	LocalhostGatewayPort = ARKPrefix + "localhost-gateway-port"
 )
 
-// Streaming annotations which will be used in the upcoming streaming feature
+// Event annotations
+const (
+	EventData = ARKPrefix + "event-data"
+)
+
+// Streaming annotations
 const (
 	StreamingEnabled = ARKPrefix + "streaming-enabled"
 	StreamingURL     = ARKPrefix + "streaming-url"

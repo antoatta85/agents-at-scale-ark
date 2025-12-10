@@ -34,6 +34,24 @@ type AgentToolRef struct {
 	Name string `json:"name"`
 }
 
+// TeamToolRef defines a reference to a Team Tool.
+type TeamToolRef struct {
+	// Name of the Team being referenced.
+	// This must be a non-empty string.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+}
+
+// BuiltinToolRef defines a reference to a Builtin Tool.
+type BuiltinToolRef struct {
+	// Name of the Builtin being referenced.
+	// This must be a non-empty string.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+}
+
 // ToolAnnotations contains optional additional tool information
 type ToolAnnotations struct {
 	// If true, the tool may perform destructive updates to its environment. If
@@ -65,7 +83,7 @@ type ToolAnnotations struct {
 
 type ToolSpec struct {
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=http;mcp;agent
+	// +kubebuilder:validation:Enum=http;mcp;agent;team;builtin
 	Type string `json:"type"`
 	// Tool description
 	Description string `json:"description,omitempty"`
@@ -82,6 +100,14 @@ type ToolSpec struct {
 	// This field is required only if Type = "agent".
 	// +kubebuilder:validation:Optional
 	Agent *AgentToolRef `json:"agent,omitempty"`
+	// Team-specific configuration for team tools.
+	// This field is required only if Type = "team".
+	// +kubebuilder:validation:Optional
+	Team *TeamToolRef `json:"team,omitempty"`
+	// Builtin-specific configuration for builtin tools.
+	// This field is required only if Type = "builtin".
+	// +kubebuilder:validation:Optional
+	Builtin *BuiltinToolRef `json:"builtin,omitempty"`
 }
 
 type HTTPSpec struct {
@@ -104,9 +130,11 @@ type HTTPSpec struct {
 
 // Tool type constants
 const (
-	ToolTypeHTTP  = "http"
-	ToolTypeMCP   = "mcp"
-	ToolTypeAgent = "agent"
+	ToolTypeHTTP    = "http"
+	ToolTypeMCP     = "mcp"
+	ToolTypeAgent   = "agent"
+	ToolTypeTeam    = "team"
+	ToolTypeBuiltin = "builtin"
 )
 
 // Tool state constants
@@ -162,6 +190,21 @@ func (in *ToolSpec) DeepCopyInto(out *ToolSpec) {
 		*out = new(MCPToolRef)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Agent != nil {
+		in, out := &in.Agent, &out.Agent
+		*out = new(AgentToolRef)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.Team != nil {
+		in, out := &in.Team, &out.Team
+		*out = new(TeamToolRef)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.Builtin != nil {
+		in, out := &in.Builtin, &out.Builtin
+		*out = new(BuiltinToolRef)
+		(*in).DeepCopyInto(*out)
+	}
 }
 
 func (in *MCPServerRef) DeepCopyInto(out *MCPServerRef) {
@@ -173,6 +216,10 @@ func (in *ToolAnnotations) DeepCopyInto(out *ToolAnnotations) {
 }
 
 func (in *MCPToolRef) DeepCopyInto(out *MCPToolRef) {
+	*out = *in
+}
+
+func (in *TeamToolRef) DeepCopyInto(out *TeamToolRef) {
 	*out = *in
 }
 

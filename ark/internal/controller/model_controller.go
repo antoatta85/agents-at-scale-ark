@@ -4,18 +4,20 @@ package controller
 
 import (
 	"context"
-	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
+	"mckinsey.com/ark/internal/eventing"
+	eventnoop "mckinsey.com/ark/internal/eventing/noop"
 	"mckinsey.com/ark/internal/genai"
+	"mckinsey.com/ark/internal/telemetry"
+	telenoop "mckinsey.com/ark/internal/telemetry/noop"
 )
 
 const (
@@ -25,8 +27,9 @@ const (
 
 type ModelReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Scheme    *runtime.Scheme
+	Telemetry telemetry.Provider
+	Eventing  eventing.Provider
 }
 
 // +kubebuilder:rbac:groups=ark.mckinsey.com,resources=models,verbs=get;list;watch;create;update;patch;delete
@@ -49,89 +52,75 @@ func (r *ModelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// Initialize conditions if empty
 	if len(model.Status.Conditions) == 0 {
-		r.setCondition(&model, ModelAvailable, metav1.ConditionUnknown, "Initializing", "Model availability is being determined")
-		if err := r.updateStatus(ctx, &model); err != nil {
+		if _, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionUnknown, "Initializing", "Model availability is being determined"); err != nil {
 			return ctrl.Result{}, err
 		}
-		// Return with poll interval to avoid immediate re-reconciliation
+	}
+
+	// Probe the model to test whether it is available.
+	result := r.probeModel(ctx, model)
+
+	if !result.Available {
+		changed, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionFalse, "ModelProbeFailed", result.Message)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		// Log the failure only when condition changes
+		if changed {
+			r.Eventing.ModelRecorder().ModelUnavailable(ctx, &model, result.Message)
+			log.Info("model probe failed",
+				"model", model.Name,
+				"status", result.Message,
+				"details", result.DetailedError)
+		}
 		return ctrl.Result{RequeueAfter: model.Spec.PollInterval.Duration}, nil
 	}
 
-	return r.processModel(ctx, model)
-}
-
-func (r *ModelReconciler) processModel(ctx context.Context, model arkv1alpha1.Model) (ctrl.Result, error) {
-	log := logf.FromContext(ctx)
-	log.V(1).Info("model probing", "model", model.Name, "namespace", model.Namespace)
-
-	recorder := genai.NewModelRecorder(&model, r.Recorder)
-
-	modelTracker := genai.NewOperationTracker(recorder, ctx, "ModelProbe", model.Name, map[string]string{
-		"namespace": model.Namespace,
-		"modelName": model.Spec.Model.Value,
-	})
-
-	// Check current condition
-	currentCondition := meta.FindStatusCondition(model.Status.Conditions, ModelAvailable)
-
-	// Probe the model
-	probeErr := r.probeModel(ctx, model)
-
-	// Determine new status
-	var newStatus metav1.ConditionStatus
-	var reason, message string
-
-	if probeErr != nil {
-		newStatus = metav1.ConditionFalse
-		reason = "ProbeFailed"
-		message = probeErr.Error()
-		modelTracker.Fail(probeErr)
-	} else {
-		newStatus = metav1.ConditionTrue
-		reason = "Available"
-		message = "Model is available and probed successfully"
-		modelTracker.Complete("probed")
+	// Success case - model is available
+	if _, err := r.reconcileCondition(ctx, &model, ModelAvailable, metav1.ConditionTrue, "Available", result.Message); err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// Only update if status actually changed
-	if currentCondition == nil || currentCondition.Status != newStatus || currentCondition.Reason != reason {
-		log.Info("model status changed", "model", model.Name, "available", newStatus)
-		r.setCondition(&model, ModelAvailable, newStatus, reason, message)
-		if err := r.updateStatus(ctx, &model); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Always requeue with poll interval for continuous health checking
+	// Continue polling at regular interval
 	return ctrl.Result{RequeueAfter: model.Spec.PollInterval.Duration}, nil
 }
 
-func (r *ModelReconciler) probeModel(ctx context.Context, model arkv1alpha1.Model) error {
+func (r *ModelReconciler) probeModel(ctx context.Context, model arkv1alpha1.Model) genai.ProbeResult {
+	noopTelemetryRecorder := telenoop.NewModelRecorder()
+	noopEventingRecorder := eventnoop.NewModelRecorder()
 	resolvedModel, err := genai.LoadModel(ctx, r.Client, &arkv1alpha1.AgentModelRef{
 		Name:      model.Name,
 		Namespace: model.Namespace,
-	}, model.Namespace)
+	}, model.Namespace, nil, noopTelemetryRecorder, noopEventingRecorder)
 	if err != nil {
-		return err
+		return genai.ProbeResult{
+			Available:     false,
+			Message:       "Failed to load model configuration",
+			DetailedError: err,
+		}
 	}
 
-	probeCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	testMessages := []genai.Message{genai.NewUserMessage("Hello")}
-	_, err = resolvedModel.ChatCompletion(probeCtx, testMessages, nil)
-	return err
+	result := genai.ProbeModel(ctx, resolvedModel)
+	return result
 }
 
-// setCondition sets a condition on the Model
-func (r *ModelReconciler) setCondition(model *arkv1alpha1.Model, conditionType string, status metav1.ConditionStatus, reason, message string) {
-	meta.SetStatusCondition(&model.Status.Conditions, metav1.Condition{
+// reconcileCondition updates a condition on the Model and updates status
+// Returns true if the condition changed, false otherwise
+func (r *ModelReconciler) reconcileCondition(ctx context.Context, model *arkv1alpha1.Model, conditionType string, status metav1.ConditionStatus, reason, message string) (bool, error) {
+	changed := meta.SetStatusCondition(&model.Status.Conditions, metav1.Condition{
 		Type:               conditionType,
 		Status:             status,
 		Reason:             reason,
 		Message:            message,
 		ObservedGeneration: model.Generation,
 	})
+
+	if !changed {
+		return false, nil
+	}
+
+	// Update status
+	return true, r.updateStatus(ctx, model)
 }
 
 // updateStatus updates the Model status

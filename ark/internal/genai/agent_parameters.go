@@ -1,16 +1,15 @@
 package genai
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"text/template"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
+	"mckinsey.com/ark/internal/common"
 )
 
 func (a *Agent) resolvePrompt(ctx context.Context) (string, error) {
@@ -28,17 +27,11 @@ func (a *Agent) resolvePrompt(ctx context.Context) (string, error) {
 		return a.Prompt, nil
 	}
 
-	tmpl, err := template.New("agent-prompt").Parse(a.Prompt)
+	resolved, err := common.ResolveTemplate(a.Prompt, templateData)
 	if err != nil {
-		return "", fmt.Errorf("invalid template syntax in prompt: %w", err)
+		return "", fmt.Errorf("template resolution failed: %w", err)
 	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, templateData); err != nil {
-		return "", fmt.Errorf("template execution failed: %w", err)
-	}
-
-	return buf.String(), nil
+	return resolved, nil
 }
 
 func (a *Agent) resolveParameters(ctx context.Context) (map[string]string, error) {
@@ -136,18 +129,6 @@ func (a *Agent) resolveQueryParameterRef(ctx context.Context, ref *arkv1alpha1.Q
 		if param.ValueFrom != nil {
 			value, err := resolveQueryValueFrom(ctx, a.client, a.Namespace, param.ValueFrom)
 			if err != nil {
-				// This is a user configuration error - emit event for visibility
-				if a.Recorder != nil {
-					a.Recorder.EmitEvent(ctx, corev1.EventTypeWarning, "QueryParameterResolutionFailed", BaseEvent{
-						Name: a.GetName(),
-						Metadata: map[string]string{
-							"agentName":     a.GetName(),
-							"parameterName": ref.Name,
-							"queryName":     query.Name,
-							"reason":        fmt.Sprintf("Failed to resolve query parameter from its source: %v", err),
-						},
-					})
-				}
 				return "", fmt.Errorf("failed to resolve query parameter '%s' from its source: %w", param.Name, err)
 			}
 			return value, nil
@@ -157,17 +138,5 @@ func (a *Agent) resolveQueryParameterRef(ctx context.Context, ref *arkv1alpha1.Q
 		return "", fmt.Errorf("query parameter '%s' has neither value nor valueFrom", param.Name)
 	}
 
-	// Parameter not found - this is a user configuration error, emit event
-	if a.Recorder != nil {
-		a.Recorder.EmitEvent(ctx, corev1.EventTypeWarning, "QueryParameterNotFound", BaseEvent{
-			Name: a.GetName(),
-			Metadata: map[string]string{
-				"agentName":     a.GetName(),
-				"parameterName": ref.Name,
-				"queryName":     query.Name,
-				"reason":        "Referenced query parameter not found",
-			},
-		})
-	}
 	return "", fmt.Errorf("query parameter '%s' not found in query '%s'", ref.Name, query.Name)
 }

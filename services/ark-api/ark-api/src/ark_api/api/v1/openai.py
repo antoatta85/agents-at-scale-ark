@@ -1,22 +1,27 @@
+import json
 import logging
 import time
 import uuid
-from typing import List, Optional
 
 from ark_sdk import QueryV1alpha1Spec
 from ark_sdk.models.query_v1alpha1 import QueryV1alpha1
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
-from openai.types.chat import ChatCompletion
+from ark_sdk.streaming_config import get_streaming_config, get_streaming_base_url
+from ark_sdk.k8s import get_namespace
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse, JSONResponse
+from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 from openai.types import Model
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 import httpx
+from kubernetes_asyncio import client as k8s_client
 
 from ark_sdk.client import with_ark_client
+from ...models.queries import ArkOpenAICompletionsMetadata
 from ...utils.query_targets import parse_model_to_query_target
-from ...utils.query_polling import poll_query_completion
-from ...utils.streaming import create_single_chunk_sse_response
-from ...constants.annotations import STREAMING_ENABLED_ANNOTATION, MEMORY_EVENT_STREAM_ENABLED_ANNOTATION
+from ...utils.query_watch import watch_query_completion
+from ...utils.streaming import StreamingErrorResponse, create_single_chunk_sse_response
+from ...utils.parse_duration import parse_duration_to_seconds
+from ...constants.annotations import STREAMING_ENABLED_ANNOTATION
 
 router = APIRouter(prefix="/openai/v1", tags=["OpenAI"])
 logger = logging.getLogger(__name__)
@@ -45,91 +50,102 @@ def _create_model_entry(resource_id: str, metadata: dict) -> Model:
     )
 
 
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-
 class ChatCompletionRequest(BaseModel):
     model: str
-    messages: List[ChatMessage]
+    messages: list[ChatCompletionMessageParam]
     temperature: float = 1.0
-    max_tokens: Optional[int] = None
+    max_tokens: int | None = None
     stream: bool = False
+    metadata: dict | None = None  # Supports queryAnnotations: JSON string of K8s annotations
 
 
-async def check_streaming_availability(ark_client, query_name: str, namespace: str) -> tuple[bool, Optional[str]]:
-    """Check if streaming is available for a query.
+def process_request_metadata(
+    request_metadata: dict[str, str] | None, base_metadata: dict[str, any]
+) -> JSONResponse | None:
+    """Process request metadata and merge Ark annotations into base metadata.
 
-    Returns:
-        (has_streaming_backend, streaming_url)
-        - (False, None): No streaming backend configured - fall back to polling
-        - (True, None): Has streaming backend but it's misconfigured - this is an error
-        - (True, url): Streaming is available and properly configured
-
-    The streaming endpoint can be connected to:
-    - Before a query starts (will wait for query to begin)
-    - During query execution (will stream from current position)
-    - After query completion (will replay all events)
+    Returns JSONResponse with error if validation fails, None if successful.
     """
-    try:
-        # Get query to find memory reference
-        query = await ark_client.queries.a_get(query_name)
-        query_dict = query.to_dict()
+    if not request_metadata:
+        return None
 
-        # Resolve memory name
-        memory_spec = query_dict.get("spec", {}).get("memory")
-        if memory_spec and memory_spec.get("name"):
-            memory_name = memory_spec["name"]
-        else:
-            memory_name = "default"
-
-        # Try to get memory resource
+    # Handle Ark-specific metadata
+    if "ark" in request_metadata:
         try:
-            memory = await ark_client.memories.a_get(memory_name)
-        except Exception:
-            # No memory configured - streaming not available
-            return (False, None)
-
-        memory_dict = memory.to_dict()
-
-        # Check if memory supports streaming via annotation
-        annotations = memory_dict.get("metadata", {}).get("annotations", {})
-        streaming_enabled = annotations.get(MEMORY_EVENT_STREAM_ENABLED_ANNOTATION) == "true"
-
-        if not streaming_enabled:
-            # Memory exists but doesn't support streaming
-            return (False, None)
-
-        # Memory claims to support streaming - check if it's properly configured
-        status = memory_dict.get("status", {})
-        base_url = status.get("lastResolvedAddress")
-
-        if not base_url:
-            # Streaming backend is misconfigured - no resolved address
-            logger.error(f"Memory {memory_name} has streaming enabled but no resolved address")
-            return (True, None)
-
-        # Construct streaming URL with query parameters:
-        # - from-beginning=true: Start streaming from the first event (not just new events)
-        # - wait-for-query=30s: If query hasn't started yet, wait up to 30s for it to begin
-        streaming_url = f"{base_url}/stream/{query_name}?from-beginning=true&wait-for-query=30s"
-        return (True, streaming_url)
-
-    except Exception as e:
-        # Unexpected error checking streaming availability
-        logger.error(f"Error checking streaming availability: {str(e)}")
-        return (False, None)
+            ark_metadata = ArkOpenAICompletionsMetadata.model_validate_json(
+                request_metadata["ark"]
+            )
+            if ark_metadata.annotations:
+                if "annotations" not in base_metadata:
+                    base_metadata["annotations"] = {}
+                base_metadata["annotations"].update(ark_metadata.annotations)
+        except ValidationError as e:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": {
+                        "message": f"Invalid Ark metadata: {str(e)}",
+                        "type": "invalid_request_error",
+                        "code": "invalid_ark_metadata",
+                    }
+                },
+            )
+    # Ignore other metadata keys per OpenAI SDK pattern
+    return None
 
 
+# See https://github.com/mckinsey/agents-at-scale-ark/issues/415 for potential improvement:
+# Start streaming first, wait for the first chunk/response, and use the status code of that to respond with
 async def proxy_streaming_response(streaming_url: str):
     """Proxy streaming chunks from memory service."""
     timeout = httpx.Timeout(10.0, read=None)  # 10s connect, infinite read
     async with httpx.AsyncClient(timeout=timeout) as client:
         async with client.stream("GET", streaming_url) as response:
             if response.status_code != 200:
+                # Read error response with expected structure
+                # We control the error format, so read it directly and fail if invalid
+                try:
+                    response_text = await response.aread()
+                    response_json = json.loads(response_text.decode("utf-8"))
+                    
+                    # Expected structure: {"error": {"message": "...", "type": "...", "code": "..."}}
+                    if not isinstance(response_json, dict) or "error" not in response_json:
+                        raise ValueError("Response missing 'error' field")
+                    
+                    error_obj = response_json["error"]
+                    if not isinstance(error_obj, dict):
+                        raise ValueError("'error' field must be an object")
+                    
+                    if "message" not in error_obj or not isinstance(error_obj["message"], str):
+                        raise ValueError("'error.message' field missing or invalid")
+                    
+                    if "type" not in error_obj or not isinstance(error_obj["type"], str):
+                        raise ValueError("'error.type' field missing or invalid")
+                    
+                    # Use the error structure from response, with status code added
+                    error_data: StreamingErrorResponse = {
+                        "error": {
+                            "status": response.status_code,
+                            "message": error_obj["message"],
+                            "type": error_obj["type"],
+                            "code": error_obj.get("code", "server_error"),
+                        }
+                    }
+                except (json.JSONDecodeError, ValueError, KeyError) as e:
+                    # If we can't parse the expected structure, create a default error
+                    logger.warning(f"Failed to parse error response structure: {e}, using default error format")
+                    error_data: StreamingErrorResponse = {
+                        "error": {
+                            "status": response.status_code,
+                            "message": f"{response.status_code} {response.reason_phrase}",
+                            "type": "server_error",
+                            "code": "server_error",
+                        }
+                    }
+
+                # Forward the error response as an SSE error event
+                yield f"data: {json.dumps(error_data)}\n\n"
                 return  # Streaming failed, exit generator
-            
             # Use aiter_lines() for line-by-line streaming without buffering
             async for line in response.aiter_lines():
                 if line.strip():  # Skip empty lines
@@ -142,81 +158,134 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletion:
     model = request.model
     messages = request.messages
 
-    logger.info(f"Received chat completion request for model: {model}")
-
     target = parse_model_to_query_target(model)
-    input_text = "\n".join([f"{msg.role}: {msg.content}" for msg in messages])
     query_name = f"openai-query-{uuid.uuid4().hex[:8]}"
+
+    # Get the current namespace
+    namespace = get_namespace()
+
+    # Build metadata for the query resource
+    metadata = {"name": query_name, "namespace": namespace}
+
+    session_id = None
+    if request.metadata and "sessionId" in request.metadata:
+        session_id = request.metadata["sessionId"]
+
+    timeout = None
+    if request.metadata and "timeout" in request.metadata:
+        timeout = request.metadata["timeout"]
+
+    # Parse queryAnnotations if provided (for annotations like A2A context ID)
+    if request.metadata and "queryAnnotations" in request.metadata:
+        try:
+            query_annotations = json.loads(request.metadata["queryAnnotations"])
+            if "annotations" not in metadata:
+                metadata["annotations"] = {}
+            # Add annotations to metadata (e.g., A2A context ID)
+            metadata["annotations"].update(query_annotations)
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"Failed to parse queryAnnotations: {e}")
 
     # If the user has requested a streaming response as per the OpenAI completions spec,
     # enable streaming on the query by adding the streaming annotation
-    metadata = {"name": query_name, "namespace": "default"}
     if request.stream:
-        metadata["annotations"] = {
-            STREAMING_ENABLED_ANNOTATION: "true"
-        }
-
-    # Create the QueryV1alpha1 object like the queries API does
-    query_resource = QueryV1alpha1(
-        metadata=metadata,
-        spec=QueryV1alpha1Spec(input=input_text, targets=[target]),
-    )
-
-    logger.info(f"Creating query for {target.type}/{target.name}")
+        if "annotations" not in metadata:
+            metadata["annotations"] = {}
+        metadata["annotations"][STREAMING_ENABLED_ANNOTATION] = "true"
 
     try:
-        async with with_ark_client("default", "v1alpha1") as ark_client:
+        # Build query spec with optional sessionId and timeout
+        query_spec_dict = {"type": "messages", "input": messages, "targets": [target]}
+        if session_id:
+            query_spec_dict["sessionId"] = session_id
+        if timeout:
+            query_spec_dict["timeout"] = timeout
+        
+        # Create the QueryV1alpha1 object with type="messages"
+        # Pass messages directly without json.dumps() - SDK handles serialization
+        query_resource = QueryV1alpha1(
+            metadata=metadata,
+            spec=QueryV1alpha1Spec(**query_spec_dict),
+        )
+
+        async with with_ark_client(namespace, "v1alpha1") as ark_client:
             # Create the query using QueryV1alpha1 object like queries API
             await ark_client.queries.a_create(query_resource)
             logger.info(f"Created query: {query_name}")
 
-            # If the caller didn't reuquest streaming, we can simply poll for
+            # Extract timeout from query spec
+            query_timeout_str = query_resource.spec.timeout
+            timeout_seconds = parse_duration_to_seconds(query_timeout_str) or 300
+
+            # If the caller didn't request streaming, we can simply poll for
             # the response.
             if not request.stream:
-                return await poll_query_completion(
-                    ark_client, query_name, model, input_text
+                return await watch_query_completion(
+                    ark_client, query_name, model, messages, timeout_seconds
                 )
 
-            # Streaming was requested - we'll check to see if the backend is
-            # configured to support streaming, and if so its streaming endpoint.
-            has_streaming, streaming_url = await check_streaming_availability(ark_client, query_name, "default")
-
-            # Regardless of what we return, i'll be a streaming response with
-            # SSE headers.
+            # Streaming was requested - check if streaming backend is available
+            # Define Server-Sent Events (SSE) headers for streaming responses
+            # These headers ensure the connection stays open and data is not cached
             sse_headers = {
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
             }
 
-            # If the backend has streaming and we have an endpoint, proxy the
-            # endpoint to the caller, this gives true real-time streaming.
-            if has_streaming and streaming_url:
-                logger.info(f"Streaming available for query: {query_name}")
+            api = k8s_client.ApiClient()
+            v1 = k8s_client.CoreV1Api(api)
+            streaming_config = await get_streaming_config(v1, namespace)
+
+            # If no config or not enabled, fall back to polling
+            if not streaming_config or not streaming_config.enabled:
+                logger.info("No streaming backend configured, falling back to polling")
+                completion = await watch_query_completion(
+                    ark_client, query_name, model, messages, timeout_seconds
+                )
+                sse_lines = create_single_chunk_sse_response(completion)
                 return StreamingResponse(
-                    proxy_streaming_response(streaming_url),
-                    media_type="text/event-stream",
-                    headers=sse_headers
+                    iter(sse_lines), media_type="text/event-stream", headers=sse_headers
                 )
 
-            # If there is no backend streaming enabled, follow the OpenAI spec
-            # and simply return a single chunk with the complete response. Get
-            # the complete response - turn it into a chunk - return it.
-            logger.info("No streaming backend configured, falling back to polling")
-            completion = await poll_query_completion(
-                ark_client, query_name, model, input_text
-            )
-            sse_lines = create_single_chunk_sse_response(completion)
-            return StreamingResponse(
-                iter(sse_lines),
-                media_type="text/event-stream",
-                headers=sse_headers
+            # Streaming is enabled - get the base URL and construct full URL
+            base_url = await get_streaming_base_url(streaming_config, namespace, v1)
+            streaming_url = (
+                f"{base_url}/stream/{query_name}?from-beginning=true&wait-for-query={timeout_seconds}"
             )
 
+            # Proxy to the streaming endpoint
+            logger.info(f"Streaming available for query: {query_name}")
+            return StreamingResponse(
+                proxy_streaming_response(streaming_url),
+                media_type="text/event-stream",
+                headers=sse_headers,
+            )
+
+    except ValidationError as e:
+        # Return OpenAI-formatted error to adhere to OpenAI completions spec
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": {
+                    "message": str(e),
+                    "type": "invalid_request_error",
+                    "code": "invalid_value",
+                }
+            },
+        )
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
-        if isinstance(e, HTTPException):
-            raise
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return OpenAI-formatted error to adhere to OpenAI completions spec
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": {
+                    "message": str(e),
+                    "type": "server_error",
+                    "code": "internal_error",
+                }
+            },
+        )
 
 
 @router.get("/models")

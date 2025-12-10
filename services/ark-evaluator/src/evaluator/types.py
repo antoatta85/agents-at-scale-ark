@@ -25,10 +25,30 @@ class ModelRef(BaseModel):
 
 class EvaluationRequest(BaseModel):
     queryId: str
-    input: str
+    input: Union[str, List[Dict[str, Any]]]
     responses: List[Response]
     query: Dict[str, Any]
-    modelRef: Optional[ModelRef] = None  # Reference instead of inline model
+    modelRef: Optional[ModelRef] = None
+
+    @field_validator('input')
+    def normalize_input(cls, v):
+        if isinstance(v, str):
+            return v
+
+        if isinstance(v, list):
+            messages = []
+            for msg in v:
+                if isinstance(msg, dict) and 'content' in msg:
+                    role = msg.get('role', 'unknown')
+                    content = msg.get('content', '')
+                    messages.append(f"{role}: {content}")
+
+            if not messages:
+                raise ValueError("Chat message list is empty or malformed")
+
+            return "\n".join(messages)
+
+        raise ValueError(f"Input must be string or list of messages, got {type(v)}")
 
 class EvaluationType(str, Enum):
     DIRECT = "direct"
@@ -114,6 +134,7 @@ class EvaluationParameters(BaseModel):
             "scope": "scope",
             "min-score": "min_score",
             "min_score": "min_score",
+            "threshold": "min_score",
             "max-tokens": "max_tokens",
             "max_tokens": "max_tokens",
             "temperature": "temperature",
@@ -167,7 +188,13 @@ class EvaluationParameters(BaseModel):
     def get_scope_list(self) -> List[str]:
         """Get scope as a list of individual scope values"""
         if not self.scope or self.scope == "all":
-            return [scope.value for scope in EvaluationScope if scope.value != "all"]
+            # Return only the base evaluation scopes (exclude "all" and RAGAS-specific metrics)
+            base_scopes = [
+                "relevance", "accuracy", "conciseness", "completeness",
+                "clarity", "usefulness", "appropriateness", "compliance",
+                "refusal_handling"
+            ]
+            return base_scopes
         return [scope.strip() for scope in self.scope.split(",")]
     
     def to_dict(self) -> Dict[str, Any]:

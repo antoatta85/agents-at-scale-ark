@@ -5,6 +5,14 @@
 import chalk from 'chalk';
 import fs from 'fs';
 
+export const ExitCodes = {
+  Success: 0,
+  CliError: 1,
+  OperationError: 2,
+  Timeout: 3,
+  EvaluationFailed: 4,
+} as const;
+
 export enum ErrorCode {
   INVALID_INPUT = 'INVALID_INPUT',
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
@@ -225,9 +233,9 @@ export class InputValidator {
     if (!kebabRegex.test(trimmed)) {
       const suggestions = [];
       const normalized = trimmed
+        .replace(/([a-z])([A-Z])/g, '$1-$2') // Handle camelCase first
         .toLowerCase()
         .replace(/[\s_]+/g, '-')
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
         .replace(/-{2,}/g, '-') // Replace 2+ consecutive hyphens with single hyphen (ReDoS-safe)
         .replace(/^-/, '') // Remove single leading hyphen (ReDoS-safe)
         .replace(/-$/, ''); // Remove single trailing hyphen (ReDoS-safe)

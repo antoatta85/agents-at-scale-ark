@@ -1,111 +1,131 @@
 import {
+  BarChart,
   Bot,
+  Calendar,
+  CheckCircle,
+  ClipboardList,
+  Database,
+  Key,
   Lock,
-  Users,
-  Zap,
+  type LucideIcon,
   Search,
   Server,
-  Wrench,
   Settings,
-  CheckCircle,
-  BarChart,
-  Calendar,
-  Database,
-  type LucideIcon
-} from "lucide-react";
+  Users,
+  Wrench,
+  Zap,
+} from 'lucide-react';
+
+import { A2A_TASKS_FEATURE_KEY } from '@/atoms/experimental-features';
 
 export interface DashboardSection {
   key: string;
   title: string;
   icon: LucideIcon;
-  group: "configurations" | "operations" | "runtime";
+  group: 'configurations' | 'operations' | 'runtime' | 'service';
+  enablerFeature?: string;
 }
 
 export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
   // Configurations - order: Agents, Teams, Models, Secrets
   agents: {
-    key: "agents",
-    title: "Agents",
+    key: 'agents',
+    title: 'Agents',
     icon: Bot,
-    group: "configurations"
+    group: 'configurations',
   },
   teams: {
-    key: "teams",
-    title: "Teams",
+    key: 'teams',
+    title: 'Teams',
     icon: Users,
-    group: "configurations"
+    group: 'configurations',
   },
   models: {
-    key: "models",
-    title: "Models",
+    key: 'models',
+    title: 'Models',
     icon: Zap,
-    group: "configurations"
+    group: 'configurations',
   },
   secrets: {
-    key: "secrets",
-    title: "Secrets",
+    key: 'secrets',
+    title: 'Secrets',
     icon: Lock,
-    group: "configurations"
+    group: 'configurations',
   },
   evaluators: {
-    key: "evaluators",
-    title: "Evaluators",
+    key: 'evaluators',
+    title: 'Evaluators',
     icon: CheckCircle,
-    group: "configurations"
+    group: 'configurations',
   },
 
   // Operations
   queries: {
-    key: "queries",
-    title: "Queries",
+    key: 'queries',
+    title: 'Queries',
     icon: Search,
-    group: "operations"
+    group: 'operations',
   },
   evaluations: {
-    key: "evaluations",
-    title: "Evaluations",
+    key: 'evaluations',
+    title: 'Evaluations',
     icon: BarChart,
-    group: "operations"
+    group: 'operations',
   },
   events: {
-    key: "events",
-    title: "Events",
+    key: 'events',
+    title: 'Events',
     icon: Calendar,
-    group: "operations"
+    group: 'operations',
   },
   memory: {
-    key: "memory",
-    title: "Memory",
+    key: 'memory',
+    title: 'Memory',
     icon: Database,
-    group: "operations"
+    group: 'operations',
+  },
+  tasks: {
+    key: 'tasks',
+    title: 'A2A Tasks',
+    icon: ClipboardList,
+    group: 'operations',
+    enablerFeature: A2A_TASKS_FEATURE_KEY,
   },
 
   // Runtime
   tools: {
-    key: "tools",
-    title: "Tools",
+    key: 'tools',
+    title: 'Tools',
     icon: Wrench,
-    group: "runtime"
+    group: 'runtime',
   },
   mcp: {
-    key: "mcp",
-    title: "MCP Servers",
+    key: 'mcp',
+    title: 'MCP Servers',
     icon: Server,
-    group: "runtime"
+    group: 'runtime',
   },
   a2a: {
-    key: "a2a",
-    title: "A2A Servers",
+    key: 'a2a',
+    title: 'A2A Servers',
     icon: Server,
-    group: "runtime"
+    group: 'runtime',
   },
   services: {
-    key: "services",
-    title: "ARK Services",
+    key: 'services',
+    title: 'ARK Services',
     icon: Settings,
-    group: "runtime"
-  }
-} as const;
+    group: 'runtime',
+  },
+
+  // Service
+  'api-keys': {
+    key: 'api-keys',
+    title: 'Service API Keys',
+    icon: Key,
+    group: 'service',
+  },
+} as const satisfies Record<string, DashboardSection>;
 
 // Type-safe keys
 export type DashboardSectionKey = keyof typeof DASHBOARD_SECTIONS;
@@ -117,13 +137,17 @@ export function getDashboardIcon(sectionKey: DashboardSectionKey): LucideIcon {
 
 // Export individual section groups for convenience
 export const CONFIGURATION_SECTIONS = Object.values(DASHBOARD_SECTIONS).filter(
-  (section) => section.group === "configurations"
+  section => section.group === 'configurations',
 );
 
 export const OPERATION_SECTIONS = Object.values(DASHBOARD_SECTIONS).filter(
-  (section) => section.group === "operations"
+  section => section.group === 'operations',
 );
 
 export const RUNTIME_SECTIONS = Object.values(DASHBOARD_SECTIONS).filter(
-  (section) => section.group === "runtime"
+  section => section.group === 'runtime',
+);
+
+export const SERVICE_SECTIONS = Object.values(DASHBOARD_SECTIONS).filter(
+  section => section.group === 'service',
 );

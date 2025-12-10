@@ -17,7 +17,7 @@ import {
   CLI_CONFIG,
 } from '../config.js';
 import {SecurityUtils} from '../../../lib/security.js';
-import {EnhancedPrompts, ProgressIndicator} from '../../../lib/progress.js';
+import ora from 'ora';
 
 interface ProjectConfig {
   name: string;
@@ -98,75 +98,53 @@ class ProjectGenerator {
     destination: string,
     options: GeneratorOptions
   ): Promise<void> {
-    const progress = new ProgressIndicator('ARK Agent Project Generator');
-
-    // Add steps to progress indicator
-    progress.addStep('prerequisites', 'Checking prerequisites');
-    progress.addStep('configuration', 'Gathering project configuration');
-    if (!options.skipModels) {
-      progress.addStep('models', 'Configuring model providers');
-    }
-    if (!options.skipGit) {
-      progress.addStep('git', 'Setting up git repository');
-    }
-    progress.addStep('generation', 'Generating project files');
-    progress.addStep('completion', 'Finalizing project setup');
+    console.log(chalk.blue(`\n🚀 ARK Agent Project Generator\n`));
+    const spinner = ora('Checking prerequisites').start();
 
     try {
       // Check prerequisites
-      progress.startStep('prerequisites');
       await this.checkPrerequisites();
-      progress.completeStep('prerequisites', 'Prerequisites validated');
+      spinner.succeed('Prerequisites validated');
 
       // Get project configuration
-      progress.startStep('configuration');
-      const config = await this.getProjectConfig(name, destination, options);
-      progress.completeStep(
-        'configuration',
-        `Project "${config.name}" configured`
+      spinner.start('Gathering project configuration');
+      const config = await this.getProjectConfig(
+        name,
+        destination,
+        options,
+        spinner
       );
+      spinner.succeed(`Project "${config.name}" configured`);
 
       // Discover and configure models (only if not skipped)
       if (config.configureModels) {
-        progress.startStep('models');
+        spinner.start('Configuring model providers');
         await this.configureModels(config);
-        progress.completeStep(
-          'models',
-          `Model provider: ${config.selectedModels || 'none'}`
-        );
-      } else {
-        progress.skipStep('models', 'Model configuration skipped');
+        spinner.succeed(`Model provider: ${config.selectedModels || 'none'}`);
       }
 
       // Configure git if requested (only if not skipped)
       if (config.initGit) {
-        progress.startStep('git');
+        spinner.start('Setting up git repository');
         await this.configureGit(config);
-        progress.completeStep('git', 'Git repository configured');
-      } else {
-        progress.skipStep('git', 'Git setup skipped');
+        spinner.succeed('Git repository configured');
       }
 
       // Generate the project
-      progress.startStep('generation');
+      spinner.start('Generating project files');
       await this.generateProject(config);
-      progress.completeStep('generation', 'Project files created');
+      spinner.succeed('Project files created');
 
       // Finalize
-      progress.startStep('completion');
+      spinner.start('Finalizing project setup');
       this.showNextSteps(config);
-      progress.completeStep('completion', 'Project ready');
+      spinner.succeed('Project ready');
 
-      progress.complete('Project generation');
+      console.log(chalk.green(`\n✅ Project generation completed\n`));
     } catch (error) {
-      // Find the current step and mark it as failed
-      const currentStep = progress['steps'].find((s) => s.status === 'running');
-      if (currentStep) {
-        progress.failStep(
-          currentStep.name,
-          `Failed: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
+      spinner.fail(
+        `Failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       throw error;
     }
   }
@@ -180,8 +158,10 @@ class ProjectGenerator {
       requirements.push({tool: 'git', available: true, required: false});
     } catch {
       requirements.push({tool: 'git', available: false, required: false});
-      EnhancedPrompts.showWarning(
-        'Git not found - git features will be disabled'
+      console.log(
+        chalk.yellow(
+          '⚠️  Warning: Git not found - git features will be disabled'
+        )
       );
     }
 
@@ -200,11 +180,15 @@ class ProjectGenerator {
     }
 
     if (missingDeploymentTools.length > 0) {
-      EnhancedPrompts.showInfo(
-        `Optional tools not found: ${missingDeploymentTools.join(', ')}`
+      console.log(
+        chalk.blue(
+          `ℹ️  Optional tools not found: ${missingDeploymentTools.join(', ')}`
+        )
       );
-      EnhancedPrompts.showTip(
-        'Install kubectl and helm later to deploy your project to a cluster'
+      console.log(
+        chalk.cyan(
+          '💡 Tip: Install kubectl and helm later to deploy your project to a cluster'
+        )
       );
     }
   }
@@ -212,14 +196,13 @@ class ProjectGenerator {
   private async getProjectConfig(
     name: string,
     destination: string,
-    options: GeneratorOptions
+    options: GeneratorOptions,
+    spinner: any
   ): Promise<ProjectConfig> {
-    EnhancedPrompts.showSeparator('Project Configuration');
-
-    // Use command line options if provided, otherwise prompt
+    // Use command line options if provided
     let projectType = options.projectType;
     let parentDir = destination;
-    let namespace = options.namespace || name;
+    let namespace = options.namespace;
 
     // Validate project type if provided
     if (
@@ -232,12 +215,21 @@ class ProjectGenerator {
       );
     }
 
-    // Validate and normalize namespace
-    namespace = toKebabCase(namespace);
-    validateNameStrict(namespace, 'namespace');
+    // Default to interactive mode unless all required options are provided
+    // or explicitly set to non-interactive
+    const shouldPrompt =
+      options.interactive !== false &&
+      (!options.projectType || !options.namespace);
 
-    // Only prompt if in interactive mode and missing required options
-    if (options.interactive || !options.projectType || !options.namespace) {
+    if (shouldPrompt) {
+      // Stop spinner before showing prompts
+      spinner.stop();
+
+      // Show configuration header only when prompting
+      console.log(chalk.gray(`\n${'─'.repeat(50)}`));
+      console.log(chalk.cyan('Project Configuration'));
+      console.log(chalk.gray(`${'─'.repeat(50)}\n`));
+
       const prompts = [];
 
       if (!options.projectType) {
@@ -281,14 +273,23 @@ class ProjectGenerator {
         parentDir = answers.parentDir || parentDir;
         namespace = answers.namespace || namespace;
       }
+
+      // Restart spinner after prompts
+      spinner.start('Finalizing configuration');
     }
 
-    // Ensure projectType has a value
+    // Use defaults for missing options
     if (!projectType) {
-      throw new Error(
-        'Project type is required. Use --project-type <empty|with-samples> or run in interactive mode.'
-      );
+      projectType = GENERATOR_DEFAULTS.projectType; // 'with-samples'
     }
+
+    if (!namespace) {
+      namespace = name; // Default namespace to project name
+    }
+
+    // Validate and normalize namespace
+    namespace = toKebabCase(namespace);
+    validateNameStrict(namespace, 'namespace');
 
     const projectPath = path.join(parentDir, name);
 
@@ -485,7 +486,10 @@ class ProjectGenerator {
   }
 
   private async configureGit(config: ProjectConfig): Promise<void> {
-    console.log(chalk.cyan('📋 Git Repository Configuration\n'));
+    // If git setup is explicitly skipped, don't do anything
+    if (!config.initGit) {
+      return;
+    }
 
     // Check if git is available
     const gitAvailable = await this.isGitAvailable();
@@ -498,7 +502,7 @@ class ProjectGenerator {
       return;
     }
 
-    // Check if git is configured
+    // Check if git is configured (only if we're initializing git)
     try {
       await execa('git', ['config', 'user.name'], {stdio: 'pipe'});
       await execa('git', ['config', 'user.email'], {stdio: 'pipe'});
@@ -510,17 +514,9 @@ class ProjectGenerator {
       );
     }
 
-    const gitAnswers = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'initGit',
-        message: 'Initialize git repository with initial commit?',
-        default: true,
-      },
-    ]);
-
-    config.initGit = gitAnswers.initGit;
-    config.createCommit = gitAnswers.initGit; // Always create commit if initializing git
+    // Since initGit is already true from command line options or defaults,
+    // we can proceed without prompting
+    config.createCommit = true; // Always create commit if initializing git
   }
 
   private async generateProject(config: ProjectConfig): Promise<void> {
@@ -1003,13 +999,13 @@ Generated with ARK CLI generator`;
         {desc: 'Add YAML files to agents/, teams/, queries/ directories'},
         {desc: 'Copy model configurations from samples/models/'},
         {desc: 'Edit .env file to set your API keys'},
-        {desc: 'Deploy your project', cmd: 'make quickstart'}
+        {desc: 'Deploy your project', cmd: 'devspace dev'}
       );
     } else if (config.selectedModels && config.selectedModels !== 'none') {
       steps.push(
         {desc: 'Edit .env file to set your API keys'},
         {desc: 'Load environment variables', cmd: 'source .env'},
-        {desc: 'Deploy your project', cmd: 'make quickstart'},
+        {desc: 'Deploy your project', cmd: 'devspace dev'},
         {
           desc: 'Test your deployment',
           cmd: `kubectl get query sample-team-query -w --namespace ${config.namespace}`,
@@ -1019,7 +1015,7 @@ Generated with ARK CLI generator`;
       steps.push(
         {desc: 'Copy model configurations from samples/models/'},
         {desc: 'Edit .env file to set your API keys'},
-        {desc: 'Deploy your project', cmd: 'make quickstart'}
+        {desc: 'Deploy your project', cmd: 'devspace dev'}
       );
     }
 

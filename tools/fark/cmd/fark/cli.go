@@ -146,9 +146,6 @@ func printQueryResults(query *arkv1alpha1.Query, outputMode string) {
 		result := map[string]interface{}{
 			"responses": query.Status.Responses,
 		}
-		if len(query.Status.Evaluations) > 0 {
-			result["evaluations"] = query.Status.Evaluations
-		}
 		if jsonData, err := json.MarshalIndent(result, "", "  "); err == nil {
 			fmt.Println(string(jsonData))
 		}
@@ -247,10 +244,24 @@ func displayEvent(logger *zap.Logger, obj any, opts *OutputOptions) {
 
 	eventType, _, _ := unstructured.NestedString(unstructuredObj.Object, "type")
 	reason, _, _ := unstructured.NestedString(unstructuredObj.Object, "reason")
-	message, _, _ := unstructured.NestedString(unstructuredObj.Object, "message")
 	timestamp := time.Now().Format("15:04:05.000")
 
-	details := parseEventDetails(message)
+	// Check for structured event data in annotations
+	annotations, found, _ := unstructured.NestedMap(unstructuredObj.Object, "metadata", "annotations")
+	var details string
+	if found {
+		if eventDataJSON, ok := annotations["ark.mckinsey.com/event-data"].(string); ok && eventDataJSON != "" {
+			// Display the raw JSON data
+			details = " " + eventDataJSON
+		}
+	}
+
+	// Fall back to message parsing if no structured data
+	if details == "" {
+		message, _, _ := unstructured.NestedString(unstructuredObj.Object, "message")
+		details = parseEventDetails(message)
+	}
+
 	colorCode := getEventColorCode(eventType)
 
 	fmt.Fprintf(os.Stderr, "%s %s%s\n", timestamp, colorize(reason, colorCode), details)

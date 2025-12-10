@@ -1,3 +1,4 @@
 export default {
-  'ark-cluster-memory': 'ARK Cluster Memory'
+  'ark-api': 'Ark API',
+  'ark-cluster-memory': 'Ark Cluster Memory'
 }
