@@ -3,6 +3,7 @@ from fastapi import APIRouter
 
 from .namespaces import router as namespaces_router
 from .secrets import router as secrets_router
+from .configmaps import router as configmaps_router
 from .agents import router as agents_router
 from .models import router as models_router
 from .teams import router as teams_router
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/v1", tags=["v1"])
 # Include all v1 routers
 router.include_router(namespaces_router)
 router.include_router(secrets_router)
+router.include_router(configmaps_router)
 router.include_router(agents_router)
 router.include_router(models_router)
 router.include_router(teams_router)

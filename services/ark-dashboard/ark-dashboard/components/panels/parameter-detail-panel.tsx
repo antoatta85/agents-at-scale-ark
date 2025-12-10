@@ -4,11 +4,14 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
+  Eye,
+  Loader2,
   Plus,
   Settings,
   Trash,
 } from 'lucide-react';
 import { useState } from 'react';
+import { configMapsService } from '@/lib/services';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,13 +21,38 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
+interface ConfigMapKeyRef {
+  name: string;
+  key: string;
+  optional?: boolean;
+}
+
+interface SecretKeyRef {
+  name: string;
+  key: string;
+  optional?: boolean;
+}
+
+interface ValueFrom {
+  configMapKeyRef?: ConfigMapKeyRef;
+  secretKeyRef?: SecretKeyRef;
+}
+
 interface Parameter {
   name: string;
-  value: string;
+  value?: string;
+  valueFrom?: ValueFrom;
 }
 
 interface ParameterDetailPanelProps {
@@ -33,12 +61,60 @@ interface ParameterDetailPanelProps {
   error?: string;
 }
 
+interface ConfigMapEntry {
+  input: string;
+  expectedOutput: string;
+}
+
 export function ParameterDetailPanel({
   parameters,
   onParametersChange,
   error,
 }: ParameterDetailPanelProps) {
   const [expandedParams, setExpandedParams] = useState<Set<number>>(new Set());
+  const [viewingValueFrom, setViewingValueFrom] = useState<{
+    open: boolean;
+    param: Parameter | null;
+  }>({ open: false, param: null });
+  const [configMapData, setConfigMapData] = useState<ConfigMapEntry[] | null>(
+    null,
+  );
+  const [loadingConfigMap, setLoadingConfigMap] = useState(false);
+  const [configMapError, setConfigMapError] = useState<string | null>(null);
+
+  const handleViewValueFrom = async (param: Parameter) => {
+    setViewingValueFrom({ open: true, param });
+    setConfigMapData(null);
+    setConfigMapError(null);
+
+    if (param.valueFrom?.configMapKeyRef) {
+      setLoadingConfigMap(true);
+      try {
+        const data = await configMapsService.get(
+          param.valueFrom.configMapKeyRef.name,
+        );
+        const key = param.valueFrom.configMapKeyRef.key;
+        const rawData = data.data[key];
+
+        if (rawData) {
+          try {
+            const parsed = JSON.parse(rawData);
+            setConfigMapData(Array.isArray(parsed) ? parsed : [parsed]);
+          } catch {
+            setConfigMapError('Failed to parse ConfigMap data as JSON');
+          }
+        } else {
+          setConfigMapError(`Key "${key}" not found in ConfigMap`);
+        }
+      } catch (err) {
+        setConfigMapError(
+          err instanceof Error ? err.message : 'Failed to fetch ConfigMap',
+        );
+      } finally {
+        setLoadingConfigMap(false);
+      }
+    }
+  };
 
   const addParameter = () => {
     const newParams = [...parameters, { name: '', value: '' }];
@@ -82,8 +158,8 @@ export function ParameterDetailPanel({
     setExpandedParams(newExpanded);
   };
 
-  const isLongValue = (value: string) =>
-    value.length > 100 || value.includes('\n');
+  const isLongValue = (value: string | undefined) =>
+    value ? value.length > 100 || value.includes('\n') : false;
 
   return (
     <div className="flex h-full flex-col">
@@ -169,7 +245,7 @@ export function ParameterDetailPanel({
                         <Trash />
                       </Button>
                     </div>
-                    {!isExpanded && param.value && (
+                    {!isExpanded && (param.value || param.valueFrom) && (
                       <div
                         className="text-muted-foreground mt-1 overflow-hidden text-xs break-words"
                         style={{
@@ -179,10 +255,24 @@ export function ParameterDetailPanel({
                           lineHeight: '1.4',
                           maxHeight: '2.8em',
                         }}>
-                        Value:{' '}
-                        {param.value.length > 120
-                          ? `${param.value.substring(0, 120)}...`
-                          : param.value}
+                        {param.value ? (
+                          <>
+                            Value:{' '}
+                            {param.value.length > 120
+                              ? `${param.value.substring(0, 120)}...`
+                              : param.value}
+                          </>
+                        ) : param.valueFrom?.configMapKeyRef ? (
+                          <>
+                            From ConfigMap: {param.valueFrom.configMapKeyRef.name}/
+                            {param.valueFrom.configMapKeyRef.key}
+                          </>
+                        ) : param.valueFrom?.secretKeyRef ? (
+                          <>
+                            From Secret: {param.valueFrom.secretKeyRef.name}/
+                            {param.valueFrom.secretKeyRef.key}
+                          </>
+                        ) : null}
                       </div>
                     )}
                   </CardHeader>
@@ -203,9 +293,39 @@ export function ParameterDetailPanel({
 
                       <div className="flex flex-col gap-1 space-y-1">
                         <Label className="text-xs font-medium">Value</Label>
-                        {hasLongValue || param.value.length > 50 ? (
+                        {param.valueFrom ? (
+                          <div className="bg-muted flex items-start justify-between gap-2 rounded p-3 text-xs">
+                            <div className="flex-1">
+                              <div className="mb-1 font-medium">
+                                Value Reference:
+                              </div>
+                              {param.valueFrom.configMapKeyRef && (
+                                <div className="text-muted-foreground">
+                                  ConfigMap: {param.valueFrom.configMapKeyRef.name}
+                                  <br />
+                                  Key: {param.valueFrom.configMapKeyRef.key}
+                                </div>
+                              )}
+                              {param.valueFrom.secretKeyRef && (
+                                <div className="text-muted-foreground">
+                                  Secret: {param.valueFrom.secretKeyRef.name}
+                                  <br />
+                                  Key: {param.valueFrom.secretKeyRef.key}
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => handleViewValueFrom(param)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : hasLongValue || (param.value && param.value.length > 50) ? (
                           <Textarea
-                            value={param.value}
+                            value={param.value || ''}
                             onChange={e =>
                               updateParameter(index, 'value', e.target.value)
                             }
@@ -219,7 +339,7 @@ export function ParameterDetailPanel({
                           />
                         ) : (
                           <Input
-                            value={param.value}
+                            value={param.value || ''}
                             onChange={e =>
                               updateParameter(index, 'value', e.target.value)
                             }
@@ -257,6 +377,132 @@ export function ParameterDetailPanel({
           </div>
         </div>
       )}
+
+      <Dialog
+        open={viewingValueFrom.open}
+        onOpenChange={open =>
+          setViewingValueFrom({ open, param: viewingValueFrom.param })
+        }>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Parameter Value Reference</DialogTitle>
+          </DialogHeader>
+
+          {viewingValueFrom.param?.valueFrom?.configMapKeyRef && (
+            <div className="space-y-4">
+              {loadingConfigMap && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <span className="text-muted-foreground ml-2 text-sm">
+                    Loading ConfigMap data...
+                  </span>
+                </div>
+              )}
+
+              {configMapError && (
+                <div className="bg-destructive/10 text-destructive rounded-lg border border-red-200 p-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="font-medium">Error loading data</span>
+                  </div>
+                  <p className="mt-1 text-xs">{configMapError}</p>
+                </div>
+              )}
+
+              {configMapData && (
+                <div className="space-y-2">
+                  <div className="max-h-[400px] overflow-auto rounded-lg border">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted sticky top-0 z-10">
+                        <tr>
+                          <th className="border-r px-4 py-2 text-left font-medium">
+                            Input
+                          </th>
+                          <th className="px-4 py-2 text-left font-medium">
+                            Expected Output
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {configMapData.map((entry, idx) => (
+                          <tr
+                            key={idx}
+                            className="border-t hover:bg-muted/50">
+                            <td className="border-r px-4 py-2">
+                              {entry.input}
+                            </td>
+                            <td className="px-4 py-2">{entry.expectedOutput}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Showing {configMapData.length} entr
+                    {configMapData.length === 1 ? 'y' : 'ies'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {viewingValueFrom.param?.valueFrom?.secretKeyRef && (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-purple-50 p-4 dark:bg-purple-950/20">
+                <div className="mb-2 flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+                    Secret Reference
+                  </h3>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex">
+                    <span className="w-32 font-medium text-purple-800 dark:text-purple-200">
+                      Resource Type:
+                    </span>
+                    <span className="text-purple-700 dark:text-purple-300">
+                      Secret (Sensitive)
+                    </span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-32 font-medium text-purple-800 dark:text-purple-200">
+                      Name:
+                    </span>
+                    <span className="font-mono text-purple-700 dark:text-purple-300">
+                      {viewingValueFrom.param.valueFrom.secretKeyRef.name}
+                    </span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-32 font-medium text-purple-800 dark:text-purple-200">
+                      Key:
+                    </span>
+                    <span className="font-mono text-purple-700 dark:text-purple-300">
+                      {viewingValueFrom.param.valueFrom.secretKeyRef.key}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 text-sm">
+                <p className="text-muted-foreground mb-2 font-medium">
+                  How to view the actual data:
+                </p>
+                <div className="bg-background rounded border p-3 font-mono text-xs">
+                  kubectl get secret{' '}
+                  {viewingValueFrom.param.valueFrom.secretKeyRef.name} -o yaml
+                </div>
+                <p className="text-muted-foreground mt-2 text-xs">
+                  Note: Secret values are base64 encoded. Use{' '}
+                  <code className="rounded bg-purple-100 px-1 dark:bg-purple-900/30">
+                    -o jsonpath
+                  </code>{' '}
+                  or decode manually for readability.
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

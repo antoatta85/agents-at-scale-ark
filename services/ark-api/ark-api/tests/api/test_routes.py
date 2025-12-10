@@ -2363,3 +2363,99 @@ class TestTeamsEndpoint(unittest.TestCase):
         data = response.json()
         self.assertIn("graph strategy requires maxTurns", data["detail"])
         self.assertIn("admission webhook", data["detail"])
+
+class TestConfigMapsEndpoint(unittest.TestCase):
+    """Test cases for the /configmaps endpoint."""
+    
+    def setUp(self):
+        """Set up test client."""
+        from ark_api.main import app
+        self.client = TestClient(app)
+    
+    @patch('ark_api.api.v1.configmaps.get_k8s_client')
+    @patch('ark_api.api.v1.configmaps.get_namespace')
+    def test_get_configmap_success(self, mock_get_namespace, mock_get_k8s_client):
+        """Test successful ConfigMap retrieval."""
+        mock_get_namespace.return_value = "default"
+        
+        mock_configmap = Mock()
+        mock_configmap.metadata.name = "test-configmap"
+        mock_configmap.metadata.namespace = "default"
+        mock_configmap.data = {
+            "key1": "value1",
+            "examples": '[{"input": "test", "expectedOutput": "result"}]'
+        }
+        
+        mock_api = AsyncMock()
+        mock_api.read_namespaced_config_map = AsyncMock(return_value=mock_configmap)
+        mock_get_k8s_client.return_value = mock_api
+        
+        response = self.client.get("/v1/configmaps/test-configmap")
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["name"], "test-configmap")
+        self.assertEqual(data["namespace"], "default")
+        self.assertEqual(data["data"]["key1"], "value1")
+        self.assertIn("examples", data["data"])
+    
+    @patch('ark_api.api.v1.configmaps.get_k8s_client')
+    @patch('ark_api.api.v1.configmaps.get_namespace')
+    def test_get_configmap_with_namespace_param(self, mock_get_namespace, mock_get_k8s_client):
+        """Test ConfigMap retrieval with explicit namespace."""
+        mock_configmap = Mock()
+        mock_configmap.metadata.name = "test-configmap"
+        mock_configmap.metadata.namespace = "custom-namespace"
+        mock_configmap.data = {"key1": "value1"}
+        
+        mock_api = AsyncMock()
+        mock_api.read_namespaced_config_map = AsyncMock(return_value=mock_configmap)
+        mock_get_k8s_client.return_value = mock_api
+        
+        response = self.client.get("/v1/configmaps/test-configmap?namespace=custom-namespace")
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["namespace"], "custom-namespace")
+        mock_api.read_namespaced_config_map.assert_called_once_with(
+            name="test-configmap",
+            namespace="custom-namespace"
+        )
+    
+    @patch('ark_api.api.v1.configmaps.get_k8s_client')
+    @patch('ark_api.api.v1.configmaps.get_namespace')
+    def test_get_configmap_empty_data(self, mock_get_namespace, mock_get_k8s_client):
+        """Test ConfigMap with no data."""
+        mock_get_namespace.return_value = "default"
+        
+        mock_configmap = Mock()
+        mock_configmap.metadata.name = "empty-configmap"
+        mock_configmap.metadata.namespace = "default"
+        mock_configmap.data = None
+        
+        mock_api = AsyncMock()
+        mock_api.read_namespaced_config_map = AsyncMock(return_value=mock_configmap)
+        mock_get_k8s_client.return_value = mock_api
+        
+        response = self.client.get("/v1/configmaps/empty-configmap")
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["data"], {})
+    
+    @patch('ark_api.api.v1.configmaps.get_k8s_client')
+    @patch('ark_api.api.v1.configmaps.get_namespace')
+    def test_get_configmap_not_found(self, mock_get_namespace, mock_get_k8s_client):
+        """Test ConfigMap not found error."""
+        mock_get_namespace.return_value = "default"
+        
+        from kubernetes_asyncio.client.rest import ApiException
+        mock_api = AsyncMock()
+        mock_api.read_namespaced_config_map = AsyncMock(
+            side_effect=ApiException(status=404, reason="Not Found")
+        )
+        mock_get_k8s_client.return_value = mock_api
+        
+        response = self.client.get("/v1/configmaps/nonexistent-configmap")
+        
+        self.assertEqual(response.status_code, 404)
