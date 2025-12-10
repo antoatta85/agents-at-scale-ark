@@ -45,6 +45,7 @@ export { mcpServersService, type MCPServer } from './mcp-servers';
 export { toolsService, type Tool } from './tools';
 export { queriesService } from './queries';
 export { secretsService, type Secret } from './secrets';
+export { configMapsService, type ConfigMapData } from './configmaps';
 export {
   arkServicesService,
   type ArkService,
