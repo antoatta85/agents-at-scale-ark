@@ -3,20 +3,20 @@
 import asyncio
 import json
 
-from fastapi import Depends, Path, Query
+from fastapi import Depends, Path
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ark_sessions.core.config import logger, settings
 from ark_sessions.core.database import get_session
 from ark_sessions.core.pubsub import PubSubManager
-from ark_sessions.models import SessionEvent
 from ark_sessions.storage.events import EventStorage
 from ark_sessions.storage.sessions import SessionStorage
 
 pubsub_manager = PubSubManager(settings.database_url)
 
 SSE_TIMEOUT = 120
+
 
 async def stream_session_events(
     session_id: str = Path(..., description="Session ID"),
@@ -28,6 +28,7 @@ async def stream_session_events(
 
     session_obj = await session_storage.get_session(session_id)
     if not session_obj:
+
         async def empty_generator():
             yield f"data: {json.dumps({'type': 'error', 'message': 'Session not found'})}\n\n"
 
@@ -91,6 +92,7 @@ async def stream_session_queries(
 
     session_obj = await session_storage.get_session(session_id)
     if not session_obj:
+
         async def empty_generator():
             yield f"data: {json.dumps({'type': 'error', 'message': 'Session not found'})}\n\n"
 
@@ -105,11 +107,8 @@ async def stream_session_queries(
 
     async def query_generator():
         events = await event_storage.get_events_by_session(session_id)
-        query_events = [
-            event for event in events
-            if event.reason in ("QueryStart", "QueryComplete")
-        ]
-        
+        query_events = [event for event in events if event.reason in ("QueryStart", "QueryComplete")]
+
         for event in query_events:
             yield f"data: {json.dumps(event.model_dump(mode='json'))}\n\n"
 
@@ -147,4 +146,3 @@ async def stream_session_queries(
             "X-Accel-Buffering": "no",
         },
     )
-

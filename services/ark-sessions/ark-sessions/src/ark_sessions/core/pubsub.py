@@ -38,8 +38,7 @@ class PubSubManager:
                     logger.error(f"Failed to parse notification: {e}")
                 except asyncio.QueueFull:
                     logger.warning(
-                        f"Queue full for session {session_id}, "
-                        f"dropping event {event_data.get('id', 'unknown')}"
+                        f"Queue full for session {session_id}, dropping event {event_data.get('id', 'unknown')}"
                     )
 
             await conn.add_listener(channel_name, notification_handler)
@@ -62,8 +61,6 @@ class PubSubManager:
             logger.error(f"Cleanup error: {e}")
 
     async def shutdown(self) -> None:
-        logger.info(
-            f"Shutting down PubSubManager ({len(self._active_connections)} connections)"
-        )
+        logger.info(f"Shutting down PubSubManager ({len(self._active_connections)} connections)")
         for conn in list(self._active_connections):
             await self.cleanup_connection(conn)

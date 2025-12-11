@@ -11,6 +11,7 @@ from ark_sessions.core.pubsub import PubSubManager
 def manager():
     return PubSubManager("postgresql+asyncpg://user:pass@localhost/db")
 
+
 @pytest.mark.asyncio
 async def test_convert_asyncpg_url():
     manager = PubSubManager("postgresql://user:pass@localhost/db?param=value")

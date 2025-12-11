@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from ark_sessions.api import router
 from ark_sessions.api.sessions_sse import pubsub_manager
-from ark_sessions.core.config import logger, settings
+from ark_sessions.core.config import logger
 from ark_sessions.core.database import init_db
 
 
@@ -36,4 +36,3 @@ app = FastAPI(
 
 # Include API routes
 app.include_router(router)
-
