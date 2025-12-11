@@ -26,6 +26,7 @@ class Conversation(BaseModel):
     id: str
     firstMessage: dict[str, Any] | None = None
     lastMessage: dict[str, Any] | None = None
+    messages: list[dict[str, Any]] = []  # All messages in chronological order
 
 
 class Session(BaseModel):
@@ -89,10 +90,46 @@ def _derive_conversations_from_messages(messages: list[Message]) -> list[Convers
                 lastMessage=None,
             )
         
+<<<<<<< Updated upstream
         msg_data = msg.message_data
         if not conversations[conv_id].firstMessage:
             conversations[conv_id].firstMessage = msg_data
         conversations[conv_id].lastMessage = msg_data
+=======
+        if msg.query_id:
+            # Conversation belongs to a query
+            if msg.query_id not in conversations_by_query:
+                conversations_by_query[msg.query_id] = {}
+            
+            if conv_id not in conversations_by_query[msg.query_id]:
+                conversations_by_query[msg.query_id][conv_id] = Conversation(
+                    id=conv_id,
+                    firstMessage=None,
+                    lastMessage=None,
+                    messages=[],
+                )
+            
+            conv = conversations_by_query[msg.query_id][conv_id]
+            if not conv.firstMessage:
+                conv.firstMessage = msg_data
+            conv.lastMessage = msg_data
+            conv.messages.append(msg_data)
+        else:
+            # Standalone conversation (no query_id)
+            if conv_id not in standalone_conversations:
+                standalone_conversations[conv_id] = Conversation(
+                    id=conv_id,
+                    firstMessage=None,
+                    lastMessage=None,
+                    messages=[],
+                )
+            
+            conv = standalone_conversations[conv_id]
+            if not conv.firstMessage:
+                conv.firstMessage = msg_data
+            conv.lastMessage = msg_data
+            conv.messages.append(msg_data)
+>>>>>>> Stashed changes
     
     return list(conversations.values())
 
