@@ -53,18 +53,34 @@ async function middleware(request: NextRequest) {
     const fetchOptions: RequestInit = {
       method: request.method,
       headers: backendHeaders,
+      signal: AbortSignal.timeout(10000), // 10 second timeout
     };
 
     if (request.body) {
       fetchOptions.body = request.body;
     }
-    const backendResponse = await fetch(targetUrl, fetchOptions);
+    
+    try {
+      const backendResponse = await fetch(targetUrl, fetchOptions);
 
-    return new Response(backendResponse.body, {
-      status: backendResponse.status,
-      statusText: backendResponse.statusText,
-      headers: backendResponse.headers,
-    });
+      return new Response(backendResponse.body, {
+        status: backendResponse.status,
+        statusText: backendResponse.statusText,
+        headers: backendResponse.headers,
+      });
+    } catch (error) {
+      console.error(`Failed to proxy request to ${targetUrl}:`, error);
+      return new Response(
+        JSON.stringify({
+          error: 'Internal server error',
+          detail: error instanceof Error ? error.message : 'Failed to connect to backend service',
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
   }
 
   // For all other requests, continue normally

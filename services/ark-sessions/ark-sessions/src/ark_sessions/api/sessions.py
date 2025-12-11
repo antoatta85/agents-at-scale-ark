@@ -13,27 +13,27 @@ from ark_sessions.storage.messages import MessageStorage
 from ark_sessions.storage.sessions import SessionStorage
 
 
-class Query(BaseModel):
-    """Query model - derived from events."""
-    id: str
-    name: str
-    status: str  # "in_progress" or "completed"
-    duration_ms: float | None = None
-
-
 class Conversation(BaseModel):
     """Conversation model - derived from messages."""
     id: str
     firstMessage: dict[str, Any] | None = None
     lastMessage: dict[str, Any] | None = None
-    messages: list[dict[str, Any]] = []  # All messages in chronological order
+
+
+class Query(BaseModel):
+    """Query model - derived from events, with nested conversations."""
+    id: str
+    name: str
+    status: str  # "in_progress" or "completed"
+    duration_ms: float | None = None
+    conversations: list[Conversation] = []  # Conversations belonging to this query
 
 
 class Session(BaseModel):
     """Session model - derived state from events (event sourcing pattern)."""
     id: str
     queries: list[Query]
-    conversations: list[Conversation]
+    conversations: list[Conversation] = []  # Standalone conversations (no query_id)
 
 
 class SessionsList(BaseModel):
@@ -55,7 +55,7 @@ def _empty_session_response(session_id: str) -> Session:
     return Session(id=session_id, queries=[], conversations=[])
 
 
-def _derive_queries_from_events(events: list[SessionEvent]) -> list[Query]:
+def _derive_queries_from_events(events: list[SessionEvent]) -> dict[str, Query]:
     """Derive queries from events (QueryStart/QueryComplete)."""
     queries = {}
     
@@ -67,35 +67,35 @@ def _derive_queries_from_events(events: list[SessionEvent]) -> list[Query]:
                     id=query_id,
                     name=event.query_name or "",
                     status="in_progress",
+                    conversations=[],
                 )
             
             if event.reason == "QueryComplete":
-                queries[query_id].status = "completed"
-                if event.duration_ms is not None:
-                    queries[query_id].duration_ms = event.duration_ms
+                # Create new Query instance instead of mutating (Pydantic v2 immutability)
+                existing_query = queries[query_id]
+                queries[query_id] = Query(
+                    id=existing_query.id,
+                    name=existing_query.name,
+                    status="completed",
+                    duration_ms=event.duration_ms if event.duration_ms is not None else existing_query.duration_ms,
+                    conversations=existing_query.conversations,
+                )
     
-    return list(queries.values())
+    return queries
 
 
-def _derive_conversations_from_messages(messages: list[Message]) -> list[Conversation]:
-    """Derive conversations from messages."""
-    conversations = {}
+def _derive_conversations_from_messages(messages: list[Message]) -> tuple[dict[str, Conversation], dict[str, Conversation]]:
+    """
+    Derive conversations from messages.
+    Returns: (conversations_by_query_id, standalone_conversations)
+    """
+    conversations_by_query: dict[str, dict[str, Conversation]] = {}  # query_id -> {conv_id -> Conversation}
+    standalone_conversations: dict[str, Conversation] = {}  # conv_id -> Conversation
     
     for msg in messages:
         conv_id = msg.conversation_id or "default"
-        if conv_id not in conversations:
-            conversations[conv_id] = Conversation(
-                id=conv_id,
-                firstMessage=None,
-                lastMessage=None,
-            )
-        
-<<<<<<< Updated upstream
         msg_data = msg.message_data
-        if not conversations[conv_id].firstMessage:
-            conversations[conv_id].firstMessage = msg_data
-        conversations[conv_id].lastMessage = msg_data
-=======
+        
         if msg.query_id:
             # Conversation belongs to a query
             if msg.query_id not in conversations_by_query:
@@ -106,14 +106,15 @@ def _derive_conversations_from_messages(messages: list[Message]) -> list[Convers
                     id=conv_id,
                     firstMessage=None,
                     lastMessage=None,
-                    messages=[],
                 )
             
-            conv = conversations_by_query[msg.query_id][conv_id]
-            if not conv.firstMessage:
-                conv.firstMessage = msg_data
-            conv.lastMessage = msg_data
-            conv.messages.append(msg_data)
+            # Create new Conversation instance instead of mutating (Pydantic v2 immutability)
+            existing_conv = conversations_by_query[msg.query_id][conv_id]
+            conversations_by_query[msg.query_id][conv_id] = Conversation(
+                id=existing_conv.id,
+                firstMessage=existing_conv.firstMessage if existing_conv.firstMessage else msg_data,
+                lastMessage=msg_data,
+            )
         else:
             # Standalone conversation (no query_id)
             if conv_id not in standalone_conversations:
@@ -121,17 +122,24 @@ def _derive_conversations_from_messages(messages: list[Message]) -> list[Convers
                     id=conv_id,
                     firstMessage=None,
                     lastMessage=None,
-                    messages=[],
                 )
             
-            conv = standalone_conversations[conv_id]
-            if not conv.firstMessage:
-                conv.firstMessage = msg_data
-            conv.lastMessage = msg_data
-            conv.messages.append(msg_data)
->>>>>>> Stashed changes
+            # Create new Conversation instance instead of mutating (Pydantic v2 immutability)
+            existing_conv = standalone_conversations[conv_id]
+            standalone_conversations[conv_id] = Conversation(
+                id=existing_conv.id,
+                firstMessage=existing_conv.firstMessage if existing_conv.firstMessage else msg_data,
+                lastMessage=msg_data,
+            )
     
-    return list(conversations.values())
+    # Convert to flat dicts
+    conversations_by_query_id = {
+        query_id: list(convs.values())
+        for query_id, convs in conversations_by_query.items()
+    }
+    standalone = list(standalone_conversations.values())
+    
+    return conversations_by_query_id, standalone
 
 
 async def get_session_by_id(
@@ -153,13 +161,19 @@ async def get_session_by_id(
     # Get messages for conversations
     messages = await message_storage.get_messages(session_id=session_id)
     
-    # Derive state from events
-    queries = _derive_queries_from_events(events)
-    conversations = _derive_conversations_from_messages(messages)
+    # Derive queries from events
+    queries_dict = _derive_queries_from_events(events)
+    
+    # Derive conversations from messages (grouped by query_id)
+    conversations_by_query_id, standalone_conversations = _derive_conversations_from_messages(messages)
+    
+    # Attach conversations to their queries
+    for query_id, query in queries_dict.items():
+        if query_id in conversations_by_query_id:
+            query.conversations = conversations_by_query_id[query_id]
     
     return Session(
         id=session_id,
-        queries=queries,
-        conversations=conversations,
+        queries=list(queries_dict.values()),
+        conversations=standalone_conversations,
     )
-

@@ -64,13 +64,6 @@ type MessageRecord struct {
 	CreatedAt string          `json:"created_at"`
 }
 
-type MessagesResponse struct {
-	Messages []MessageRecord `json:"messages"`
-	Total    int             `json:"total"`
-	Limit    int             `json:"limit"`
-	Offset   int             `json:"offset"`
-}
-
 func DefaultConfig() Config {
 	return Config{
 		Timeout:    getMemoryTimeout(),
@@ -96,7 +89,7 @@ func NewMemoryForQuery(ctx context.Context, k8sClient client.Client, memoryRef *
 
 	if memoryRef == nil {
 		// Try to load "default" memory from the same namespace
-		_, err := getMemoryResource(ctx, k8sClient, "default", namespace)
+		_, err := GetMemoryResource(ctx, k8sClient, "default", namespace)
 		if err != nil {
 			// If default memory doesn't exist, use noop memory
 			return NewNoopMemory(), nil
@@ -115,7 +108,8 @@ func NewMemoryForQuery(ctx context.Context, k8sClient client.Client, memoryRef *
 	return memory, nil
 }
 
-func getMemoryResource(ctx context.Context, k8sClient client.Client, name, namespace string) (*arkv1alpha1.Memory, error) {
+// GetMemoryResource retrieves a Memory CRD by name and namespace.
+func GetMemoryResource(ctx context.Context, k8sClient client.Client, name, namespace string) (*arkv1alpha1.Memory, error) {
 	var memory arkv1alpha1.Memory
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 

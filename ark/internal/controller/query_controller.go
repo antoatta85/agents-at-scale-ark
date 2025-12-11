@@ -3,9 +3,12 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +25,7 @@ import (
 
 	arkv1alpha1 "mckinsey.com/ark/api/v1alpha1"
 	"mckinsey.com/ark/internal/annotations"
+	"mckinsey.com/ark/internal/common"
 	eventingconfig "mckinsey.com/ark/internal/eventing/config"
 	"mckinsey.com/ark/internal/genai"
 	telemetryconfig "mckinsey.com/ark/internal/telemetry/config"
@@ -193,6 +197,10 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	opCtx = r.Eventing.QueryRecorder().StartTokenCollection(opCtx)
 	opCtx = r.Eventing.QueryRecorder().Start(opCtx, "QueryExecution", fmt.Sprintf("Executing query %s", obj.Name), nil)
 
+	queryId := string(obj.UID)
+	// Fire QueryStart event
+	r.fireSessionEvent(opCtx, obj, sessionId, queryId, "QueryStart", nil)
+
 	impersonatedClient, memory, err := r.setupQueryExecution(opCtx, obj, sessionId)
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
@@ -234,6 +242,10 @@ func (r *QueryReconciler) executeQueryAsync(opCtx context.Context, obj arkv1alph
 	duration := &metav1.Duration{Duration: time.Since(startTime)}
 	r.finalizeEventStream(opCtx, eventStream, &obj)
 	_ = r.updateStatusWithDuration(opCtx, &obj, queryStatus, duration)
+
+	// Fire QueryComplete event
+	durationMs := float64(duration.Duration.Milliseconds())
+	r.fireSessionEvent(opCtx, obj, sessionId, queryId, "QueryComplete", &durationMs)
 
 	r.Telemetry.QueryRecorder().RecordSuccess(span)
 	operationData := map[string]string{
@@ -290,6 +302,85 @@ func (r *QueryReconciler) setupQueryExecution(opCtx context.Context, obj arkv1al
 	}
 
 	return impersonatedClient, memory, nil
+}
+
+// fireSessionEvent sends a QueryStart or QueryComplete event to the memory service
+func (r *QueryReconciler) fireSessionEvent(ctx context.Context, query arkv1alpha1.Query, sessionId, queryId, reason string, durationMs *float64) {
+	log := logf.FromContext(ctx)
+
+	// Get memory resource to resolve service address
+	var memoryName, memoryNamespace string
+	if query.Spec.Memory != nil {
+		memoryName = query.Spec.Memory.Name
+		memoryNamespace = query.Spec.Memory.Namespace
+		if memoryNamespace == "" {
+			memoryNamespace = query.Namespace
+		}
+	} else {
+		// Try default memory
+		memoryName = "default"
+		memoryNamespace = query.Namespace
+	}
+
+	memory, err := genai.GetMemoryResource(ctx, r.Client, memoryName, memoryNamespace)
+	if err != nil {
+		log.V(1).Info("Failed to get memory resource for event firing, skipping", "error", err, "memory", memoryName, "namespace", memoryNamespace)
+		return
+	}
+
+	// Resolve memory service address
+	resolver := common.NewValueSourceResolver(r.Client)
+	memoryURL, err := resolver.ResolveValueSource(ctx, memory.Spec.Address, memoryNamespace)
+	if err != nil {
+		log.V(1).Info("Failed to resolve memory address for event firing, skipping", "error", err)
+		return
+	}
+
+	// Prepare event payload
+	eventPayload := map[string]interface{}{
+		"sessionId":      sessionId,
+		"queryId":        queryId,
+		"reason":         reason,
+		"queryName":      query.Name,
+		"queryNamespace": query.Namespace,
+	}
+	if durationMs != nil {
+		eventPayload["durationMs"] = *durationMs
+	}
+
+	// Make HTTP POST to /v1/events
+	baseURL := strings.TrimSuffix(memoryURL, "/")
+	eventsURL := fmt.Sprintf("%s/v1/events", baseURL)
+
+	reqBody, err := json.Marshal(eventPayload)
+	if err != nil {
+		log.V(1).Info("Failed to marshal event payload, skipping", "error", err)
+		return
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, eventsURL, bytes.NewReader(reqBody))
+	if err != nil {
+		log.V(1).Info("Failed to create event request, skipping", "error", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "ark-controller/1.0")
+
+	httpClient := common.NewHTTPClientWithLogging(ctx)
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		log.V(1).Info("Failed to send event to memory service, skipping", "error", err, "url", eventsURL)
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.V(1).Info("Memory service returned error status for event", "status", resp.StatusCode, "reason", reason)
+		return
+	}
+
+	log.V(2).Info("Successfully fired session event", "reason", reason, "sessionId", sessionId, "queryId", queryId)
 }
 
 func (r *QueryReconciler) resolveTargets(ctx context.Context, query arkv1alpha1.Query, impersonatedClient client.Client) ([]arkv1alpha1.QueryTarget, error) {

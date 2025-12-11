@@ -33,7 +33,7 @@ func NewHTTPMemory(ctx context.Context, k8sClient client.Client, memoryName, nam
 		return nil, fmt.Errorf("invalid parameters")
 	}
 
-	memory, err := getMemoryResource(ctx, k8sClient, memoryName, namespace)
+	memory, err := GetMemoryResource(ctx, k8sClient, memoryName, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func NewHTTPMemory(ctx context.Context, k8sClient client.Client, memoryName, nam
 
 // resolveAndUpdateAddress dynamically resolves the memory address and updates the status if it changed
 func (m *HTTPMemory) resolveAndUpdateAddress(ctx context.Context) error {
-	memory, err := getMemoryResource(ctx, m.client, m.name, m.namespace)
+	memory, err := GetMemoryResource(ctx, m.client, m.name, m.namespace)
 	if err != nil {
 		return fmt.Errorf("failed to get memory resource: %w", err)
 	}
@@ -203,15 +203,15 @@ func (m *HTTPMemory) GetMessages(ctx context.Context) ([]Message, error) {
 		return nil, err
 	}
 
-	var response MessagesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	var records []MessageRecord
+	if err := json.NewDecoder(resp.Body).Decode(&records); err != nil {
 		operationData := map[string]string{"result": fmt.Sprintf("Failed to decode response: %v", err)}
 		m.eventingRecorder.Fail(ctx, "MemoryGetMessages", operationData["result"], err, operationData)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	messages := make([]Message, 0, len(response.Messages))
-	for i, record := range response.Messages {
+	messages := make([]Message, 0, len(records))
+	for i, record := range records {
 		openaiMessage, err := unmarshalMessageRobust(record.Message)
 		if err != nil {
 			operationData := map[string]string{"result": fmt.Sprintf("Failed to unmarshal message at index %d: %v", i, err)}
