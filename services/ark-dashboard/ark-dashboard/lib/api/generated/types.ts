@@ -186,7 +186,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/agents": {
+    "/v1/namespaces/{namespace}/agents": {
         parameters: {
             query?: never;
             header?: never;
@@ -3914,10 +3914,7 @@ export interface operations {
     };
     get_configmap_v1_configmaps__configmap_name__get: {
         parameters: {
-            query?: {
-                /** @description Namespace for this request (defaults to current context) */
-                namespace?: string | null;
-            };
+            query?: never;
             header?: never;
             path: {
                 configmap_name: string;
@@ -3927,7 +3924,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3948,7 +3945,7 @@ export interface operations {
             };
         };
     };
-    list_agents_v1_agents_get: {
+    list_agents_v1_namespaces__namespace__agents_get: {
         parameters: {
             query?: never;
             header?: never;
