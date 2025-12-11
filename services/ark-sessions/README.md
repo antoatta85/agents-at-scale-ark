@@ -1,6 +1,6 @@
 # ARK Sessions Service
 
-ARK Sessions is a Go service that provides session management with real-time OTEL trace visualization.
+ARK Sessions is a Python/FastAPI service that provides session management with event sourcing, real-time OTEL trace ingestion, and session state derivation.
 
 ## Architecture
 

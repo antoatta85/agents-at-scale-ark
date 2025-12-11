@@ -1,8 +1,9 @@
 """SQLModel database models."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
+from sqlalchemy import DateTime
 from sqlmodel import JSON, Column, Field, SQLModel
 
 
@@ -12,8 +13,16 @@ class Session(SQLModel, table=True):
     __tablename__ = "sessions"
     
     id: str = Field(primary_key=True, description="Session ID")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+        description="Creation timestamp"
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+        description="Last update timestamp"
+    )
 
 
 class Trace(SQLModel, table=True):
@@ -24,9 +33,20 @@ class Trace(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     trace_id: str = Field(index=True, description="OTEL Trace ID")
     session_id: str = Field(index=True, description="Session ID for ARK joins")
-    start_time: datetime = Field(index=True, description="Trace start time")
-    end_time: datetime | None = Field(default=None, description="Trace end time")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    start_time: datetime = Field(
+        index=True,
+        sa_column=Column(DateTime(timezone=True)),
+        description="Trace start time"
+    )
+    end_time: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True)),
+        description="Trace end time"
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
 
 
 class Span(SQLModel, table=True):
@@ -41,12 +61,23 @@ class Span(SQLModel, table=True):
     session_id: str = Field(index=True, description="Session ID for ARK joins")
     name: str = Field(description="Span name")
     kind: str = Field(description="Span kind")
-    start_time: datetime = Field(index=True, description="Span start time")
-    end_time: datetime | None = Field(default=None, description="Span end time")
+    start_time: datetime = Field(
+        index=True,
+        sa_column=Column(DateTime(timezone=True)),
+        description="Span start time"
+    )
+    end_time: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True)),
+        description="Span end time"
+    )
     status: str = Field(default="ok", description="Span status (ok, error)")
     attributes: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON), description="Span attributes")
     resource_attrs: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON), description="Resource attributes")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
 
 
 class SpanEvent(SQLModel, table=True):
@@ -59,9 +90,16 @@ class SpanEvent(SQLModel, table=True):
     span_id: str = Field(index=True, description="OTEL Span ID")
     session_id: str = Field(index=True, description="Session ID for ARK joins")
     name: str = Field(description="Event name")
-    time: datetime = Field(index=True, description="Event timestamp")
+    time: datetime = Field(
+        index=True,
+        sa_column=Column(DateTime(timezone=True)),
+        description="Event timestamp"
+    )
     attributes: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON), description="Event attributes")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
 
 
 class Message(SQLModel, table=True):
@@ -74,7 +112,11 @@ class Message(SQLModel, table=True):
     query_id: str | None = Field(default=None, index=True, description="Query ID")
     conversation_id: str | None = Field(default=None, index=True, description="Conversation ID")
     message_data: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON), description="Message data")
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+        index=True
+    )
 
 
 class SessionEvent(SQLModel, table=True):
@@ -90,7 +132,15 @@ class SessionEvent(SQLModel, table=True):
     query_name: str | None = Field(default=None, description="Query name")
     query_namespace: str | None = Field(default=None, description="Query namespace")
     duration_ms: float | None = Field(default=None, description="Duration in milliseconds (for QueryComplete)")
-    timestamp: datetime = Field(index=True, description="Event timestamp")
+    timestamp: datetime = Field(
+        index=True,
+        sa_column=Column(DateTime(timezone=True)),
+        description="Event timestamp"
+    )
     payload: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON), description="Additional event data")
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+        index=True
+    )
 

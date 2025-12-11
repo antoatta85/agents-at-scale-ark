@@ -1,7 +1,7 @@
 """OTLP trace ingestion handlers."""
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import Depends, Request, Response, status
@@ -77,8 +77,8 @@ def determine_session_id(
 
 
 def nanoseconds_to_datetime(nanos: int) -> datetime:
-    """Convert nanoseconds since epoch to datetime."""
-    return datetime.fromtimestamp(nanos / 1_000_000_000)
+    """Convert nanoseconds since epoch to timezone-aware UTC datetime."""
+    return datetime.fromtimestamp(nanos / 1_000_000_000, tz=timezone.utc)
 
 
 def create_trace_model(span_proto: Any, session_id: str) -> Trace:
@@ -90,7 +90,7 @@ def create_trace_model(span_proto: Any, session_id: str) -> Trace:
         session_id=session_id,
         start_time=nanoseconds_to_datetime(span_proto.start_time_unix_nano)
         if span_proto.start_time_unix_nano
-        else datetime.utcnow(),
+        else datetime.now(timezone.utc),
     )
     
     if span_proto.end_time_unix_nano:
@@ -118,7 +118,7 @@ def create_span_model(
         kind=span_proto.kind.name if span_proto.kind else "SPAN_KIND_UNSPECIFIED",
         start_time=nanoseconds_to_datetime(span_proto.start_time_unix_nano)
         if span_proto.start_time_unix_nano
-        else datetime.utcnow(),
+        else datetime.now(timezone.utc),
         attributes=span_attrs,
         resource_attrs=resource_attrs,
     )
@@ -156,7 +156,7 @@ def create_span_events(
             name=event_proto.name or "",
             time=nanoseconds_to_datetime(event_proto.time_unix_nano)
             if event_proto.time_unix_nano
-            else datetime.utcnow(),
+            else datetime.now(timezone.utc),
             attributes=event_attrs,
         )
         span_events.append(span_event)

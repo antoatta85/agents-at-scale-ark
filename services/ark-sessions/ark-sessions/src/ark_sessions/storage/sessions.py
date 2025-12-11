@@ -1,6 +1,6 @@
 """Session storage operations."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +23,7 @@ class SessionStorage:
         
         if existing:
             # Update updated_at
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.now(timezone.utc)
             await self.session.commit()
             await self.session.refresh(existing)
             return existing
