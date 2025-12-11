@@ -11,7 +11,6 @@ import {
   Trash,
 } from 'lucide-react';
 import { useState } from 'react';
-import { configMapsService } from '@/lib/services';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,10 +23,10 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { configMapsService } from '@/lib/services';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -264,7 +263,8 @@ export function ParameterDetailPanel({
                           </>
                         ) : param.valueFrom?.configMapKeyRef ? (
                           <>
-                            From ConfigMap: {param.valueFrom.configMapKeyRef.name}/
+                            From ConfigMap:{' '}
+                            {param.valueFrom.configMapKeyRef.name}/
                             {param.valueFrom.configMapKeyRef.key}
                           </>
                         ) : param.valueFrom?.secretKeyRef ? (
@@ -301,7 +301,8 @@ export function ParameterDetailPanel({
                               </div>
                               {param.valueFrom.configMapKeyRef && (
                                 <div className="text-muted-foreground">
-                                  ConfigMap: {param.valueFrom.configMapKeyRef.name}
+                                  ConfigMap:{' '}
+                                  {param.valueFrom.configMapKeyRef.name}
                                   <br />
                                   Key: {param.valueFrom.configMapKeyRef.key}
                                 </div>
@@ -425,13 +426,13 @@ export function ParameterDetailPanel({
                       </thead>
                       <tbody>
                         {configMapData.map((entry, idx) => (
-                          <tr
-                            key={idx}
-                            className="border-t hover:bg-muted/50">
+                          <tr key={idx} className="hover:bg-muted/50 border-t">
                             <td className="border-r px-4 py-2">
                               {entry.input}
                             </td>
-                            <td className="px-4 py-2">{entry.expectedOutput}</td>
+                            <td className="px-4 py-2">
+                              {entry.expectedOutput}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
