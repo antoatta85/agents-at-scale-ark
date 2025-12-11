@@ -26,10 +26,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { configMapsService } from '@/lib/services';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+
+import { configMapsService } from '@/lib/services';
 
 interface ConfigMapKeyRef {
   name: string;
@@ -324,7 +325,8 @@ export function ParameterDetailPanel({
                               <Eye className="h-4 w-4" />
                             </Button>
                           </div>
-                        ) : hasLongValue || (param.value && param.value.length > 50) ? (
+                        ) : hasLongValue ||
+                          (param.value && param.value.length > 50) ? (
                           <Textarea
                             value={param.value || ''}
                             onChange={e =>
