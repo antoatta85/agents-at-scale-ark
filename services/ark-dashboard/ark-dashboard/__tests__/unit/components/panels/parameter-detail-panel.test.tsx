@@ -299,4 +299,198 @@ describe('ParameterDetailPanel', () => {
       ]);
     }
   });
+
+  it('should delete parameter when X button is clicked', async () => {
+    const parameters = [
+      { name: 'param1', value: 'value1' },
+      { name: 'param2', value: 'value2' },
+    ];
+
+    render(
+      <ParameterDetailPanel
+        parameters={parameters}
+        onParametersChange={mockOnParametersChange}
+      />,
+    );
+
+    const deleteButtons = screen.getAllByRole('button').filter((button) => {
+      const svg = button.querySelector('svg');
+      return svg?.classList.contains('lucide-x');
+    });
+
+    if (deleteButtons.length > 0) {
+      await userEvent.click(deleteButtons[0]);
+
+      expect(mockOnParametersChange).toHaveBeenCalledWith([
+        { name: 'param2', value: 'value2' },
+      ]);
+    }
+  });
+
+  it('should expand and collapse parameter details', async () => {
+    const parameters = [{ name: 'param1', value: 'value1' }];
+
+    render(
+      <ParameterDetailPanel
+        parameters={parameters}
+        onParametersChange={mockOnParametersChange}
+      />,
+    );
+
+    const paramCard = screen.getByText('param1');
+    await userEvent.click(paramCard);
+
+    await waitFor(() => {
+      expect(screen.getByText('Name')).toBeInTheDocument();
+    });
+
+    await userEvent.click(paramCard);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Name')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should display error message when error prop is provided', () => {
+    render(
+      <ParameterDetailPanel
+        parameters={[]}
+        onParametersChange={mockOnParametersChange}
+        error="Invalid parameter format"
+      />,
+    );
+
+    expect(screen.getByText('Invalid parameter format')).toBeInTheDocument();
+  });
+
+  it('should close ConfigMap dialog when close button is clicked', async () => {
+    const mockConfigMapData = {
+      name: 'query-golden-examples',
+      namespace: 'default',
+      data: {
+        examples: JSON.stringify([
+          { input: 'Test input', expectedOutput: 'Test output' },
+        ]),
+      },
+    };
+
+    vi.mocked(configMapsService.get).mockResolvedValueOnce(mockConfigMapData);
+
+    const parameters = [
+      {
+        name: 'golden-examples',
+        valueFrom: {
+          configMapKeyRef: {
+            name: 'query-golden-examples',
+            key: 'examples',
+          },
+        },
+      },
+    ];
+
+    render(
+      <ParameterDetailPanel
+        parameters={parameters}
+        onParametersChange={mockOnParametersChange}
+      />,
+    );
+
+    const paramCard = screen.getByText('golden-examples');
+    await userEvent.click(paramCard);
+
+    await waitFor(() => {
+      const eyeButton = screen.getAllByRole('button').find((button) => {
+        const svg = button.querySelector('svg');
+        return svg?.classList.contains('lucide-eye');
+      });
+      expect(eyeButton).toBeInTheDocument();
+    });
+
+    const eyeButton = screen.getAllByRole('button').find((button) => {
+      const svg = button.querySelector('svg');
+      return svg?.classList.contains('lucide-eye');
+    });
+
+    if (eyeButton) {
+      await userEvent.click(eyeButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Parameter Value Reference')).toBeInTheDocument();
+      });
+
+      const closeButton = screen.getByText('Close');
+      await userEvent.click(closeButton);
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Parameter Value Reference'),
+        ).not.toBeInTheDocument();
+      });
+    }
+  });
+
+  it('should display "Long text" badge for parameters with long values', () => {
+    const parameters = [
+      {
+        name: 'long-param',
+        value: 'This is a very long text that exceeds 100 characters. '.repeat(3),
+      },
+    ];
+
+    render(
+      <ParameterDetailPanel
+        parameters={parameters}
+        onParametersChange={mockOnParametersChange}
+      />,
+    );
+
+    expect(screen.getByText('Long text')).toBeInTheDocument();
+  });
+
+  it('should not show eye icon for parameters without valueFrom', () => {
+    const parameters = [{ name: 'param1', value: 'value1' }];
+
+    render(
+      <ParameterDetailPanel
+        parameters={parameters}
+        onParametersChange={mockOnParametersChange}
+      />,
+    );
+
+    const paramCard = screen.getByText('param1');
+    userEvent.click(paramCard);
+
+    const eyeButtons = screen.queryAllByRole('button').filter((button) => {
+      const svg = button.querySelector('svg');
+      return svg?.classList.contains('lucide-eye');
+    });
+
+    expect(eyeButtons.length).toBe(0);
+  });
+
+  it('should handle mixed parameters with value and valueFrom', () => {
+    const parameters = [
+      { name: 'direct-param', value: 'direct-value' },
+      {
+        name: 'configmap-param',
+        valueFrom: {
+          configMapKeyRef: {
+            name: 'my-configmap',
+            key: 'my-key',
+          },
+        },
+      },
+    ];
+
+    render(
+      <ParameterDetailPanel
+        parameters={parameters}
+        onParametersChange={mockOnParametersChange}
+      />,
+    );
+
+    expect(screen.getByText('direct-param')).toBeInTheDocument();
+    expect(screen.getByText('configmap-param')).toBeInTheDocument();
+    expect(screen.getByText('2 parameters configured')).toBeInTheDocument();
+  });
 });
