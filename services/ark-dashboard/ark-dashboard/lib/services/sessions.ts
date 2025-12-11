@@ -21,15 +21,16 @@ export interface Query {
   conversations: Conversation[];  // Conversations belonging to this query
 }
 
-export interface SessionsList {
-  sessions: string[];
+export interface SessionsListResponse {
+  items: Array<{ sessionId: string; memoryName: string }>;
+  total?: number;
 }
 
 export const sessionsService = {
   async listSessions(): Promise<string[]> {
     try {
-      const response = await apiClient.get<SessionsList>('/api/sessions');
-      return response?.sessions || [];
+      const response = await apiClient.get<SessionsListResponse>('/api/v1/sessions');
+      return response?.items?.map(item => item.sessionId) || [];
     } catch (error) {
       console.error('Failed to fetch sessions:', error);
       return [];
@@ -38,7 +39,9 @@ export const sessionsService = {
 
   async getSession(sessionId: string): Promise<Session | null> {
     try {
-      const response = await apiClient.get<Session>(`/api/sessions/${sessionId}`);
+      // TODO: ark-api needs a GET /v1/sessions/{sessionId} endpoint
+      // For now, we'll need to call ark-sessions directly or implement the endpoint
+      const response = await apiClient.get<Session>(`/api/v1/sessions/${sessionId}`);
       return response || null;
     } catch (error) {
       console.error(`Failed to fetch session ${sessionId}:`, error);

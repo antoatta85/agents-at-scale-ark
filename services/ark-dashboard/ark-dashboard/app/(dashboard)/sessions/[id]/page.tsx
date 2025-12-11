@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import type { BreadcrumbElement } from '@/components/common/page-header';
 import { PageHeader } from '@/components/common/page-header';
@@ -17,7 +17,7 @@ export default function SessionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.id as string;
-  const { data: session, isLoading, error } = useGetSession(sessionId);
+  const { data: session, isLoading, error, refetch } = useGetSession(sessionId);
 
   if (isLoading) {
     return (
@@ -55,10 +55,18 @@ export default function SessionDetailPage() {
       <PageHeader breadcrumbs={breadcrumbs} currentPage={sessionId} />
       <main className="container space-y-8 p-6 py-8">
         <section>
-          <h2 className="mb-2 text-3xl font-bold text-balance">Session {sessionId}</h2>
-          <p className="text-muted-foreground text-pretty">
-            Hierarchical tree view of queries, conversations, and events.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="mb-2 text-3xl font-bold text-balance">Session {sessionId}</h2>
+              <p className="text-muted-foreground text-pretty">
+                Hierarchical tree view of queries, conversations, and events.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </section>
 
         {/* Tree View */}

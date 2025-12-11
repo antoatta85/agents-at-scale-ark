@@ -1,8 +1,11 @@
 'use client';
 
-import { ChevronRight, MessageSquare, Play, Zap } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Clock, Copy, MessageSquare, Play, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
@@ -38,13 +41,29 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
     setExpandedConversations(newExpanded);
   };
 
+  const copySessionId = () => {
+    navigator.clipboard.writeText(session.id);
+    toast.success('Session ID copied to clipboard');
+  };
+
+  const truncateText = (text: string, maxLength: number = 150) => {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+  };
+
   return (
     <div className="space-y-2">
       {/* Session Root */}
       <div className="rounded-lg border bg-card p-4">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" />
-          <span className="font-semibold">Session: {session.id}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            <span className="font-semibold">Session: {session.id}</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={copySessionId}>
+            <Copy className="h-3 w-3 mr-1" />
+            Copy ID
+          </Button>
         </div>
       </div>
 
@@ -75,14 +94,22 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                               className={`h-3 w-3 transition-transform group-data-[state=open]/query:rotate-90`}
                             />
                             <span className="font-medium">{query.name || query.id}</span>
-                            <span
-                              className={`rounded px-2 py-0.5 text-xs ${
+                            <Badge
+                              variant={
+                                query.status === 'completed' ? 'default' : 'secondary'
+                              }
+                              className={
                                 query.status === 'completed'
-                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                              }`}>
-                              {query.status}
-                            </span>
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-700'
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-300 dark:border-blue-700'
+                              }>
+                              {query.status === 'completed' ? (
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                              ) : (
+                                <Clock className="h-3 w-3 mr-1" />
+                              )}
+                              {query.status === 'completed' ? 'Completed' : 'In Progress'}
+                            </Badge>
                             {query.duration_ms !== null && (
                               <span className="text-xs text-muted-foreground">
                                 {(query.duration_ms / 1000).toFixed(2)}s
@@ -126,8 +153,8 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                                                 {conversation.firstMessage.role || 'user'}:
                                               </span>{' '}
                                               {typeof conversation.firstMessage.content === 'string'
-                                                ? conversation.firstMessage.content
-                                                : JSON.stringify(conversation.firstMessage.content)}
+                                                ? truncateText(conversation.firstMessage.content)
+                                                : truncateText(JSON.stringify(conversation.firstMessage.content))}
                                             </div>
                                           </div>
                                         )}
@@ -141,8 +168,8 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                                                 {conversation.lastMessage.role || 'assistant'}:
                                               </span>{' '}
                                               {typeof conversation.lastMessage.content === 'string'
-                                                ? conversation.lastMessage.content
-                                                : JSON.stringify(conversation.lastMessage.content)}
+                                                ? truncateText(conversation.lastMessage.content)
+                                                : truncateText(JSON.stringify(conversation.lastMessage.content))}
                                             </div>
                                           </div>
                                         )}
@@ -213,8 +240,8 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                                   {conversation.firstMessage.role || 'user'}:
                                 </span>{' '}
                                 {typeof conversation.firstMessage.content === 'string'
-                                  ? conversation.firstMessage.content
-                                  : JSON.stringify(conversation.firstMessage.content)}
+                                  ? truncateText(conversation.firstMessage.content)
+                                  : truncateText(JSON.stringify(conversation.firstMessage.content))}
                               </div>
                             </div>
                           )}
@@ -228,8 +255,8 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                                   {conversation.lastMessage.role || 'assistant'}:
                                 </span>{' '}
                                 {typeof conversation.lastMessage.content === 'string'
-                                  ? conversation.lastMessage.content
-                                  : JSON.stringify(conversation.lastMessage.content)}
+                                  ? truncateText(conversation.lastMessage.content)
+                                  : truncateText(JSON.stringify(conversation.lastMessage.content))}
                               </div>
                             </div>
                           )}
