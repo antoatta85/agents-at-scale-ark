@@ -26,9 +26,27 @@ import {
 
 import { Button } from '../ui/button';
 
+interface ConfigMapKeyRef {
+  name: string;
+  key: string;
+  optional?: boolean;
+}
+
+interface SecretKeyRef {
+  name: string;
+  key: string;
+  optional?: boolean;
+}
+
+interface ValueFrom {
+  configMapKeyRef?: ConfigMapKeyRef;
+  secretKeyRef?: SecretKeyRef;
+}
+
 interface Parameter {
   name: string;
-  value: string;
+  value?: string;
+  valueFrom?: ValueFrom;
 }
 
 interface MatchExpression {
