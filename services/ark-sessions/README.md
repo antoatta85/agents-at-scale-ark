@@ -43,7 +43,7 @@ service:
 - `POST /v1/traces` - Receive OTLP traces (OTEL standard)
 - `GET /sessions` - List all sessions
 - `GET /sessions/{id}` - Get session with tree structure
-- `GET /sessions/{id}/stream` - SSE stream for real-time updates
+- `GET /sessions/{id}/events` - SSE stream for real-time updates
 - `GET /messages?session_id={id}` - Get messages for session
 - `POST /messages` - Add messages to session
 
