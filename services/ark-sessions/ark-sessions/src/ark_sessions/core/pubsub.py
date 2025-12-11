@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from contextlib import asynccontextmanager
 from typing import Any
 
 import asyncpg
@@ -18,7 +19,19 @@ class PubSubManager:
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return url.split("?")[0]
 
+    @asynccontextmanager
     async def subscribe(
+        self,
+        session_id: str,
+        queue: asyncio.Queue[dict[str, Any]],
+    ) -> asyncpg.Connection:
+        conn = await self._subscribe(session_id=session_id, queue=queue)
+        try:
+            yield conn
+        finally:
+            await self.cleanup_connection(conn)
+
+    async def _subscribe(
         self,
         session_id: str,
         queue: asyncio.Queue[dict[str, Any]],
@@ -47,8 +60,7 @@ class PubSubManager:
 
         except Exception as e:
             logger.error(f"Failed to subscribe: {e}")
-            if conn and conn in self._active_connections:
-                await self.cleanup_connection(conn)
+            await self.cleanup_connection(conn)
             raise
 
     async def cleanup_connection(self, conn: asyncpg.Connection) -> None:
@@ -62,5 +74,5 @@ class PubSubManager:
 
     async def shutdown(self) -> None:
         logger.info(f"Shutting down PubSubManager ({len(self._active_connections)} connections)")
-        for conn in list(self._active_connections):
+        for conn in self._active_connections:
             await self.cleanup_connection(conn)

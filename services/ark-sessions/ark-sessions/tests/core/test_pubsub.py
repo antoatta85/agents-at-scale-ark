@@ -25,12 +25,11 @@ async def test_subscribe_creates_connection(manager):
 
     with patch("asyncpg.connect", return_value=mock_conn):
         queue = asyncio.Queue()
-        conn = await manager.subscribe("session-123", queue)
-
-        mock_conn.add_listener.assert_called_once()
-        call_args = mock_conn.add_listener.call_args
-        assert call_args[0][0] == "ark_sessions_session-123"
-        assert conn is mock_conn
+        async with manager.subscribe("session-123", queue) as conn:
+            mock_conn.add_listener.assert_called_once()
+            call_args = mock_conn.add_listener.call_args
+            assert call_args[0][0] == "ark_sessions_session-123"
+            assert conn is mock_conn
 
 
 @pytest.mark.asyncio
@@ -46,13 +45,12 @@ async def test_notification_handler_queues_event(manager):
 
     with patch("asyncpg.connect", return_value=mock_conn):
         queue = asyncio.Queue()
-        await manager.subscribe("session-123", queue)
+        async with manager.subscribe("session-123", queue):
+            event_data = {"id": 1, "reason": "QueryStart"}
+            handler(mock_conn, 12345, "ark_sessions_session-123", json.dumps(event_data))
 
-        event_data = {"id": 1, "reason": "QueryStart"}
-        handler(mock_conn, 12345, "ark_sessions_session-123", json.dumps(event_data))
-
-        received = await asyncio.wait_for(queue.get(), timeout=1.0)
-        assert received == event_data
+            received = await asyncio.wait_for(queue.get(), timeout=1.0)
+            assert received == event_data
 
 
 @pytest.mark.asyncio
@@ -68,18 +66,17 @@ async def test_notification_handler_handles_full_queue(manager):
 
     with patch("asyncpg.connect", return_value=mock_conn):
         queue = asyncio.Queue(maxsize=1)
-        await manager.subscribe("session-123", queue)
+        async with manager.subscribe("session-123", queue):
+            event_data1 = {"id": 1, "reason": "QueryStart"}
+            event_data2 = {"id": 2, "reason": "QueryComplete"}
 
-        event_data1 = {"id": 1, "reason": "QueryStart"}
-        event_data2 = {"id": 2, "reason": "QueryComplete"}
+            handler(mock_conn, 12345, "ark_sessions_session-123", json.dumps(event_data1))
+            handler(mock_conn, 12345, "ark_sessions_session-123", json.dumps(event_data2))
 
-        handler(mock_conn, 12345, "ark_sessions_session-123", json.dumps(event_data1))
-        handler(mock_conn, 12345, "ark_sessions_session-123", json.dumps(event_data2))
+            received = await asyncio.wait_for(queue.get(), timeout=1.0)
+            assert received == event_data1
 
-        received = await asyncio.wait_for(queue.get(), timeout=1.0)
-        assert received == event_data1
-
-        assert queue.qsize() == 0
+            assert queue.qsize() == 0
 
 
 @pytest.mark.asyncio
@@ -133,6 +130,6 @@ async def test_subscribe_failure_cleanup(manager):
         queue = asyncio.Queue()
 
         with pytest.raises(Exception, match="Connection error"):
-            await manager.subscribe("session-123", queue)
-
+            async with manager.subscribe("session-123", queue):
+                pass
         assert mock_conn not in manager._active_connections

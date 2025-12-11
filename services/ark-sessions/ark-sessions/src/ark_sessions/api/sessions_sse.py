@@ -7,7 +7,7 @@ from fastapi import Depends, Path
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ark_sessions.core.config import logger, settings
+from ark_sessions.core.config import settings
 from ark_sessions.core.database import get_session
 from ark_sessions.core.pubsub import PubSubManager
 from ark_sessions.storage.events import EventStorage
@@ -49,11 +49,8 @@ async def stream_session_events(
             yield f"data: {json.dumps(event.model_dump(mode='json'))}\n\n"
 
         notification_queue = asyncio.Queue(maxsize=100)
-        conn = None
 
-        try:
-            conn = await pubsub_manager.subscribe(session_id, notification_queue)
-
+        async with pubsub_manager.subscribe(session_id, notification_queue):
             while True:
                 try:
                     event_data = await asyncio.wait_for(
@@ -65,13 +62,6 @@ async def stream_session_events(
 
                 except asyncio.TimeoutError:
                     yield ": keepalive\n\n"
-
-        except asyncio.CancelledError:
-            logger.info(f"SSE stream cancelled for {session_id}")
-            raise
-        finally:
-            if conn:
-                await pubsub_manager.cleanup_connection(conn)
 
     return StreamingResponse(
         event_generator(),
@@ -117,11 +107,8 @@ async def stream_session_queries(
             yield f"data: {json.dumps(event.model_dump(mode='json'))}\n\n"
 
         notification_queue = asyncio.Queue(maxsize=100)
-        conn = None
 
-        try:
-            conn = await pubsub_manager.subscribe(session_id, notification_queue)
-
+        async with pubsub_manager.subscribe(session_id, notification_queue):
             while True:
                 try:
                     event_data = await asyncio.wait_for(
@@ -133,13 +120,6 @@ async def stream_session_queries(
 
                 except asyncio.TimeoutError:
                     yield ": keepalive\n\n"
-
-        except asyncio.CancelledError:
-            logger.info(f"SSE query stream cancelled for {session_id}")
-            raise
-        finally:
-            if conn:
-                await pubsub_manager.cleanup_connection(conn)
 
     return StreamingResponse(
         query_generator(),
