@@ -18,7 +18,7 @@ engine = create_async_engine(
     max_overflow=20,
 )
 
-TRIGGER_SQL = """
+TRIGGER_SQL = ["""
 CREATE OR REPLACE FUNCTION notify_session_event()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -45,20 +45,22 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS session_events_notify ON session_events;
+""",
+"DROP TRIGGER IF EXISTS session_events_notify ON session_events;",
+"""
 CREATE TRIGGER session_events_notify
     AFTER INSERT ON session_events
     FOR EACH ROW
     EXECUTE FUNCTION notify_session_event();
-"""
+"""]
 
 
 async def init_db() -> None:
     """Initialize database - create all tables and triggers."""
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-        await conn.execute(text(TRIGGER_SQL))
+        for sql_statement in TRIGGER_SQL:
+            await conn.execute(text(sql_statement))
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
