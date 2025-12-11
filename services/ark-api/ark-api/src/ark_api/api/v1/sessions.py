@@ -72,6 +72,53 @@ async def list_sessions(
         )
 
 
+@router.get("/{session_id}")
+@handle_k8s_errors(operation="get", resource_type="session")
+async def get_session(
+    session_id: str,
+    namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)"),
+    memory: Optional[str] = Query(None, description="Filter by memory name")
+) -> dict:
+    """Get a specific session by ID from memory services."""
+    async with with_ark_client(namespace, VERSION) as client:
+        memory_dicts = await get_all_memory_resources(client, memory)
+        
+        # Search all memory services for the session
+        for memory_dict in memory_dicts:
+            memory_name = memory_dict.get("metadata", {}).get("name", "")
+            
+            try:
+                service_url = get_memory_service_address(memory_dict)
+                
+                # Try to get the session from this memory service
+                data = await fetch_memory_service_data(
+                    service_url,
+                    f"/sessions/{session_id}",
+                    memory_name=memory_name
+                )
+                
+                # If we got data, return it
+                if data:
+                    return data
+                    
+            except HTTPException as e:
+                # If 404, continue searching other memory services
+                if e.status_code == 404:
+                    continue
+                # For other HTTP errors, re-raise
+                raise
+            except Exception as e:
+                logger.warning(f"Failed to get session {session_id} from memory {memory_name}: {e}")
+                # Continue searching other memory services
+                continue
+        
+        # Session not found in any memory service
+        raise HTTPException(
+            status_code=404,
+            detail=f"Session {session_id} not found"
+        )
+
+
 @router.delete("/{session_id}")
 @handle_k8s_errors(operation="delete", resource_type="session")
 async def delete_session(
