@@ -26,9 +26,10 @@ async def stream_session_events(
     event_storage = EventStorage(session)
     session_storage = SessionStorage(session)
 
+    # Check if session exists
     session_obj = await session_storage.get_session(session_id)
     if not session_obj:
-
+        # Return empty stream
         async def empty_generator():
             yield f"data: {json.dumps({'type': 'error', 'message': 'Session not found'})}\n\n"
 
@@ -42,6 +43,7 @@ async def stream_session_events(
         )
 
     async def event_generator():
+        # Send initial events
         events = await event_storage.get_events_by_session(session_id)
         for event in events:
             yield f"data: {json.dumps(event.model_dump(mode='json'))}\n\n"
@@ -90,6 +92,7 @@ async def stream_session_queries(
     event_storage = EventStorage(session)
     session_storage = SessionStorage(session)
 
+    # Check if session exists
     session_obj = await session_storage.get_session(session_id)
     if not session_obj:
 
@@ -106,6 +109,7 @@ async def stream_session_queries(
         )
 
     async def query_generator():
+        # Get only query-related events (QueryStart, QueryComplete)
         events = await event_storage.get_events_by_session(session_id)
         query_events = [event for event in events if event.reason in ("QueryStart", "QueryComplete")]
 

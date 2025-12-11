@@ -16,6 +16,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting ark-sessions service...")
 
+    # Initialize database
     await init_db()
     logger.info("Database initialized")
 
