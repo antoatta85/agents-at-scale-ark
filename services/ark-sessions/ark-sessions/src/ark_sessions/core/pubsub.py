@@ -38,21 +38,22 @@ class PubSubManager:
     ) -> asyncpg.Connection:
         channel_name = f"ark_sessions_{session_id}"
 
+        def notification_handler(_connection, _pid, _channel, payload):
+            event_data = {}
+            try:
+                event_data = json.loads(payload)
+                queue.put_nowait(event_data)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse notification: {e}")
+            except asyncio.QueueFull:
+                logger.warning(
+                    f"Queue full for session {session_id}, dropping event {event_data.get('id', 'unknown')}"
+                )
+
         conn = None
         try:
             conn = await asyncpg.connect(self.database_url)
             self._active_connections.add(conn)
-
-            def notification_handler(connection, pid, channel, payload):
-                try:
-                    event_data = json.loads(payload)
-                    queue.put_nowait(event_data)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to parse notification: {e}")
-                except asyncio.QueueFull:
-                    logger.warning(
-                        f"Queue full for session {session_id}, dropping event {event_data.get('id', 'unknown')}"
-                    )
 
             await conn.add_listener(channel_name, notification_handler)
             logger.info(f"Subscribed to {channel_name}")
