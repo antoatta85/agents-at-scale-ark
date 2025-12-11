@@ -2366,12 +2366,29 @@ class TestTeamsEndpoint(unittest.TestCase):
 
 class TestConfigMapsEndpoint(unittest.TestCase):
     """Test cases for the /configmaps endpoint."""
-    
+
     def setUp(self):
         """Set up test client."""
         from ark_api.main import app
         self.client = TestClient(app)
-    
+
+    @patch('ark_api.api.v1.configmaps.get_k8s_client')
+    @patch('ark_api.api.v1.configmaps.get_namespace')
+    def test_get_configmap_server_error(self, mock_get_namespace, mock_get_k8s_client):
+        """Test ConfigMap retrieval with server error."""
+        mock_get_namespace.return_value = "default"
+
+        from kubernetes_asyncio.client.rest import ApiException
+        mock_api = AsyncMock()
+        mock_api.read_namespaced_config_map = AsyncMock(
+            side_effect=ApiException(status=500, reason="Internal Server Error")
+        )
+        mock_get_k8s_client.return_value = mock_api
+
+        response = self.client.get("/v1/configmaps/test-configmap")
+
+        self.assertEqual(response.status_code, 500)
+
     @patch('ark_api.api.v1.configmaps.get_k8s_client')
     @patch('ark_api.api.v1.configmaps.get_namespace')
     def test_get_configmap_success(self, mock_get_namespace, mock_get_k8s_client):
