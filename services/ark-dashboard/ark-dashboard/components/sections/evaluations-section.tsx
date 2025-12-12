@@ -160,6 +160,13 @@ export const EvaluationsSection = forwardRef<
     }
   }, [listEvaluationsError, listEvaluationsData, listEvaluationsErrorObject]);
 
+  useEffect(() => {
+    const savedFilters = localStorage.getItem('evaluationFilters');
+    if (savedFilters) {
+      setFilters(JSON.parse(savedFilters));
+    }
+  }, []);
+
   const getEvaluatorDisplay = (
     evaluation: Evaluation | EvaluationDetailResponse,
   ) => {
@@ -284,6 +291,20 @@ export const EvaluationsSection = forwardRef<
     const specMode = spec?.type as string;
     const basicMode = (evaluation as Evaluation).type;
     return specMode || basicMode || 'unknown';
+  };
+
+  const getStatus = (evaluation: Evaluation | EvaluationDetailResponse) => {
+    // Try to get phase from basic evaluation first
+    let phase = (evaluation as Evaluation).phase;
+
+    // If not found, try to get from detailed response status
+    if (!phase) {
+      const detailedStatus = (evaluation as EvaluationDetailResponse)
+        ?.status as Record<string, unknown>;
+      phase = detailedStatus?.phase as string;
+    }
+
+    return phase || 'pending';
   };
 
   const getScoreDisplay = (
@@ -550,20 +571,6 @@ export const EvaluationsSection = forwardRef<
     }
     return 0;
   });
-
-  const getStatus = (evaluation: Evaluation | EvaluationDetailResponse) => {
-    // Try to get phase from basic evaluation first
-    let phase = (evaluation as Evaluation).phase;
-
-    // If not found, try to get from detailed response status
-    if (!phase) {
-      const detailedStatus = (evaluation as EvaluationDetailResponse)
-        ?.status as Record<string, unknown>;
-      phase = detailedStatus?.phase as string;
-    }
-
-    return phase || 'pending';
-  };
 
   const getStatusBadge = (
     status: string | undefined,
@@ -917,7 +924,13 @@ export const EvaluationsSection = forwardRef<
           <div className="flex-1">
             <EvaluationFilter
               filters={filters}
-              onFiltersChange={setFilters}
+              onFiltersChange={newFilters => {
+                localStorage.setItem(
+                  'evaluationFilters',
+                  JSON.stringify(newFilters),
+                );
+                setFilters(newFilters);
+              }}
               availableEvaluators={getAvailableEvaluators()}
               availableTypes={getAvailableTypes()}
             />
