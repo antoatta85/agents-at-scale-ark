@@ -51,10 +51,6 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
     toast.success('Query ID copied to clipboard');
   };
 
-  const truncateText = (text: string, maxLength: number = 150) => {
-    if (text.length <= maxLength) return text;
-    return text.slice(0, maxLength) + '...';
-  };
 
   return (
     <div className="space-y-2">
@@ -185,8 +181,8 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                                                 {conversation.firstMessage.role || 'user'}:
                                               </span>{' '}
                                               {typeof conversation.firstMessage.content === 'string'
-                                                ? truncateText(conversation.firstMessage.content)
-                                                : truncateText(JSON.stringify(conversation.firstMessage.content))}
+                                                ? conversation.firstMessage.content
+                                                : JSON.stringify(conversation.firstMessage.content, null, 2)}
                                             </div>
                                           </div>
                                         )}
@@ -200,8 +196,8 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                                                 {conversation.lastMessage.role || 'assistant'}:
                                               </span>{' '}
                                               {typeof conversation.lastMessage.content === 'string'
-                                                ? truncateText(conversation.lastMessage.content)
-                                                : truncateText(JSON.stringify(conversation.lastMessage.content))}
+                                                ? conversation.lastMessage.content
+                                                : JSON.stringify(conversation.lastMessage.content, null, 2)}
                                             </div>
                                           </div>
                                         )}
@@ -282,8 +278,8 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                                   {conversation.firstMessage.role || 'user'}:
                                 </span>{' '}
                                 {typeof conversation.firstMessage.content === 'string'
-                                  ? truncateText(conversation.firstMessage.content)
-                                  : truncateText(JSON.stringify(conversation.firstMessage.content))}
+                                  ? conversation.firstMessage.content
+                                  : JSON.stringify(conversation.firstMessage.content, null, 2)}
                               </div>
                             </div>
                           )}
@@ -297,8 +293,8 @@ export function SessionTreeView({ session }: SessionTreeViewProps) {
                                   {conversation.lastMessage.role || 'assistant'}:
                                 </span>{' '}
                                 {typeof conversation.lastMessage.content === 'string'
-                                  ? truncateText(conversation.lastMessage.content)
-                                  : truncateText(JSON.stringify(conversation.lastMessage.content))}
+                                  ? conversation.lastMessage.content
+                                  : JSON.stringify(conversation.lastMessage.content, null, 2)}
                               </div>
                             </div>
                           )}
