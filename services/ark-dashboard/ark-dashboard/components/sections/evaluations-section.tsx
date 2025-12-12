@@ -123,6 +123,7 @@ export const EvaluationsSection = forwardRef<
     scoreMin: '',
     scoreMax: '',
     evaluationType: [],
+    labelFilters: [],
   });
   const router = useRouter();
 
@@ -432,6 +433,39 @@ export const EvaluationsSection = forwardRef<
       } else if (filters.scoreMin || filters.scoreMax) {
         // If score is not a number but we have score filters, exclude it
         return false;
+      }
+    }
+
+    // Label filters
+    if (filters.labelFilters.length > 0) {
+      // Try to get metadata from detailed response first
+      const detailedEvaluation = evaluation as EvaluationDetailResponse;
+      const evaluationMetadata =
+        (detailedEvaluation?.metadata as Record<string, unknown>) ||
+        ((evaluation as Record<string, unknown>).metadata as
+          | Record<string, unknown>
+          | undefined);
+      const labels =
+        (evaluationMetadata?.labels as Record<string, string>) || {};
+
+      for (const labelFilter of filters.labelFilters) {
+        if (!labelFilter.key || !labelFilter.value) continue;
+
+        const labelValue = labels[labelFilter.key];
+        const filterValue = labelFilter.value.trim();
+
+        // If label doesn't exist, exclude this evaluation
+        if (labelValue === undefined || labelValue === null) {
+          return false;
+        }
+
+        // Compare label value with filter value (case-insensitive)
+        const labelValueStr = String(labelValue).toLowerCase();
+        const filterValueStr = filterValue.toLowerCase();
+
+        if (!labelValueStr.includes(filterValueStr)) {
+          return false;
+        }
       }
     }
 
