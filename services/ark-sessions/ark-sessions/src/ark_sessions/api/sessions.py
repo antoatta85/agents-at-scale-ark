@@ -168,13 +168,10 @@ async def get_session_by_id(
     conversations_by_query_id, standalone_conversations = _derive_conversations_from_messages(messages)
     
     # Attach conversations to their queries
-    # Note: conversations_by_query_id is keyed by message.query_id (query name)
-    # while queries_dict is keyed by event.query_id (query id)
-    # So we need to match by query name instead
+    # Both conversations_by_query_id and queries_dict are keyed by query_id (Kubernetes UID)
     for query_id, query in queries_dict.items():
-        # Match conversations by query name, not query id
-        if query.name in conversations_by_query_id:
-            query.conversations = conversations_by_query_id[query.name]
+        if query_id in conversations_by_query_id:
+            query.conversations = conversations_by_query_id[query_id]
     
     return Session(
         id=session_id,

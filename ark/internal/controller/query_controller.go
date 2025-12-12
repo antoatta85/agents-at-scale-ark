@@ -830,7 +830,8 @@ func (r *QueryReconciler) executeAgent(ctx context.Context, query arkv1alpha1.Qu
 
 	// Save all new messages (input + response) to memory
 	newMessages := genai.PrepareNewMessagesForMemory(inputMessages, result.Messages)
-	if err := memory.AddMessages(ctx, query.Name, newMessages); err != nil {
+	queryID := string(query.UID)
+	if err := memory.AddMessages(ctx, queryID, newMessages); err != nil {
 		return nil, fmt.Errorf("failed to save new messages to memory: %w", err)
 	}
 
@@ -865,7 +866,8 @@ func (r *QueryReconciler) executeTeam(ctx context.Context, query arkv1alpha1.Que
 
 	// Save all new messages (input + response) to memory
 	newMessages := genai.PrepareNewMessagesForMemory(inputMessages, result.Messages)
-	if err := memory.AddMessages(ctx, query.Name, newMessages); err != nil {
+	queryID := string(query.UID)
+	if err := memory.AddMessages(ctx, queryID, newMessages); err != nil {
 		return nil, fmt.Errorf("failed to save new messages to memory: %w", err)
 	}
 
@@ -918,7 +920,8 @@ func (r *QueryReconciler) executeModel(ctx context.Context, query arkv1alpha1.Qu
 
 	// Save all new messages (input + response) to memory
 	newMessages := genai.PrepareNewMessagesForMemory(inputMessages, responseMessages)
-	if err := memory.AddMessages(ctx, query.Name, newMessages); err != nil {
+	queryID := string(query.UID)
+	if err := memory.AddMessages(ctx, queryID, newMessages); err != nil {
 		return nil, fmt.Errorf("failed to save new messages to memory: %w", err)
 	}
 
