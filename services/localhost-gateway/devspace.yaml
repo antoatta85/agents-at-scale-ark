@@ -6,9 +6,16 @@ pipelines:
     create_deployments --all
     
     echo "Waiting for gateway to be ready to port-forward..."
-    until kubectl port-forward -n ark-system service/localhost-gateway-nginx 8080:80; do 
-      echo "Port-forwarding failed - gateway not ready yet. Retrying in 10s..."
-      sleep 10
+    timeout=60
+    while [ $timeout -gt 0 ]; do
+      if kubectl get pod -n ark-system -l app.kubernetes.io/name=nginx-gateway-fabric --no-headers 2>/dev/null | grep -q Running; then
+        echo "Gateway is ready, starting port-forward in background..."
+        kubectl port-forward -n ark-system service/localhost-gateway-nginx 8080:80 &
+        break
+      fi
+      echo "Gateway not ready yet, waiting... ($timeout seconds remaining)"
+      sleep 5
+      timeout=$((timeout-5))
     done
 
 deployments:

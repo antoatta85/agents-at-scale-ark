@@ -73,20 +73,15 @@ function NamespaceProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (error) {
-      toast.error('Failed to get namespace', {
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred',
-      });
+      console.warn('Failed to get namespace context, using default:', error);
+      setIsNamespaceResolved(true);
     }
   }, [error]);
 
   useEffect(() => {
     if (!data && !isPending) {
-      toast.error('Failed to get namespace', {
-        description: 'An unexpected error occurred',
-      });
+      console.warn('Namespace context query completed without data, using default namespace');
+      setIsNamespaceResolved(true);
     }
   }, [data, isPending]);
 
@@ -100,6 +95,20 @@ function NamespaceProvider({ children }: PropsWithChildren) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, namespaceFromQueryParams]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setIsNamespaceResolved((prev) => {
+        if (!prev) {
+          console.warn('Namespace resolution timeout, using default namespace');
+          return true;
+        }
+        return prev;
+      });
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   const context = useMemo<NamespaceContext>(
     () => ({

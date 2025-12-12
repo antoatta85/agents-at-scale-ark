@@ -94,9 +94,11 @@ export function AppSidebar() {
       try {
         // Load system info and get current context
         const systemData = await systemInfoService.get();
+        if (systemData) {
         setSystemInfo(systemData);
+        }
       } catch (error) {
-        console.error('Failed to load initial data:', error);
+        console.warn('Failed to load initial data:', error);
       } finally {
         setLoading(false);
       }

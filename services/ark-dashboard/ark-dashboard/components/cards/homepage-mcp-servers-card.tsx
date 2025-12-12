@@ -18,12 +18,7 @@ export function HomepageMcpServersCard() {
 
   useEffect(() => {
     if (error) {
-      toast.error('Failed to get MCP Servers', {
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred',
-      });
+      console.warn('Failed to get MCP Servers:', error);
     }
   }, [error]);
 

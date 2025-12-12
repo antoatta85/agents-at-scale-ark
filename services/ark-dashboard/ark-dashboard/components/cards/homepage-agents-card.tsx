@@ -18,12 +18,7 @@ export function HomepageAgentsCard() {
 
   useEffect(() => {
     if (error) {
-      toast.error('Failed to get Agents', {
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred',
-      });
+      console.warn('Failed to get Agents:', error);
     }
   }, [error]);
 

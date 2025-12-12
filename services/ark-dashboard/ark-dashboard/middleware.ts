@@ -7,91 +7,9 @@ import { auth } from './auth';
 import { COOKIE_SESSION_TOKEN, SIGNIN_PATH } from './lib/constants/auth';
 
 async function middleware(request: NextRequest) {
-  // Get the base path from environment (no default)
-  const basePath = process.env.ARK_DASHBOARD_BASE_PATH || '';
-
-  // Proxy anything starting with /api/ to the backend, stripping the /api prefix
-  // This includes: /api/v1/*, /api/docs, /api/openapi.json
-  const apiPath = `${basePath}/api/`;
-
-  if (request.nextUrl.pathname.startsWith(apiPath)) {
-    const token = await getToken({
-      req: request,
-      secret: process.env.AUTH_SECRET,
-      cookieName: COOKIE_SESSION_TOKEN,
-    });
-    
-    // Remove the base path and /api prefix to get the backend path
-    let backendPath = request.nextUrl.pathname.replace(basePath, '');
-    backendPath = backendPath.replace('/api', '');
-    
-    // Route sessions endpoints to ark-sessions, everything else to ark-api
-    const isSessionsEndpoint = backendPath.startsWith('/sessions');
-    const host = isSessionsEndpoint
-      ? process.env.ARK_SESSIONS_SERVICE_HOST || 'localhost'
-      : process.env.ARK_API_SERVICE_HOST || 'localhost';
-    const port = isSessionsEndpoint
-      ? process.env.ARK_SESSIONS_SERVICE_PORT || '8080'
-      : process.env.ARK_API_SERVICE_PORT || '8000';
-    const protocol = isSessionsEndpoint
-      ? process.env.ARK_SESSIONS_SERVICE_PROTOCOL || 'http'
-      : process.env.ARK_API_SERVICE_PROTOCOL || 'http';
-
-    // Construct the target URL
-    const targetUrl = `${protocol}://${host}:${port}${backendPath}${request.nextUrl.search}`;
-
-    // Rewrite the request to the backend with standard HTTP forwarding headers
-    // These X-Forwarded-* headers help the backend understand the external request context:
-    // - X-Forwarded-Prefix: tells backend it's being served from /api path externally
-    // - X-Forwarded-Host: original host header from the client request
-    // - X-Forwarded-Proto: original protocol (http/https) from the client request
-    // The backend uses these to generate correct URLs for OpenAPI specs and CORS handling
-    // Create new headers for the backend request (NOT the frontend response)
-    const backendHeaders = new Headers(request.headers);
-    backendHeaders.set('X-Forwarded-Prefix', '/api');
-    backendHeaders.set('X-Forwarded-Host', request.headers.get('host') || '');
-    backendHeaders.set(
-      'X-Forwarded-Proto',
-      request.nextUrl.protocol.slice(0, -1),
-    ); // Remove trailing ':'
-    if (token?.access_token) {
-      backendHeaders.set('Authorization', `Bearer ${token.access_token}`);
-    }
-
-    const fetchOptions: RequestInit = {
-      method: request.method,
-      headers: backendHeaders,
-      signal: AbortSignal.timeout(10000), // 10 second timeout
-    };
-
-    if (request.body) {
-      fetchOptions.body = request.body;
-    }
-    
-    try {
-      const backendResponse = await fetch(targetUrl, fetchOptions);
-
-      return new Response(backendResponse.body, {
-        status: backendResponse.status,
-        statusText: backendResponse.statusText,
-        headers: backendResponse.headers,
-      });
-    } catch (error) {
-      console.error(`Failed to proxy request to ${targetUrl}:`, error);
-      return new Response(
-        JSON.stringify({
-          error: 'Internal server error',
-          detail: error instanceof Error ? error.message : 'Failed to connect to backend service',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-  }
-
-  // For all other requests, continue normally
+  // API routes are handled by app/api/[...path]/route.ts (Node.js runtime)
+  // This middleware only handles page requests, not API routes
+  // For all requests, continue normally
   return NextResponse.next();
 }
 
@@ -116,5 +34,6 @@ export default auth(async (req: NextRequestWithAuth) => {
 });
 
 export const config = {
-  matcher: '/((?!api/auth|signout|_next/static|_next/image|favicon.ico).*)',
+  // Exclude all /api routes - they're handled by API routes (Node.js runtime)
+  matcher: '/((?!api|signout|_next/static|_next/image|favicon.ico).*)',
 };

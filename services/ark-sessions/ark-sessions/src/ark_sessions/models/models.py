@@ -34,8 +34,7 @@ class Trace(SQLModel, table=True):
     trace_id: str = Field(index=True, description="OTEL Trace ID")
     session_id: str = Field(index=True, description="Session ID for ARK joins")
     start_time: datetime = Field(
-        index=True,
-        sa_column=Column(DateTime(timezone=True)),
+        sa_column=Column(DateTime(timezone=True), index=True),
         description="Trace start time"
     )
     end_time: datetime | None = Field(
@@ -62,8 +61,7 @@ class Span(SQLModel, table=True):
     name: str = Field(description="Span name")
     kind: str = Field(description="Span kind")
     start_time: datetime = Field(
-        index=True,
-        sa_column=Column(DateTime(timezone=True)),
+        sa_column=Column(DateTime(timezone=True), index=True),
         description="Span start time"
     )
     end_time: datetime | None = Field(
@@ -91,8 +89,7 @@ class SpanEvent(SQLModel, table=True):
     session_id: str = Field(index=True, description="Session ID for ARK joins")
     name: str = Field(description="Event name")
     time: datetime = Field(
-        index=True,
-        sa_column=Column(DateTime(timezone=True)),
+        sa_column=Column(DateTime(timezone=True), index=True),
         description="Event timestamp"
     )
     attributes: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON), description="Event attributes")
@@ -114,8 +111,7 @@ class Message(SQLModel, table=True):
     message_data: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON), description="Message data")
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(DateTime(timezone=True)),
-        index=True
+        sa_column=Column(DateTime(timezone=True), index=True)
     )
 
 
@@ -133,14 +129,12 @@ class SessionEvent(SQLModel, table=True):
     query_namespace: str | None = Field(default=None, description="Query namespace")
     duration_ms: float | None = Field(default=None, description="Duration in milliseconds (for QueryComplete)")
     timestamp: datetime = Field(
-        index=True,
-        sa_column=Column(DateTime(timezone=True)),
+        sa_column=Column(DateTime(timezone=True), index=True),
         description="Event timestamp"
     )
     payload: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON), description="Additional event data")
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(DateTime(timezone=True)),
-        index=True
+        sa_column=Column(DateTime(timezone=True), index=True)
     )
 

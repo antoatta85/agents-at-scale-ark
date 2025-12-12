@@ -10,6 +10,11 @@ export const useGetContext = () => {
   return useQuery({
     queryKey: [GET_CONTEXT_QUERY_KEY],
     queryFn: namespacesService.getContext,
+    retry: 1,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    throwOnError: false,
   });
 };
 

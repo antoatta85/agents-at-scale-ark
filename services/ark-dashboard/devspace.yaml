@@ -34,8 +34,17 @@ deployments:
             requests:
               memory: "256Mi"
               cpu: "200m"
+          config:
+            arkApiService:
+              host: "ark-api.default.svc.cluster.local"
+              port: "8000"
+              protocol: "http"
+            arkSessionsService:
+              host: "ark-sessions.default.svc.cluster.local"
+              port: "80"
+              protocol: "http"
         httpRoute:
-          enabled: true
+          enabled: false
 
 dev:
   ark-dashboard:
@@ -44,11 +53,23 @@ dev:
     env:
       - name: NODE_ENV
         value: development
+      - name: ARK_API_SERVICE_HOST
+        value: ark-api.default.svc.cluster.local
+      - name: ARK_API_SERVICE_PORT
+        value: "8000"
+      - name: ARK_API_SERVICE_PROTOCOL
+        value: "http"
+      - name: ARK_SESSIONS_SERVICE_HOST
+        value: ark-sessions.default.svc.cluster.local
+      - name: ARK_SESSIONS_SERVICE_PORT
+        value: "80"
+      - name: ARK_SESSIONS_SERVICE_PROTOCOL
+        value: "http"
     command:
       [
         "sh",
         "-c",
-        "cd /app/ark-dashboard && npm install -g pnpm && pnpm install && pnpm run dev",
+        "cd /app/ark-dashboard && if [ ! -d node_modules ]; then npm install -g pnpm && pnpm install; fi && exec pnpm run dev",
       ]
     namespace: default
     # Stream logs instead of terminal
@@ -60,6 +81,10 @@ dev:
         startContainer: true
         disableDownload: true
         uploadExcludeFile: .dockerignore
+        excludePaths:
+          - "**/node_modules"
+          - "**/.next"
+          - "**/out"
     # Enable SSH for IDE integration
     ssh:
       enabled: true

@@ -18,12 +18,7 @@ export function HomepageTeamsCard() {
 
   useEffect(() => {
     if (error) {
-      toast.error('Failed to get Teams', {
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred',
-      });
+      console.warn('Failed to get Teams:', error);
     }
   }, [error]);
 

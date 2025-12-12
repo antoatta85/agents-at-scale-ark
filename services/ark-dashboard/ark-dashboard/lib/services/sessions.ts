@@ -29,8 +29,8 @@ export interface SessionsListResponse {
 export const sessionsService = {
   async listSessions(): Promise<string[]> {
     try {
-      const response = await apiClient.get<SessionsListResponse>('/api/v1/sessions');
-      return response?.items?.map(item => item.sessionId) || [];
+      const response = await apiClient.get<{ sessions: string[] }>('/api/sessions');
+      return response?.sessions || [];
     } catch (error) {
       console.error('Failed to fetch sessions:', error);
       return [];
@@ -39,9 +39,7 @@ export const sessionsService = {
 
   async getSession(sessionId: string): Promise<Session | null> {
     try {
-      // TODO: ark-api needs a GET /v1/sessions/{sessionId} endpoint
-      // For now, we'll need to call ark-sessions directly or implement the endpoint
-      const response = await apiClient.get<Session>(`/api/v1/sessions/${sessionId}`);
+      const response = await apiClient.get<Session>(`/api/sessions/${sessionId}`);
       return response || null;
     } catch (error) {
       console.error(`Failed to fetch session ${sessionId}:`, error);

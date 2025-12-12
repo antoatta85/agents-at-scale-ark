@@ -4,7 +4,12 @@ import type { components } from '@/lib/api/generated/types';
 export type SystemInfo = components['schemas']['SystemInfo'];
 
 export const systemInfoService = {
-  async get(): Promise<SystemInfo> {
+  async get(): Promise<SystemInfo | null> {
+    try {
     return await apiClient.get<SystemInfo>('/api/v1/system-info');
+    } catch (error) {
+      console.warn('Failed to fetch system info:', error);
+      return null;
+    }
   },
 };

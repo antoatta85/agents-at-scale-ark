@@ -37,6 +37,7 @@ hooks:
 
 deployments:
   argo-workflows:
+    namespace: default
     helm:
       chart:
         path: ./chart

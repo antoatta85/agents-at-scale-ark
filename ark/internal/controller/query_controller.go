@@ -776,8 +776,8 @@ func (r *QueryReconciler) executeTarget(ctx context.Context, query arkv1alpha1.Q
 
 	if err != nil {
 		r.Telemetry.QueryRecorder().RecordError(span, err)
-		r.handleTargetExecutionError(ctx, err, target, eventStream)
-		r.Eventing.QueryRecorder().Fail(ctx, "TargetExecution", fmt.Sprintf("Target execution failed: %v", err), err, operationData)
+		r.handleTargetExecutionError(execCtx, err, target, eventStream)
+		r.Eventing.QueryRecorder().Fail(execCtx, "TargetExecution", fmt.Sprintf("Target execution failed: %v", err), err, operationData)
 		return nil, err
 	}
 
