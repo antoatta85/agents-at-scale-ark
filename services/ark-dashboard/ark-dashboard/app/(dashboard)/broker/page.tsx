@@ -6,7 +6,15 @@ import type { BreadcrumbElement } from '@/components/common/page-header';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { type Memory, memoriesService } from '@/lib/services/memories';
 
 const breadcrumbs: BreadcrumbElement[] = [
   { href: '/', label: 'ARK Dashboard' },
@@ -18,7 +26,7 @@ interface StreamEntry {
   data: unknown;
 }
 
-function useSSEStream(endpoint: string, enabled: boolean) {
+function useSSEStream(endpoint: string, enabled: boolean, memory: string) {
   const [entries, setEntries] = useState<StreamEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +38,8 @@ function useSSEStream(endpoint: string, enabled: boolean) {
     }
 
     setError(null);
-    const eventSource = new EventSource(`/api${endpoint}?watch=true`);
+    const url = `/api${endpoint}?memory=${encodeURIComponent(memory)}&watch=true`;
+    const eventSource = new EventSource(url);
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
@@ -46,11 +55,11 @@ function useSSEStream(endpoint: string, enabled: boolean) {
           return;
         }
         const entry: StreamEntry = {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
           timestamp: new Date().toISOString(),
           data,
         };
-        setEntries(prev => [...prev.slice(-99), entry]);
+        setEntries(prev => [entry, ...prev.slice(0, 99)]);
       } catch {
         console.error('Failed to parse SSE data:', event.data);
       }
@@ -61,7 +70,7 @@ function useSSEStream(endpoint: string, enabled: boolean) {
       setError('Connection lost');
       eventSource.close();
     };
-  }, [endpoint]);
+  }, [endpoint, memory]);
 
   const disconnect = useCallback(() => {
     if (eventSourceRef.current) {
@@ -91,20 +100,27 @@ interface StreamViewProps {
   title: string;
   endpoint: string;
   emptyMessage: string;
+  memory: string;
 }
 
-function StreamView({ title, endpoint, emptyMessage }: StreamViewProps) {
+function StreamView({
+  title,
+  endpoint,
+  emptyMessage,
+  memory,
+}: StreamViewProps) {
   const [autoScroll, setAutoScroll] = useState(true);
   const [streaming, setStreaming] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { entries, isConnected, error, connect, clear } = useSSEStream(
     endpoint,
     streaming,
+    memory,
   );
 
   useEffect(() => {
     if (autoScroll && containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      containerRef.current.scrollTop = 0;
     }
   }, [entries, autoScroll]);
 
@@ -179,13 +195,56 @@ function StreamView({ title, endpoint, emptyMessage }: StreamViewProps) {
 }
 
 export default function BrokerPage() {
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [selectedMemory, setSelectedMemory] = useState<string>('default');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMemories() {
+      try {
+        const data = await memoriesService.getAll();
+        setMemories(data);
+        if (data.length > 0 && !data.find(m => m.name === selectedMemory)) {
+          setSelectedMemory(data[0].name);
+        }
+      } catch (err) {
+        console.error('Failed to fetch memories:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchMemories();
+  }, [selectedMemory]);
+
   return (
     <>
       <PageHeader breadcrumbs={breadcrumbs} currentPage="Broker" />
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="text-muted-foreground text-sm">
-          Real-time diagnostic view of broker data streams. Enable streaming to
-          see live data.
+        <div className="flex items-center justify-between">
+          <div className="text-muted-foreground text-sm">
+            Real-time diagnostic view of broker data streams. Enable streaming
+            to see live data.
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm">Memory:</span>
+            <Select
+              value={selectedMemory}
+              onValueChange={setSelectedMemory}
+              disabled={loading}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue
+                  placeholder={loading ? 'Loading...' : 'Select memory'}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {memories.map(memory => (
+                  <SelectItem key={memory.name} value={memory.name}>
+                    {memory.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <Tabs defaultValue="traces" className="flex-1">
           <TabsList>
@@ -198,6 +257,7 @@ export default function BrokerPage() {
               title="OTEL Traces"
               endpoint="/v1/broker/traces"
               emptyMessage="Click Start to stream OTEL traces"
+              memory={selectedMemory}
             />
           </TabsContent>
           <TabsContent value="messages" className="mt-4 flex-1">
@@ -205,6 +265,7 @@ export default function BrokerPage() {
               title="Messages"
               endpoint="/v1/broker/messages"
               emptyMessage="Click Start to stream messages"
+              memory={selectedMemory}
             />
           </TabsContent>
           <TabsContent value="chunks" className="mt-4 flex-1">
@@ -212,6 +273,7 @@ export default function BrokerPage() {
               title="LLM Chunks"
               endpoint="/v1/broker/chunks"
               emptyMessage="Click Start to stream LLM chunks"
+              memory={selectedMemory}
             />
           </TabsContent>
         </Tabs>

@@ -68,6 +68,7 @@ export class MemoryStore<TMessage extends Message = Message> {
       this.emitSessionCreated(sessionID);
     }
     this.eventEmitter.emit(`message:${sessionID}`, message);
+    this.eventEmitter.emit('message:*', storedMessage);
   }
 
   addMessages(sessionID: string, messages: TMessage[]): void {
@@ -97,8 +98,9 @@ export class MemoryStore<TMessage extends Message = Message> {
     if (isNewSession) {
       this.emitSessionCreated(sessionID);
     }
-    for (const message of messages) {
-      this.eventEmitter.emit(`message:${sessionID}`, message);
+    for (const stored of storedMessages) {
+      this.eventEmitter.emit(`message:${sessionID}`, stored.message);
+      this.eventEmitter.emit('message:*', stored);
     }
   }
 
@@ -133,8 +135,9 @@ export class MemoryStore<TMessage extends Message = Message> {
     if (isNewSession) {
       this.emitSessionCreated(sessionID);
     }
-    for (const message of messages) {
-      this.eventEmitter.emit(`message:${sessionID}`, message);
+    for (const stored of storedMessages) {
+      this.eventEmitter.emit(`message:${sessionID}`, stored.message);
+      this.eventEmitter.emit('message:*', stored);
     }
   }
 
@@ -324,6 +327,12 @@ export class MemoryStore<TMessage extends Message = Message> {
     return () => {
       this.eventEmitter.off(`message:${sessionID}`, callback);
     };
+  }
+
+  subscribeToAllMessages(callback: (storedMessage: Omit<StoredMessage, 'message'> & { message: TMessage }) => void): () => void {
+    const listener = (storedMessage: Omit<StoredMessage, 'message'> & { message: TMessage }) => callback(storedMessage);
+    this.eventEmitter.on('message:*', listener);
+    return () => this.eventEmitter.off('message:*', listener);
   }
 
   subscribeToMessages(sessionID: string, callback: (chunk: TMessage) => void): () => void {

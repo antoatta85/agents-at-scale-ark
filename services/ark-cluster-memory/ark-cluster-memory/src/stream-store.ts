@@ -18,6 +18,8 @@ export class StreamStore {
       this.streamChunks.set(queryID, []);
     }
     this.streamChunks.get(queryID)!.push(chunk);
+    this.eventEmitter.emit(`chunk:${queryID}`, chunk);
+    this.eventEmitter.emit('chunk:*', { queryID, chunk });
   }
 
   getStreamChunks(queryID: string): any[] {
@@ -55,6 +57,12 @@ export class StreamStore {
     const listener = (chunk: any) => callback(chunk);
     this.eventEmitter.on(`chunk:${queryID}`, listener);
     return () => this.eventEmitter.off(`chunk:${queryID}`, listener);
+  }
+
+  subscribeToAllChunks(callback: (data: { queryID: string; chunk: any }) => void): () => void {
+    const listener = (data: { queryID: string; chunk: any }) => callback(data);
+    this.eventEmitter.on('chunk:*', listener);
+    return () => this.eventEmitter.off('chunk:*', listener);
   }
 
   purge(): void {

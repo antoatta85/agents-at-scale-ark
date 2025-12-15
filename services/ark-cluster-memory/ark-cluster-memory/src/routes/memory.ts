@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { MemoryStore } from '../memory-store.js';
+import { writeSSEEvent } from '../sse.js';
 
 export function createMemoryRouter(memory: MemoryStore): Router {
   const router = Router();
@@ -71,30 +72,75 @@ export function createMemoryRouter(memory: MemoryStore): Router {
     }
   });
 
-  // GET /messages - returns messages
+  // GET /messages - returns messages or streams via SSE
   router.get('/messages', (req, res) => {
-    try {
-      const session_id = req.query.session_id as string;
-      const query_id = req.query.query_id as string;
-      
-      const allMessages = memory.getAllMessages();
-      let filteredMessages = allMessages;
-      
-      // Apply filters if provided
-      if (session_id) {
-        filteredMessages = filteredMessages.filter(m => m.session_id === session_id);
+    const watch = req.query['watch'] === 'true';
+    const session_id = req.query['session-id'] as string;
+
+    if (watch) {
+      console.log('[MESSAGES] GET /messages?watch=true - starting SSE stream for all messages');
+
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+
+      let messageCount = 0;
+      let lastLogTime = Date.now();
+
+      const unsubscribe = memory.subscribeToAllMessages((storedMessage) => {
+        if (session_id && storedMessage.session_id !== session_id) {
+          return;
+        }
+
+        if (!writeSSEEvent(res, storedMessage)) {
+          console.log('[MESSAGES-OUT] Client disconnected (write failed)');
+          unsubscribe();
+          return;
+        }
+
+        messageCount++;
+        const now = Date.now();
+        if (now - lastLogTime >= 1000) {
+          console.log(`[MESSAGES-OUT] Streamed ${messageCount} messages`);
+          lastLogTime = now;
+        }
+      });
+
+      req.on('close', () => {
+        console.log(`[MESSAGES-OUT] Client disconnected after ${messageCount} messages`);
+        unsubscribe();
+      });
+
+      req.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'ECONNRESET') {
+          console.log('[MESSAGES-OUT] Client connection reset');
+        } else {
+          console.error('[MESSAGES-OUT] Client connection error:', error);
+        }
+        unsubscribe();
+      });
+    } else {
+      try {
+        const query_id = req.query.query_id as string;
+
+        const allMessages = memory.getAllMessages();
+        let filteredMessages = allMessages;
+
+        if (session_id) {
+          filteredMessages = filteredMessages.filter(m => m.session_id === session_id);
+        }
+
+        if (query_id) {
+          filteredMessages = filteredMessages.filter(m => m.query_id === query_id);
+        }
+
+        res.json({ messages: filteredMessages });
+      } catch (error) {
+        console.error('Failed to get messages:', error);
+        const err = error as Error;
+        res.status(500).json({ error: err.message });
       }
-      
-      if (query_id) {
-        filteredMessages = filteredMessages.filter(m => m.query_id === query_id);
-      }
-      
-      // Return messages in the expected format
-      res.json({ messages: filteredMessages });
-    } catch (error) {
-      console.error('Failed to get messages:', error);
-      const err = error as Error;
-      res.status(500).json({ error: err.message });
     }
   });
 

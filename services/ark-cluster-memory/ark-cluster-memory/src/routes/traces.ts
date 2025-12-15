@@ -1,15 +1,6 @@
-import { Router, Response } from 'express';
+import { Router } from 'express';
 import { TraceStore, OTELSpan } from '../trace-store.js';
-
-const writeSSEEvent = (res: Response, data: unknown): boolean => {
-  try {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-    return true;
-  } catch (error) {
-    console.error('Error writing SSE event:', error);
-    return false;
-  }
-};
+import { writeSSEEvent } from '../sse.js';
 
 export function createTracesRouter(traces: TraceStore): Router {
   const router = Router();

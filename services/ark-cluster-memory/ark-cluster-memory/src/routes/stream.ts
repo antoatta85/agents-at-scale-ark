@@ -1,23 +1,12 @@
-import { Router, Response } from 'express';
+import { Router } from 'express';
 import { StreamStore } from '../stream-store.js';
-import { StreamResponse, StreamError } from '../types.js';
+import { StreamError } from '../types.js';
+import { writeSSEEvent } from '../sse.js';
 
-// Helper function to parse timeout parameter
 const parseTimeout = (timeoutStr: string | undefined, defaultTimeout: number): number => {
   if (!timeoutStr) return defaultTimeout;
   const timeout = parseInt(timeoutStr);
   return isNaN(timeout) ? defaultTimeout : Math.max(1000, Math.min(timeout * 1000, 300000));
-};
-
-// Helper function to write SSE event
-const writeSSEEvent = (res: Response, data: StreamResponse): boolean => {
-  try {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-    return true;
-  } catch (error) {
-    console.error('Error writing SSE event:', error);
-    return false;
-  }
 };
 
 
@@ -58,7 +47,74 @@ export function createStreamRouter(stream: StreamStore): Router {
    *                       chunk_types:
    *                         type: object
    */
-  // Removed GET /stream to avoid conflicts - statistics now at /stream-statistics
+  router.get('/', (req, res) => {
+    const watch = req.query['watch'] === 'true';
+
+    if (watch) {
+      console.log('[STREAM] GET /stream?watch=true - starting SSE stream for all chunks');
+
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+
+      let chunkCount = 0;
+      let lastLogTime = Date.now();
+
+      const unsubscribe = stream.subscribeToAllChunks((data) => {
+        if (!writeSSEEvent(res, data)) {
+          console.log('[STREAM-OUT] Client disconnected (write failed)');
+          unsubscribe();
+          return;
+        }
+
+        chunkCount++;
+        const now = Date.now();
+        if (now - lastLogTime >= 1000) {
+          console.log(`[STREAM-OUT] Streamed ${chunkCount} chunks`);
+          lastLogTime = now;
+        }
+      });
+
+      req.on('close', () => {
+        console.log(`[STREAM-OUT] Client disconnected after ${chunkCount} chunks`);
+        unsubscribe();
+      });
+
+      req.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'ECONNRESET') {
+          console.log('[STREAM-OUT] Client connection reset');
+        } else {
+          console.error('[STREAM-OUT] Client connection error:', error);
+        }
+        unsubscribe();
+      });
+    } else {
+      try {
+        const allStreams = stream.getAllStreams();
+        const queryIds = Object.keys(allStreams);
+        const stats: Record<string, any> = {};
+
+        for (const queryId of queryIds) {
+          const chunks = allStreams[queryId];
+          stats[queryId] = {
+            total_chunks: chunks.length,
+            completed: stream.isStreamComplete(queryId),
+            has_done_marker: chunks.includes('[DONE]')
+          };
+        }
+
+        res.json({
+          total_queries: queryIds.length,
+          queries: stats
+        });
+      } catch (error) {
+        console.error('[STREAM] Failed to get stream statistics:', error);
+        const err = error as Error;
+        res.status(500).json({ error: err.message });
+      }
+    }
+  });
 
   /**
    * @swagger
@@ -420,7 +476,6 @@ export function createStreamRouter(stream: StreamStore): Router {
               
               // Store the chunk for later replay AND forward to active streaming clients
               stream.addStreamChunk(query_id, streamChunk);
-              stream.eventEmitter.emit(`chunk:${query_id}`, streamChunk);
             } catch (parseError) {
               console.error(`[STREAM-IN] Failed to parse chunk for query ${query_id}:`, parseError);
             }
