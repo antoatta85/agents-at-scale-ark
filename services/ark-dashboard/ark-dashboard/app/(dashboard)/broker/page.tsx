@@ -26,15 +26,20 @@ interface StreamEntry {
   data: unknown;
 }
 
-function useSSEStream(endpoint: string, enabled: boolean, memory: string) {
+function useSSEStream(endpoint: string, memory: string) {
   const [entries, setEntries] = useState<StreamEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const connect = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
 
     setError(null);
@@ -67,12 +72,18 @@ function useSSEStream(endpoint: string, enabled: boolean, memory: string) {
 
     eventSource.onerror = () => {
       setIsConnected(false);
-      setError('Connection lost');
       eventSource.close();
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connect();
+      }, 3000);
     };
   }, [endpoint, memory]);
 
   const disconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
@@ -85,38 +96,30 @@ function useSSEStream(endpoint: string, enabled: boolean, memory: string) {
   }, []);
 
   useEffect(() => {
-    if (enabled) {
-      connect();
-    } else {
-      disconnect();
-    }
+    connect();
     return () => disconnect();
-  }, [enabled, connect, disconnect]);
+  }, [connect, disconnect]);
 
-  return { entries, isConnected, error, connect, disconnect, clear };
+  return { entries, isConnected, error, clear };
 }
 
 interface StreamViewProps {
   title: string;
-  endpoint: string;
-  emptyMessage: string;
-  memory: string;
+  entries: StreamEntry[];
+  isConnected: boolean;
+  error: string | null;
+  onClear: () => void;
 }
 
 function StreamView({
   title,
-  endpoint,
-  emptyMessage,
-  memory,
+  entries,
+  isConnected,
+  error,
+  onClear,
 }: StreamViewProps) {
   const [autoScroll, setAutoScroll] = useState(true);
-  const [streaming, setStreaming] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { entries, isConnected, error, connect, clear } = useSSEStream(
-    endpoint,
-    streaming,
-    memory,
-  );
 
   useEffect(() => {
     if (autoScroll && containerRef.current) {
@@ -127,30 +130,14 @@ function StreamView({
   return (
     <Card className="flex h-full flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base font-medium">{title}</CardTitle>
         <div className="flex items-center gap-2">
+          <CardTitle className="text-base font-medium">{title}</CardTitle>
           <span
             className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`}
           />
-          <span className="text-muted-foreground text-xs">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setStreaming(!streaming)}>
-            {streaming ? 'Stop' : 'Start'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              connect();
-            }}
-            disabled={!streaming}>
-            Reconnect
-          </Button>
-          <Button variant="outline" size="sm" onClick={clear}>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onClear}>
             Clear
           </Button>
           <Button
@@ -172,7 +159,7 @@ function StreamView({
           className="bg-muted h-[calc(100vh-320px)] overflow-auto rounded-md p-2 font-mono text-xs">
           {entries.length === 0 ? (
             <div className="text-muted-foreground flex h-full items-center justify-center">
-              {streaming ? 'Waiting for data...' : emptyMessage}
+              Waiting for data...
             </div>
           ) : (
             entries.map(entry => (
@@ -198,6 +185,10 @@ export default function BrokerPage() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [selectedMemory, setSelectedMemory] = useState<string>('default');
   const [loading, setLoading] = useState(true);
+
+  const traces = useSSEStream('/v1/broker/traces', selectedMemory);
+  const messages = useSSEStream('/v1/broker/messages', selectedMemory);
+  const chunks = useSSEStream('/v1/broker/chunks', selectedMemory);
 
   useEffect(() => {
     async function fetchMemories() {
@@ -251,25 +242,28 @@ export default function BrokerPage() {
           <TabsContent value="traces" className="mt-4 flex-1">
             <StreamView
               title="OTEL Traces"
-              endpoint="/v1/broker/traces"
-              emptyMessage="Click Start to stream OTEL traces"
-              memory={selectedMemory}
+              entries={traces.entries}
+              isConnected={traces.isConnected}
+              error={traces.error}
+              onClear={traces.clear}
             />
           </TabsContent>
           <TabsContent value="messages" className="mt-4 flex-1">
             <StreamView
               title="Messages"
-              endpoint="/v1/broker/messages"
-              emptyMessage="Click Start to stream messages"
-              memory={selectedMemory}
+              entries={messages.entries}
+              isConnected={messages.isConnected}
+              error={messages.error}
+              onClear={messages.clear}
             />
           </TabsContent>
           <TabsContent value="chunks" className="mt-4 flex-1">
             <StreamView
               title="LLM Chunks"
-              endpoint="/v1/broker/chunks"
-              emptyMessage="Click Start to stream LLM chunks"
-              memory={selectedMemory}
+              entries={chunks.entries}
+              isConnected={chunks.isConnected}
+              error={chunks.error}
+              onClear={chunks.clear}
             />
           </TabsContent>
         </Tabs>
