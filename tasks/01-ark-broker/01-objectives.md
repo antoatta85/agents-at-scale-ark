@@ -37,6 +37,13 @@ This suggests as above that being able to keep all key data for the queries and 
 
 This suggests that (again) keeping all essential query data is essential to support advanced features like this.
 
-**Summary - the Ark Broker**
+**Reduce technical debt / poorly named services / platform for the future**
+
+- Ideally replace the 'ark cluster memory' (which is poorly named and handling multiple responsibilities) with a more well-structured service.
+- Simplify how conversations are handled and break them out from sessions
+
+The suggests that replacing ark cluster memory with a single broker service would simplify. If the broker service itself already receives all queries and messages then it may be possible to simplify how conversations are loaded.
+
+## Summary - the Ark Broker
 
 Our hypothesis is that a single 'Ark Broker', which is the main 'sink' for all controller data (LLM completion chunks, query events, correlation data, etc) which operates as an event stream (with the option to persist data for long term storage) would support this. We would receive the same OTEL data that we send to the OTEL endpoints, as well as handle the LLM completion streams, and in future the A2A Task Updates.
