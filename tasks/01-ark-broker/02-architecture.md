@@ -64,6 +64,54 @@ The key components.
 +------------------------------------------------------------------------------------------------------+
 ```
 
+TODO: OK we need to consolidate these diagrams. this will be hard. we can create the consolidated view as a third diagram below this.
+
+1. I prefer the overall structure of the one below...
+2. however, we need to show the forking from the query controller
+3. I would also like to keep 'reconcillers' but have only two - query processing and messages (in/out eg slack)
+4. I think the pipes coming into the broker should show gRPC, HTTP REST + Streaming
+5. the pipes going out of the broker should show gPRC, HTTP, SSE, REST
+6. I like the APIs part of the broker so want that too - `v1/traces`, `events` `sessions` `stream/{topic}`
+
+```
+                                      Ark Platform
++------------------------------------------------------------------------------------------------------+
+|                                                                                                      |
+|  PRODUCERS                              ARK-BROKER                            CONSUMERS              |
+|  ─────────                              ──────────                            ─────────              |
+|                                                                                                      |
+|  +------------------+              +---------------------------+           +------------------+       |
+|  |  Query           |              |                           |           |  Dashboard       |       |
+|  |  Controller      +------------->|   +=========+   +=====+   +---------->|  (Sessions UI)   |       |
+|  +------------------+              |   |  Event  |   | DB  |   |           +------------------+       |
+|                        OTEL spans  |   |  Queue  |   | | | |   |                                      |
+|  +------------------+  & LLM chunks|   |   ( )   +-->| | | |   |           +------------------+       |
+|  |  Executor        +------------->|   |   ( )   |   +=====+   +---------->|  CLI             |       |
+|  |  (LangChain)     |              |   |   ( )   |             |           |  (fark/ark)      |       |
+|  +------------------+              |   +=========+             |           +------------------+       |
+|                                    |                           |                                      |
+|  +------------------+              |   Reconcilers (future):   |           +------------------+       |
+|  |  MCP Servers     +------------->|   - Query processing      +---------->|  API Clients     |       |
+|  |  (tools)         |              |   - Event triggers        |           |  (v1/completions)|       |
+|  +------------------+              |   - Notifications         |           +------------------+       |
+|                                    |                           |                                      |
+|  +------------------+              +-------------+-------------+                                      |
+|  |  A2A Servers     +------------->              |                                                    |
+|  |  (agents)        |                            v                                                    |
+|  +------------------+              +-------------+-------------+                                      |
+|                                    |  Upstream OTEL (optional) |                                      |
+|  +------------------+              |  (Langfuse, Jaeger, etc.) |                                      |
+|  |  Custom          +------------->+---------------------------+                                      |
+|  |  Producers       |      OR                                                                         |
+|  +------------------+      |                                                                          |
+|         |                  |                                                                          |
+|         +------------------+-------> External OTEL (works without broker)                            |
+|                                                                                                      |
++------------------------------------------------------------------------------------------------------+
+```
+
+
+
 The 'forking' is basically this:
 
 ```
