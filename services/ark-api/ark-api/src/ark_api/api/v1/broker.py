@@ -165,7 +165,7 @@ async def get_messages(
     if watch:
         url = f"{cluster_memory_url}/messages?watch=true"
         if session_id:
-            url += f"&session-id={session_id}"
+            url += f"&session_id={session_id}"
         logger.info(f"Proxying messages SSE stream from {url}")
         return StreamingResponse(
             proxy_sse_stream(url),
@@ -177,7 +177,7 @@ async def get_messages(
         async with httpx.AsyncClient() as client:
             url = f"{cluster_memory_url}/messages"
             if session_id:
-                url += f"?session-id={session_id}"
+                url += f"?session_id={session_id}"
             response = await client.get(url)
             return JSONResponse(content=response.json(), status_code=response.status_code)
     except httpx.ConnectError as e:

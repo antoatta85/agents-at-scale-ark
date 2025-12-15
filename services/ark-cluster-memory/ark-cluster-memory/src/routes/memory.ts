@@ -75,7 +75,7 @@ export function createMemoryRouter(memory: MemoryStore): Router {
   // GET /messages - returns messages or streams via SSE
   router.get('/messages', (req, res) => {
     const watch = req.query['watch'] === 'true';
-    const session_id = req.query['session-id'] as string;
+    const session_id = req.query['session_id'] as string;
 
     if (watch) {
       console.log('[MESSAGES] GET /messages?watch=true - starting SSE stream for all messages');
