@@ -64,14 +64,48 @@ The key components.
 +------------------------------------------------------------------------------------------------------+
 ```
 
-TODO: OK we need to consolidate these diagrams. this will be hard. we can create the consolidated view as a third diagram below this.
+### Consolidated View
 
-1. I prefer the overall structure of the one below...
-2. however, we need to show the forking from the query controller
-3. I would also like to keep 'reconcillers' but have only two - query processing and messages (in/out eg slack)
-4. I think the pipes coming into the broker should show gRPC, HTTP REST + Streaming
-5. the pipes going out of the broker should show gPRC, HTTP, SSE, REST
-6. I like the APIs part of the broker so want that too - `v1/traces`, `events` `sessions` `stream/{topic}`
+```
+                                      Ark Platform
++------------------------------------------------------------------------------------------------------+
+|                                                                                                      |
+|  PRODUCERS                              ARK-BROKER                            CONSUMERS              |
+|  ---------                              ----------                            ---------              |
+|                                                                                                      |
+|  +------------------+              +---------------------------+           +------------------+       |
+|  |  Query           |  gRPC        |                           |   SSE     |  Dashboard       |       |
+|  |  Controller      +--+---------->|   +=========+   +=====+   +---------->|  (Sessions UI)   |       |
+|  +------------------+  |           |   |  Event  |   | DB  |   |           +------------------+       |
+|                        |  HTTP     |   |  Queue  |   | | | |   |                                      |
+|  +------------------+  |  REST     |   |   ( )   +-->| | | |   |           +------------------+       |
+|  |  Executor        +--+---------->|   |   ( )   |   +=====+   |   REST    |  CLI             |       |
+|  |  (LangChain)     |  |           |   |   ( )   |             +---------->|  (fark/ark)      |       |
+|  +------------------+  |           |   +=========+             |           +------------------+       |
+|                        |  Streaming|                           |                                      |
+|  +------------------+  |           |   APIs:                   |           +------------------+       |
+|  |  MCP Servers     +--+---------->|   - POST /v1/traces       |   gRPC    |  API Clients     |       |
+|  |  (tools)         |  |           |   - GET  /events          +---------->|  (v1/completions)|       |
+|  +------------------+  |           |   - GET  /sessions        |           +------------------+       |
+|                        |           |   - GET  /stream/{topic}  |                                      |
+|  +------------------+  |           |                           |           +------------------+       |
+|  |  A2A Servers     +--+---------->|   Reconcilers:            |   HTTP    |  Custom          |       |
+|  |  (agents)        |              |   - Query processing      +---------->|  Consumers       |       |
+|  +------------------+              |   - Messages (in/out)     |           +------------------+       |
+|                                    |                           |                                      |
+|                                    +-------------+-------------+                                      |
+|                                                  |                                                    |
+|                                                  | OTLP/gRPC (optional forward)                      |
+|  +------------------+                            v                                                    |
+|  |  Query           |              +---------------------------+                                      |
+|  |  Controller      +------------->|  External OTEL Backend    |                                      |
+|  |  (fork to both)  |  OTLP/HTTP   |  (Langfuse, Phoenix, etc.)|                                      |
+|  +------------------+              +---------------------------+                                      |
+|                                                                                                      |
++------------------------------------------------------------------------------------------------------+
+```
+
+### Reference: Original Diagrams
 
 ```
                                       Ark Platform
@@ -212,6 +246,7 @@ TODO
 
 ## Open Questions
 
+- **Forking**: Does the query controller fork to upstream OTEL and Broker, or does the broker fork? If we have other things like MCP servers or A2A servers and we don't let the broker fork, then the broker might miss out on otherwise important messages, but maybe this is ok?
 - **Service identity**: Rename ark-cluster-memory to ark-broker, or keep as-is?
 - **Event persistence**: Store all events for replay, or just current state for resume?
 - **Protocol** - HTTP, gRPC or both? SSE for streaming?
