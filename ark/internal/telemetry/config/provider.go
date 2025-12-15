@@ -14,6 +14,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"mckinsey.com/ark/internal/telemetry"
+	"mckinsey.com/ark/internal/telemetry/broker"
 	"mckinsey.com/ark/internal/telemetry/noop"
 	otelimpl "mckinsey.com/ark/internal/telemetry/otel"
 )
@@ -57,14 +58,24 @@ func NewProvider() *Provider {
 		return newNoopProvider()
 	}
 
-	// Create trace provider
-	tp := trace.NewTracerProvider(
+	// Create trace provider options
+	tpOpts := []trace.TracerProviderOption{
 		trace.WithBatcher(exporter),
 		trace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceName(serviceName),
 		)),
-	)
+	}
+
+	// Add broker exporter if configured (fork pattern - sends to both OTEL backend and broker)
+	brokerExporter := broker.NewExporter()
+	if brokerExporter != nil {
+		log.Info("adding broker exporter for real-time trace streaming")
+		tpOpts = append(tpOpts, trace.WithBatcher(brokerExporter))
+	}
+
+	// Create trace provider
+	tp := trace.NewTracerProvider(tpOpts...)
 
 	otelapi.SetTracerProvider(tp)
 

@@ -2,12 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import { MemoryStore } from './memory-store.js';
 import { StreamStore } from './stream-store.js';
+import { TraceStore } from './trace-store.js';
 import { createMemoryRouter } from './routes/memory.js';
 import { createStreamRouter } from './routes/stream.js';
+import { createTracesRouter } from './routes/traces.js';
 
 const app = express();
 const memory = new MemoryStore();
 const stream = new StreamStore();
+const traces = new TraceStore();
 
 // Middleware
 app.use(cors());
@@ -114,6 +117,7 @@ app.get('/stream-statistics', (req, res) => {
 // Mount route modules
 app.use('/', createMemoryRouter(memory));
 app.use('/stream', createStreamRouter(stream));
+app.use('/traces', createTracesRouter(traces));
 
 // Error handling
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -127,4 +131,4 @@ app.use((req, res) => {
 });
 
 export default app;
-export { memory, stream };
+export { memory, stream, traces };

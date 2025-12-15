@@ -17,7 +17,9 @@ import { useEffect, useState } from 'react';
 
 import {
   A2A_TASKS_FEATURE_KEY,
+  BROKER_FEATURE_KEY,
   isA2ATasksEnabledAtom,
+  isBrokerEnabledAtom,
   isExperimentalDarkModeEnabledAtom,
 } from '@/atoms/experimental-features';
 import { NamespaceEditor } from '@/components/editors';
@@ -66,6 +68,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const isA2ATasksEnabled = useAtomValue(isA2ATasksEnabledAtom);
+  const isBrokerEnabled = useAtomValue(isBrokerEnabledAtom);
   const isExperimentalDarkModeEnabled = useAtomValue(
     isExperimentalDarkModeEnabledAtom,
   );
@@ -121,6 +124,8 @@ export function AppSidebar() {
     switch (item.enablerFeature) {
       case A2A_TASKS_FEATURE_KEY:
         return isA2ATasksEnabled;
+      case BROKER_FEATURE_KEY:
+        return isBrokerEnabled;
       default:
         return true;
     }
