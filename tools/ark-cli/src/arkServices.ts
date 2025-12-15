@@ -158,6 +158,20 @@ const defaultArkServices: ServiceCollection = {
     k8sDevDeploymentName: 'ark-cluster-memory-devspace',
   },
 
+  'ark-evaluator': {
+    name: 'ark-evaluator',
+    helmReleaseName: 'ark-evaluator',
+    description: 'AI-powered query evaluation service with LLM-as-a-Judge',
+    enabled: true,
+    category: 'service',
+    chartPath: `${REGISTRY_BASE}/ark-evaluator`,
+    installArgs: [],
+    k8sServiceName: 'ark-evaluator',
+    k8sServicePort: 8000,
+    k8sDeploymentName: 'ark-evaluator',
+    k8sDevDeploymentName: 'ark-evaluator-devspace',
+  },
+
   'mcp-filesystem': {
     name: 'mcp-filesystem',
     helmReleaseName: 'mcp-filesystem',

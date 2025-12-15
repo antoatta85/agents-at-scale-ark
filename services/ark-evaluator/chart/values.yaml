@@ -46,12 +46,12 @@ ingress:
 
 resources:
   limits:
-    cpu: 1000m
-    memory: 1Gi
-    ephemeral-storage: 1Gi
-  requests:
     cpu: 500m
-    memory: 512Mi
+    memory: 1Gi
+    ephemeral-storage: 500Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
     ephemeral-storage: 100Mi
 
 livenessProbe:
