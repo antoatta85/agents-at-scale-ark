@@ -1,6 +1,7 @@
----
-description: Directly invoke the Ark Protocol Reviewer agent.
----
-@.claude/agents/ark-protocol-reviewer.md
+----
+-description: Starts ARK protocol review
+----
+
+Start ARK protocol review using @.claude/skills/ark-protocol-review.md
 
 $ARGUMENTS
