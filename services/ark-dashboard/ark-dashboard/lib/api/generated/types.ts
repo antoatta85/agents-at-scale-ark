@@ -49,6 +49,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/a2a/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Agents
+         * @description List all available agents for A2A communication.
+         */
+        get: operations["list_agents_a2a_agents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/namespaces": {
         parameters: {
             query?: never;
@@ -82,7 +102,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/secrets": {
+    "/v1/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Context Endpoint
+         * @description Get the current Kubernetes context information.
+         *
+         *     Returns context following standard k8s patterns:
+         *     1. In-cluster service account (when running in pods)
+         *     2. Kubeconfig context (when running locally)
+         *     3. Fallback to default
+         *
+         *     Returns:
+         *         ContextResponse: The current namespace and cluster information
+         */
+        get: operations["get_context_endpoint_v1_context_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/secrets": {
         parameters: {
             query?: never;
             header?: never;
@@ -91,35 +139,22 @@ export interface paths {
         };
         /**
          * List Secrets
-         * @description List all Kubernetes secrets in a namespace.
-         *
-         *     Args:
-         *         namespace: The namespace to list secrets from
-         *
-         *     Returns:
-         *         SecretListResponse: List of all secrets in the namespace
+         * @description List all secrets in namespace using ark-sdk.
          */
-        get: operations["list_secrets_v1_namespaces__namespace__secrets_get"];
+        get: operations["list_secrets_v1_secrets_get"];
         put?: never;
         /**
          * Create Secret
-         * @description Create a new Kubernetes secret.
-         *
-         *     Args:
-         *         namespace: The namespace to create the secret in
-         *         body: The secret creation request
-         *
-         *     Returns:
-         *         SecretDetailResponse: The created secret details
+         * @description Create a new secret using ark-sdk.
          */
-        post: operations["create_secret_v1_namespaces__namespace__secrets_post"];
+        post: operations["create_secret_v1_secrets_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/secrets/{secret_name}": {
+    "/v1/secrets/{secret_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -128,45 +163,46 @@ export interface paths {
         };
         /**
          * Get Secret
-         * @description Get a specific Kubernetes secret by name.
-         *
-         *     Args:
-         *         namespace: The namespace to get the secret from
-         *         secret_name: The name of the secret
-         *
-         *     Returns:
-         *         SecretDetailResponse: The secret details with total data length
+         * @description Get a specific secret using ark-sdk.
          */
-        get: operations["get_secret_v1_namespaces__namespace__secrets__secret_name__get"];
+        get: operations["get_secret_v1_secrets__secret_name__get"];
         /**
          * Update Secret
-         * @description Update a Kubernetes secret by name.
-         *
-         *     Args:
-         *         namespace: The namespace containing the secret
-         *         secret_name: The name of the secret
-         *         body: The secret update request
-         *
-         *     Returns:
-         *         SecretDetailResponse: The updated secret details
+         * @description Update a secret using ark-sdk.
          */
-        put: operations["update_secret_v1_namespaces__namespace__secrets__secret_name__put"];
+        put: operations["update_secret_v1_secrets__secret_name__put"];
         post?: never;
         /**
          * Delete Secret
-         * @description Delete a Kubernetes secret by name.
-         *
-         *     Args:
-         *         namespace: The namespace containing the secret
-         *         secret_name: The name of the secret
+         * @description Delete a secret using ark-sdk.
          */
-        delete: operations["delete_secret_v1_namespaces__namespace__secrets__secret_name__delete"];
+        delete: operations["delete_secret_v1_secrets__secret_name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/agents": {
+    "/v1/configmaps/{configmap_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Configmap
+         * @description Get a specific ConfigMap and return its data.
+         */
+        get: operations["get_configmap_v1_configmaps__configmap_name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents": {
         parameters: {
             query?: never;
             header?: never;
@@ -178,12 +214,12 @@ export interface paths {
          * @description List all Agent CRs in a namespace.
          *
          *     Args:
-         *         namespace: The namespace to list agents from
+         *         namespace: The namespace to list agents from (defaults to current context)
          *
          *     Returns:
          *         AgentListResponse: List of all agents in the namespace
          */
-        get: operations["list_agents_v1_namespaces__namespace__agents_get"];
+        get: operations["list_agents_v1_agents_get"];
         put?: never;
         /**
          * Create Agent
@@ -196,14 +232,14 @@ export interface paths {
          *     Returns:
          *         AgentDetailResponse: The created agent details
          */
-        post: operations["create_agent_v1_namespaces__namespace__agents_post"];
+        post: operations["create_agent_v1_agents_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/agents/{agent_name}": {
+    "/v1/agents/{agent_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -221,7 +257,7 @@ export interface paths {
          *     Returns:
          *         AgentDetailResponse: The agent details
          */
-        get: operations["get_agent_v1_namespaces__namespace__agents__agent_name__get"];
+        get: operations["get_agent_v1_agents__agent_name__get"];
         /**
          * Update Agent
          * @description Update an Agent CR by name.
@@ -234,7 +270,7 @@ export interface paths {
          *     Returns:
          *         AgentDetailResponse: The updated agent details
          */
-        put: operations["update_agent_v1_namespaces__namespace__agents__agent_name__put"];
+        put: operations["update_agent_v1_agents__agent_name__put"];
         post?: never;
         /**
          * Delete Agent
@@ -244,13 +280,13 @@ export interface paths {
          *         namespace: The namespace containing the agent
          *         agent_name: The name of the agent
          */
-        delete: operations["delete_agent_v1_namespaces__namespace__agents__agent_name__delete"];
+        delete: operations["delete_agent_v1_agents__agent_name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/models": {
+    "/v1/models": {
         parameters: {
             query?: never;
             header?: never;
@@ -267,7 +303,7 @@ export interface paths {
          *     Returns:
          *         ModelListResponse: List of all models in the namespace
          */
-        get: operations["list_models_v1_namespaces__namespace__models_get"];
+        get: operations["list_models_v1_models_get"];
         put?: never;
         /**
          * Create Model
@@ -280,14 +316,14 @@ export interface paths {
          *     Returns:
          *         ModelDetailResponse: The created model details
          */
-        post: operations["create_model_v1_namespaces__namespace__models_post"];
+        post: operations["create_model_v1_models_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/models/{model_name}": {
+    "/v1/models/{model_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -305,7 +341,7 @@ export interface paths {
          *     Returns:
          *         ModelDetailResponse: The model details
          */
-        get: operations["get_model_v1_namespaces__namespace__models__model_name__get"];
+        get: operations["get_model_v1_models__model_name__get"];
         /**
          * Update Model
          * @description Update a Model CR by name.
@@ -318,7 +354,7 @@ export interface paths {
          *     Returns:
          *         ModelDetailResponse: The updated model details
          */
-        put: operations["update_model_v1_namespaces__namespace__models__model_name__put"];
+        put: operations["update_model_v1_models__model_name__put"];
         post?: never;
         /**
          * Delete Model
@@ -328,13 +364,13 @@ export interface paths {
          *         namespace: The namespace containing the model
          *         model_name: The name of the model
          */
-        delete: operations["delete_model_v1_namespaces__namespace__models__model_name__delete"];
+        delete: operations["delete_model_v1_models__model_name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/teams": {
+    "/v1/teams": {
         parameters: {
             query?: never;
             header?: never;
@@ -351,11 +387,17 @@ export interface paths {
          *     Returns:
          *         TeamListResponse: List of all teams in the namespace
          */
-        get: operations["list_teams_v1_namespaces__namespace__teams_get"];
+        get: operations["list_teams_v1_teams_get"];
         put?: never;
         /**
          * Create Team
          * @description Create a new Team CR.
+         *
+         *     Supports various execution strategies:
+         *     - sequential: Members execute in order
+         *     - round-robin: Members take turns
+         *     - graph: Custom workflow defined by graph edges
+         *     - selector: AI-powered member selection (can be combined with graph constraints)
          *
          *     Args:
          *         namespace: The namespace to create the team in
@@ -364,14 +406,14 @@ export interface paths {
          *     Returns:
          *         TeamDetailResponse: The created team details
          */
-        post: operations["create_team_v1_namespaces__namespace__teams_post"];
+        post: operations["create_team_v1_teams_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/teams/{team_name}": {
+    "/v1/teams/{team_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -389,7 +431,7 @@ export interface paths {
          *     Returns:
          *         TeamDetailResponse: The team details
          */
-        get: operations["get_team_v1_namespaces__namespace__teams__team_name__get"];
+        get: operations["get_team_v1_teams__team_name__get"];
         /**
          * Update Team
          * @description Update a Team CR by name.
@@ -402,7 +444,7 @@ export interface paths {
          *     Returns:
          *         TeamDetailResponse: The updated team details
          */
-        put: operations["update_team_v1_namespaces__namespace__teams__team_name__put"];
+        put: operations["update_team_v1_teams__team_name__put"];
         post?: never;
         /**
          * Delete Team
@@ -412,13 +454,13 @@ export interface paths {
          *         namespace: The namespace containing the team
          *         team_name: The name of the team
          */
-        delete: operations["delete_team_v1_namespaces__namespace__teams__team_name__delete"];
+        delete: operations["delete_team_v1_teams__team_name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/queries": {
+    "/v1/queries": {
         parameters: {
             query?: never;
             header?: never;
@@ -429,20 +471,20 @@ export interface paths {
          * List Queries
          * @description List all queries in a namespace.
          */
-        get: operations["list_queries_v1_namespaces__namespace__queries_get"];
+        get: operations["list_queries_v1_queries_get"];
         put?: never;
         /**
          * Create Query
          * @description Create a new query.
          */
-        post: operations["create_query_v1_namespaces__namespace__queries_post"];
+        post: operations["create_query_v1_queries_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/queries/{query_name}": {
+    "/v1/queries/{query_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -453,24 +495,24 @@ export interface paths {
          * Get Query
          * @description Get a specific query.
          */
-        get: operations["get_query_v1_namespaces__namespace__queries__query_name__get"];
+        get: operations["get_query_v1_queries__query_name__get"];
         /**
          * Update Query
          * @description Update a specific query.
          */
-        put: operations["update_query_v1_namespaces__namespace__queries__query_name__put"];
+        put: operations["update_query_v1_queries__query_name__put"];
         post?: never;
         /**
          * Delete Query
          * @description Delete a specific query.
          */
-        delete: operations["delete_query_v1_namespaces__namespace__queries__query_name__delete"];
+        delete: operations["delete_query_v1_queries__query_name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/queries/{query_name}/cancel": {
+    "/v1/queries/{query_name}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -487,10 +529,10 @@ export interface paths {
          * Cancel Query
          * @description Cancel a specific query by setting spec.cancel to true.
          */
-        patch: operations["cancel_query_v1_namespaces__namespace__queries__query_name__cancel_patch"];
+        patch: operations["cancel_query_v1_queries__query_name__cancel_patch"];
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/tools": {
+    "/v1/tools": {
         parameters: {
             query?: never;
             header?: never;
@@ -507,7 +549,7 @@ export interface paths {
          *     Returns:
          *         ToolListResponse: List of all tools in the namespace
          */
-        get: operations["list_tools_v1_namespaces__namespace__tools_get"];
+        get: operations["list_tools_v1_tools_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -516,7 +558,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/tools/{tool_name}": {
+    "/v1/tools/{tool_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -534,7 +576,7 @@ export interface paths {
          *     Returns:
          *         ToolDetailResponse: The tool details
          */
-        get: operations["get_tool_v1_namespaces__namespace__tools__tool_name__get"];
+        get: operations["get_tool_v1_tools__tool_name__get"];
         put?: never;
         post?: never;
         /**
@@ -545,13 +587,13 @@ export interface paths {
          *         namespace: The namespace containing the tool
          *         tool_name: The name of the tool
          */
-        delete: operations["delete_tool_v1_namespaces__namespace__tools__tool_name__delete"];
+        delete: operations["delete_tool_v1_tools__tool_name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/mcp-servers": {
+    "/v1/mcp-servers": {
         parameters: {
             query?: never;
             header?: never;
@@ -568,16 +610,27 @@ export interface paths {
          *     Returns:
          *         MCPServerListResponse: List of all MCP servers in the namespace
          */
-        get: operations["list_mcp_servers_v1_namespaces__namespace__mcp_servers_get"];
+        get: operations["list_mcp_servers_v1_mcp_servers_get"];
         put?: never;
-        post?: never;
+        /**
+         * Create Mcp Server
+         * @description Create a new MCPServer CR.
+         *
+         *     Args:
+         *         namespace: The namespace to create the MCP server in
+         *         body: The MCP server creation request
+         *
+         *     Returns:
+         *         MCPServerDetailResponse: The created MCP server details
+         */
+        post: operations["create_mcp_server_v1_mcp_servers_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/mcp-servers/{mcp_server_name}": {
+    "/v1/mcp-servers/{mcp_server_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -595,7 +648,7 @@ export interface paths {
          *     Returns:
          *         MCPServerDetailResponse: The MCP server details
          */
-        get: operations["get_mcp_server_v1_namespaces__namespace__mcp_servers__mcp_server_name__get"];
+        get: operations["get_mcp_server_v1_mcp_servers__mcp_server_name__get"];
         put?: never;
         post?: never;
         /**
@@ -606,13 +659,13 @@ export interface paths {
          *         namespace: The namespace containing the MCP server
          *         mcp_server_name: The name of the MCP server
          */
-        delete: operations["delete_mcp_server_v1_namespaces__namespace__mcp_servers__mcp_server_name__delete"];
+        delete: operations["delete_mcp_server_v1_mcp_servers__mcp_server_name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/a2a-servers": {
+    "/v1/a2a-servers": {
         parameters: {
             query?: never;
             header?: never;
@@ -629,7 +682,7 @@ export interface paths {
          *     Returns:
          *         A2AServerListResponse: List of all A2A servers in the namespace
          */
-        get: operations["list_a2a_servers_v1_namespaces__namespace__a2a_servers_get"];
+        get: operations["list_a2a_servers_v1_a2a_servers_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -638,7 +691,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/a2a-servers/{a2a_server_name}": {
+    "/v1/a2a-servers/{a2a_server_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -656,7 +709,7 @@ export interface paths {
          *     Returns:
          *         A2AServerDetailResponse: The A2A server details
          */
-        get: operations["get_a2a_server_v1_namespaces__namespace__a2a_servers__a2a_server_name__get"];
+        get: operations["get_a2a_server_v1_a2a_servers__a2a_server_name__get"];
         put?: never;
         post?: never;
         /**
@@ -667,13 +720,74 @@ export interface paths {
          *         namespace: The namespace containing the A2A server
          *         a2a_server_name: The name of the A2A server
          */
-        delete: operations["delete_a2a_server_v1_namespaces__namespace__a2a_servers__a2a_server_name__delete"];
+        delete: operations["delete_a2a_server_v1_a2a_servers__a2a_server_name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/memories": {
+    "/v1/a2a-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List A2A Tasks
+         * @description List all A2ATask CRs in a namespace.
+         *
+         *     Args:
+         *         namespace: The namespace to list A2A tasks from
+         *
+         *     Returns:
+         *         A2ATaskListResponse: List of all A2A tasks in the namespace
+         */
+        get: operations["list_a2a_tasks_v1_a2a_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/a2a-tasks/{task_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get A2A Task
+         * @description Get a specific A2ATask CR by name.
+         *
+         *     Args:
+         *         namespace: The namespace to get the A2A task from
+         *         task_name: The name of the A2A task
+         *
+         *     Returns:
+         *         A2ATaskDetailResponse: The A2A task details
+         */
+        get: operations["get_a2a_task_v1_a2a_tasks__task_name__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete A2A Task
+         * @description Delete an A2ATask CR by name.
+         *
+         *     Args:
+         *         namespace: The namespace containing the A2A task
+         *         task_name: The name of the A2A task
+         */
+        delete: operations["delete_a2a_task_v1_a2a_tasks__task_name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/memories": {
         parameters: {
             query?: never;
             header?: never;
@@ -684,20 +798,20 @@ export interface paths {
          * List Memories
          * @description List all memories in a namespace.
          */
-        get: operations["list_memories_v1_namespaces__namespace__memories_get"];
+        get: operations["list_memories_v1_memories_get"];
         put?: never;
         /**
          * Create Memory
          * @description Create a new memory.
          */
-        post: operations["create_memory_v1_namespaces__namespace__memories_post"];
+        post: operations["create_memory_v1_memories_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/memories/{name}": {
+    "/v1/memories/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -708,24 +822,24 @@ export interface paths {
          * Get Memory
          * @description Get a specific memory by name.
          */
-        get: operations["get_memory_v1_namespaces__namespace__memories__name__get"];
+        get: operations["get_memory_v1_memories__name__get"];
         /**
          * Update Memory
          * @description Update an existing memory.
          */
-        put: operations["update_memory_v1_namespaces__namespace__memories__name__put"];
+        put: operations["update_memory_v1_memories__name__put"];
         post?: never;
         /**
          * Delete Memory
          * @description Delete a memory.
          */
-        delete: operations["delete_memory_v1_namespaces__namespace__memories__name__delete"];
+        delete: operations["delete_memory_v1_memories__name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/memories/{name}/sessions/{session_id}/messages": {
+    "/v1/memories/{name}/sessions/{session_id}/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -736,7 +850,7 @@ export interface paths {
          * Get Memory Messages
          * @description Get messages for a specific session from a memory resource.
          */
-        get: operations["get_memory_messages_v1_namespaces__namespace__memories__name__sessions__session_id__messages_get"];
+        get: operations["get_memory_messages_v1_memories__name__sessions__session_id__messages_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -745,7 +859,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/memory-messages": {
+    "/v1/memory-messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -756,7 +870,7 @@ export interface paths {
          * List Memory Messages
          * @description List all memory messages with context, optionally filtered.
          */
-        get: operations["list_memory_messages_v1_namespaces__namespace__memory_messages_get"];
+        get: operations["list_memory_messages_v1_memory_messages_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -765,7 +879,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/sessions": {
+    "/v1/sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -776,10 +890,54 @@ export interface paths {
          * List Sessions
          * @description List all sessions in a namespace, optionally filtered by memory.
          */
-        get: operations["list_sessions_v1_namespaces__namespace__sessions_get"];
+        get: operations["list_sessions_v1_sessions_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete All Sessions
+         * @description Delete all sessions and their messages.
+         */
+        delete: operations["delete_all_sessions_v1_sessions_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Session
+         * @description Delete a specific session and all its messages.
+         */
+        delete: operations["delete_session_v1_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{session_id}/queries/{query_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Query Messages
+         * @description Delete messages for a specific query within a session.
+         */
+        delete: operations["delete_query_messages_v1_sessions__session_id__queries__query_id__messages_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -802,7 +960,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/ark-services": {
+    "/v1/ark-services": {
         parameters: {
             query?: never;
             header?: never;
@@ -820,7 +978,7 @@ export interface paths {
          *     Returns:
          *         ArkServiceListResponse: List of ARK services in the namespace
          */
-        get: operations["list_ark_services_v1_namespaces__namespace__ark_services_get"];
+        get: operations["list_ark_services_v1_ark_services_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -829,7 +987,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/ark-services/{service_name}": {
+    "/v1/ark-services/{service_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -847,7 +1005,7 @@ export interface paths {
          *     Returns:
          *         ArkService: The ARK service details
          */
-        get: operations["get_ark_service_v1_namespaces__namespace__ark_services__service_name__get"];
+        get: operations["get_ark_service_v1_ark_services__service_name__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -856,7 +1014,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/events": {
+    "/v1/events": {
         parameters: {
             query?: never;
             header?: never;
@@ -878,7 +1036,7 @@ export interface paths {
          *     Returns:
          *         EventListResponse: List of events in the namespace
          */
-        get: operations["list_events_v1_namespaces__namespace__events_get"];
+        get: operations["list_events_v1_events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -887,7 +1045,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/events/{event_name}": {
+    "/v1/events/{event_name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -905,7 +1063,7 @@ export interface paths {
          *     Returns:
          *         EventResponse: The requested event details
          */
-        get: operations["get_event_v1_namespaces__namespace__events__event_name__get"];
+        get: operations["get_event_v1_events__event_name__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -914,7 +1072,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/evaluations": {
+    "/v1/evaluations": {
         parameters: {
             query?: never;
             header?: never;
@@ -925,20 +1083,20 @@ export interface paths {
          * List Evaluations
          * @description List all evaluations in a namespace.
          */
-        get: operations["list_evaluations_v1_namespaces__namespace__evaluations_get"];
+        get: operations["list_evaluations_v1_evaluations_get"];
         put?: never;
         /**
          * Create Evaluation
          * @description Create a new evaluation.
          */
-        post: operations["create_evaluation_v1_namespaces__namespace__evaluations_post"];
+        post: operations["create_evaluation_v1_evaluations_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/evaluations/{name}": {
+    "/v1/evaluations/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -949,24 +1107,24 @@ export interface paths {
          * Get Evaluation
          * @description Get details of a specific evaluation.
          */
-        get: operations["get_evaluation_v1_namespaces__namespace__evaluations__name__get"];
+        get: operations["get_evaluation_v1_evaluations__name__get"];
         /**
          * Update Evaluation
          * @description Update an existing evaluation.
          */
-        put: operations["update_evaluation_v1_namespaces__namespace__evaluations__name__put"];
+        put: operations["update_evaluation_v1_evaluations__name__put"];
         post?: never;
         /**
          * Delete Evaluation
          * @description Delete an evaluation.
          */
-        delete: operations["delete_evaluation_v1_namespaces__namespace__evaluations__name__delete"];
+        delete: operations["delete_evaluation_v1_evaluations__name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/evaluations/{name}/cancel": {
+    "/v1/evaluations/{name}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -983,10 +1141,10 @@ export interface paths {
          * Cancel Evaluation
          * @description Cancel a running evaluation.
          */
-        patch: operations["cancel_evaluation_v1_namespaces__namespace__evaluations__name__cancel_patch"];
+        patch: operations["cancel_evaluation_v1_evaluations__name__cancel_patch"];
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/evaluators": {
+    "/v1/evaluators": {
         parameters: {
             query?: never;
             header?: never;
@@ -997,20 +1155,20 @@ export interface paths {
          * List Evaluators
          * @description List all evaluators in a namespace.
          */
-        get: operations["list_evaluators_v1_namespaces__namespace__evaluators_get"];
+        get: operations["list_evaluators_v1_evaluators_get"];
         put?: never;
         /**
          * Create Evaluator
          * @description Create a new evaluator.
          */
-        post: operations["create_evaluator_v1_namespaces__namespace__evaluators_post"];
+        post: operations["create_evaluator_v1_evaluators_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/namespaces/{namespace}/evaluators/{name}": {
+    "/v1/evaluators/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1021,18 +1179,77 @@ export interface paths {
          * Get Evaluator
          * @description Get details of a specific evaluator.
          */
-        get: operations["get_evaluator_v1_namespaces__namespace__evaluators__name__get"];
+        get: operations["get_evaluator_v1_evaluators__name__get"];
         /**
          * Update Evaluator
          * @description Update an existing evaluator.
          */
-        put: operations["update_evaluator_v1_namespaces__namespace__evaluators__name__put"];
+        put: operations["update_evaluator_v1_evaluators__name__put"];
         post?: never;
         /**
          * Delete Evaluator
          * @description Delete an evaluator.
          */
-        delete: operations["delete_evaluator_v1_namespaces__namespace__evaluators__name__delete"];
+        delete: operations["delete_evaluator_v1_evaluators__name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Api Keys
+         * @description List all active API keys in the current namespace (without secret keys).
+         *     API keys are namespace-scoped for tenant isolation.
+         *
+         *     Returns:
+         *         APIKeyListResponse: List of API keys in the current namespace
+         */
+        get: operations["list_api_keys_v1_api_keys_get"];
+        put?: never;
+        /**
+         * Create Api Key
+         * @description Create a new API key for service-to-service authentication.
+         *     API keys are namespace-scoped for tenant isolation and stored in the current namespace.
+         *
+         *     Args:
+         *         body: API key creation request
+         *
+         *     Returns:
+         *         APIKeyCreateResponse: The created API key with secret (only shown once)
+         */
+        post: operations["create_api_key_v1_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api-keys/{public_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Api Key
+         * @description Soft delete an API key in the current namespace by marking it as inactive.
+         *     API keys are namespace-scoped for tenant isolation.
+         *
+         *     Args:
+         *         public_key: The public key of the API key to delete
+         */
+        delete: operations["delete_api_key_v1_api_keys__public_key__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1111,6 +1328,16 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * A2AServerRef
+         * @description Reference to an A2AServer.
+         */
+        A2AServerRef: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace?: string | null;
+        };
         /** A2AServerResponse */
         A2AServerResponse: {
             /** Name */
@@ -1137,6 +1364,290 @@ export interface components {
             status_message?: string | null;
         };
         /**
+         * A2ATaskArtifact
+         * @description Artifact produced during task execution.
+         */
+        A2ATaskArtifact: {
+            /** Artifactid */
+            artifactId: string;
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Parts */
+            parts: components["schemas"]["A2ATaskPart"][];
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * A2ATaskDetailResponse
+         * @description Detailed A2ATask response model.
+         */
+        A2ATaskDetailResponse: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace: string;
+            /** Taskid */
+            taskId: string;
+            a2aServerRef: components["schemas"]["A2AServerRef"];
+            agentRef: components["schemas"]["AgentRef"];
+            queryRef: components["schemas"]["ark_api__models__a2a_tasks__QueryRef"];
+            /** Contextid */
+            contextId?: string | null;
+            /** Input */
+            input?: string | null;
+            /** Parameters */
+            parameters?: {
+                [key: string]: string;
+            } | null;
+            /** Pollinterval */
+            pollInterval?: string | null;
+            /** Priority */
+            priority?: number | null;
+            /** Timeout */
+            timeout?: string | null;
+            /** Ttl */
+            ttl?: string | null;
+            status?: components["schemas"]["A2ATaskStatus"] | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * A2ATaskListResponse
+         * @description List of A2ATasks response model.
+         */
+        A2ATaskListResponse: {
+            /** Items */
+            items: components["schemas"]["A2ATaskResponse"][];
+            /** Count */
+            count: number;
+        };
+        /**
+         * A2ATaskMessage
+         * @description Message in the conversation history.
+         */
+        A2ATaskMessage: {
+            /** Messageid */
+            messageId?: string | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "agent" | "system";
+            /** Parts */
+            parts: components["schemas"]["A2ATaskPart"][];
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * A2ATaskPart
+         * @description Content part of an artifact or message.
+         */
+        A2ATaskPart: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "text" | "file" | "data";
+            /** Text */
+            text?: string | null;
+            /** Data */
+            data?: string | null;
+            /** Uri */
+            uri?: string | null;
+            /** Mimetype */
+            mimeType?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * A2ATaskResponse
+         * @description A2ATask resource response model.
+         */
+        A2ATaskResponse: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace: string;
+            /** Taskid */
+            taskId: string;
+            /** Phase */
+            phase?: string | null;
+            agentRef?: components["schemas"]["AgentRef"] | null;
+            queryRef?: components["schemas"]["ark_api__models__a2a_tasks__QueryRef"] | null;
+            /** Creationtimestamp */
+            creationTimestamp?: string | null;
+        };
+        /**
+         * A2ATaskStatus
+         * @description Status of the A2ATask.
+         */
+        A2ATaskStatus: {
+            /** Phase */
+            phase?: string | null;
+            /** Protocolstate */
+            protocolState?: string | null;
+            /** Protocolmetadata */
+            protocolMetadata?: {
+                [key: string]: string;
+            } | null;
+            /** Starttime */
+            startTime?: string | null;
+            /** Completiontime */
+            completionTime?: string | null;
+            /** Laststatustimestamp */
+            lastStatusTimestamp?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Contextid */
+            contextId?: string | null;
+            /** Artifacts */
+            artifacts?: components["schemas"]["A2ATaskArtifact"][] | null;
+            /** History */
+            history?: components["schemas"]["A2ATaskMessage"][] | null;
+            lastStatusMessage?: components["schemas"]["A2ATaskMessage"] | null;
+            /** Conditions */
+            conditions?: {
+                [key: string]: unknown;
+            }[] | null;
+        };
+        /**
+         * APIKeyCreateRequest
+         * @description Request model for creating an API key.
+         */
+        APIKeyCreateRequest: {
+            /**
+             * Name
+             * @description Human-readable name for the API key
+             * @example Production Service Key
+             */
+            name: string;
+            /**
+             * Expires At
+             * @description Optional expiration date for the API key
+             * @example 2024-12-31T23:59:59Z
+             */
+            expires_at?: string | null;
+        };
+        /**
+         * APIKeyCreateResponse
+         * @description Response model for API key creation (includes secret key).
+         */
+        APIKeyCreateResponse: {
+            /**
+             * Id
+             * @description Unique identifier for the API key
+             * @example abc123-def456
+             */
+            id: string;
+            /**
+             * Name
+             * @description Human-readable name for the API key
+             * @example Production Service Key
+             */
+            name: string;
+            /**
+             * Public Key
+             * @description Public key for authentication
+             * @example pk-ark-abcd1234...
+             */
+            public_key: string;
+            /**
+             * Secret Key
+             * @description Secret key for authentication (only returned on creation)
+             * @example sk-ark-efgh5678...
+             */
+            secret_key: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When the API key was created
+             * @example 2024-01-01T00:00:00Z
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * @description When the API key expires
+             * @example 2024-12-31T23:59:59Z
+             */
+            expires_at?: string | null;
+        };
+        /**
+         * APIKeyListResponse
+         * @description List of API keys response model.
+         */
+        APIKeyListResponse: {
+            /**
+             * Items
+             * @description List of API keys
+             */
+            items: components["schemas"]["APIKeyResponse"][];
+            /**
+             * Count
+             * @description Total number of API keys
+             * @example 5
+             */
+            count: number;
+        };
+        /**
+         * APIKeyResponse
+         * @description API key response model (without secret key).
+         */
+        APIKeyResponse: {
+            /**
+             * Id
+             * @description Unique identifier for the API key
+             * @example abc123-def456
+             */
+            id: string;
+            /**
+             * Name
+             * @description Human-readable name for the API key
+             * @example Production Service Key
+             */
+            name: string;
+            /**
+             * Public Key
+             * @description Public key for authentication
+             * @example pk-ark-abcd1234...
+             */
+            public_key: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When the API key was created
+             * @example 2024-01-01T00:00:00Z
+             */
+            created_at: string;
+            /**
+             * Last Used At
+             * @description When the API key was last used
+             * @example 2024-06-01T12:00:00Z
+             */
+            last_used_at?: string | null;
+            /**
+             * Expires At
+             * @description When the API key expires
+             * @example 2024-12-31T23:59:59Z
+             */
+            expires_at?: string | null;
+            /**
+             * Is Active
+             * @description Whether the API key is active (not soft-deleted)
+             * @example true
+             */
+            is_active: boolean;
+        };
+        /**
          * AgentCreateRequest
          * @description Request model for creating an agent.
          */
@@ -1153,6 +1664,8 @@ export interface components {
             prompt?: string | null;
             /** Tools */
             tools?: components["schemas"]["Tool-Input"][] | null;
+            /** Overrides */
+            overrides?: components["schemas"]["Override-Input"][] | null;
         };
         /**
          * AgentDetailResponse
@@ -1173,6 +1686,8 @@ export interface components {
             prompt?: string | null;
             /** Tools */
             tools?: components["schemas"]["Tool-Output"][] | null;
+            /** Overrides */
+            overrides?: components["schemas"]["Override-Output"][] | null;
             /** Skills */
             skills?: components["schemas"]["Skill"][] | null;
             /**
@@ -1180,6 +1695,7 @@ export interface components {
              * @default false
              */
             isA2A: boolean;
+            available?: components["schemas"]["AvailabilityStatus"] | null;
             /** Status */
             status?: {
                 [key: string]: unknown;
@@ -1200,6 +1716,16 @@ export interface components {
             count: number;
         };
         /**
+         * AgentRef
+         * @description Reference to an Agent.
+         */
+        AgentRef: {
+            /** Name */
+            name?: string | null;
+            /** Namespace */
+            namespace?: string | null;
+        };
+        /**
          * AgentResponse
          * @description Agent resource response model.
          */
@@ -1214,8 +1740,7 @@ export interface components {
             model_ref?: string | null;
             /** Prompt */
             prompt?: string | null;
-            /** Status */
-            status?: string | null;
+            available?: components["schemas"]["AvailabilityStatus"] | null;
             /** Annotations */
             annotations?: {
                 [key: string]: string;
@@ -1236,6 +1761,8 @@ export interface components {
             prompt?: string | null;
             /** Tools */
             tools?: components["schemas"]["Tool-Input"][] | null;
+            /** Overrides */
+            overrides?: components["schemas"]["Override-Input"][] | null;
         };
         /** Annotation */
         Annotation: {
@@ -1310,6 +1837,17 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** Audio */
+        Audio: {
+            /** Id */
+            id: string;
+        };
+        /**
+         * AvailabilityStatus
+         * @description Resource availability status matching Kubernetes condition conventions.
+         * @enum {string}
+         */
+        AvailabilityStatus: "True" | "False" | "Unknown";
         /**
          * AzureConfig
          * @description Azure model configuration.
@@ -1321,6 +1859,8 @@ export interface components {
             baseUrl: string | components["schemas"]["ark_api__models__models__ValueSource"];
             /** Apiversion */
             apiVersion?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
+            /** Headers */
+            headers?: components["schemas"]["ark_api__models__agents__Header-Input"][] | null;
         };
         /**
          * BaselineEvaluationMetadata
@@ -1447,6 +1987,42 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** ChatCompletionAssistantMessageParam */
+        "ChatCompletionAssistantMessageParam-Input": {
+            /**
+             * Role
+             * @constant
+             */
+            role: "assistant";
+            audio?: components["schemas"]["Audio"] | null;
+            /** Content */
+            content?: string | (components["schemas"]["ChatCompletionContentPartTextParam"] | components["schemas"]["ChatCompletionContentPartRefusalParam"])[] | null;
+            function_call?: components["schemas"]["FunctionCall-Input"] | null;
+            /** Name */
+            name?: string;
+            /** Refusal */
+            refusal?: string | null;
+            /** Tool Calls */
+            tool_calls?: (components["schemas"]["ChatCompletionMessageFunctionToolCallParam-Input"] | components["schemas"]["ChatCompletionMessageCustomToolCallParam-Input"])[];
+        };
+        /** ChatCompletionAssistantMessageParam */
+        "ChatCompletionAssistantMessageParam-Output": {
+            /**
+             * Role
+             * @constant
+             */
+            role: "assistant";
+            audio?: components["schemas"]["Audio"] | null;
+            /** Content */
+            content?: string | (components["schemas"]["ChatCompletionContentPartTextParam"] | components["schemas"]["ChatCompletionContentPartRefusalParam"])[] | null;
+            function_call?: components["schemas"]["openai__types__chat__chat_completion_assistant_message_param__FunctionCall"] | null;
+            /** Name */
+            name?: string;
+            /** Refusal */
+            refusal?: string | null;
+            /** Tool Calls */
+            tool_calls?: (components["schemas"]["ChatCompletionMessageFunctionToolCallParam-Output"] | components["schemas"]["ChatCompletionMessageCustomToolCallParam-Output"])[];
+        };
         /** ChatCompletionAudio */
         ChatCompletionAudio: {
             /** Id */
@@ -1459,6 +2035,68 @@ export interface components {
             transcript: string;
         } & {
             [key: string]: unknown;
+        };
+        /** ChatCompletionContentPartImageParam */
+        ChatCompletionContentPartImageParam: {
+            image_url: components["schemas"]["ImageURL"];
+            /**
+             * Type
+             * @constant
+             */
+            type: "image_url";
+        };
+        /** ChatCompletionContentPartInputAudioParam */
+        ChatCompletionContentPartInputAudioParam: {
+            input_audio: components["schemas"]["InputAudio"];
+            /**
+             * Type
+             * @constant
+             */
+            type: "input_audio";
+        };
+        /** ChatCompletionContentPartRefusalParam */
+        ChatCompletionContentPartRefusalParam: {
+            /** Refusal */
+            refusal: string;
+            /**
+             * Type
+             * @constant
+             */
+            type: "refusal";
+        };
+        /** ChatCompletionContentPartTextParam */
+        ChatCompletionContentPartTextParam: {
+            /** Text */
+            text: string;
+            /**
+             * Type
+             * @constant
+             */
+            type: "text";
+        };
+        /** ChatCompletionDeveloperMessageParam */
+        ChatCompletionDeveloperMessageParam: {
+            /** Content */
+            content: string | components["schemas"]["ChatCompletionContentPartTextParam"][];
+            /**
+             * Role
+             * @constant
+             */
+            role: "developer";
+            /** Name */
+            name?: string;
+        };
+        /** ChatCompletionFunctionMessageParam */
+        ChatCompletionFunctionMessageParam: {
+            /** Content */
+            content: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @constant
+             */
+            role: "function";
         };
         /** ChatCompletionMessage */
         ChatCompletionMessage: {
@@ -1493,6 +2131,28 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** ChatCompletionMessageCustomToolCallParam */
+        "ChatCompletionMessageCustomToolCallParam-Input": {
+            /** Id */
+            id: string;
+            custom: components["schemas"]["Custom-Input"];
+            /**
+             * Type
+             * @constant
+             */
+            type: "custom";
+        };
+        /** ChatCompletionMessageCustomToolCallParam */
+        "ChatCompletionMessageCustomToolCallParam-Output": {
+            /** Id */
+            id: string;
+            custom: components["schemas"]["openai__types__chat__chat_completion_message_custom_tool_call_param__Custom"];
+            /**
+             * Type
+             * @constant
+             */
+            type: "custom";
+        };
         /** ChatCompletionMessageFunctionToolCall */
         ChatCompletionMessageFunctionToolCall: {
             /** Id */
@@ -1506,12 +2166,34 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** ChatCompletionMessageFunctionToolCallParam */
+        "ChatCompletionMessageFunctionToolCallParam-Input": {
+            /** Id */
+            id: string;
+            function: components["schemas"]["Function-Input"];
+            /**
+             * Type
+             * @constant
+             */
+            type: "function";
+        };
+        /** ChatCompletionMessageFunctionToolCallParam */
+        "ChatCompletionMessageFunctionToolCallParam-Output": {
+            /** Id */
+            id: string;
+            function: components["schemas"]["openai__types__chat__chat_completion_message_function_tool_call_param__Function"];
+            /**
+             * Type
+             * @constant
+             */
+            type: "function";
+        };
         /** ChatCompletionRequest */
         ChatCompletionRequest: {
             /** Model */
             model: string;
             /** Messages */
-            messages: components["schemas"]["ChatMessage"][];
+            messages: (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Input"] | components["schemas"]["ChatCompletionAssistantMessageParam-Input"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[];
             /**
              * Temperature
              * @default 1
@@ -1524,6 +2206,22 @@ export interface components {
              * @default false
              */
             stream: boolean;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ChatCompletionSystemMessageParam */
+        ChatCompletionSystemMessageParam: {
+            /** Content */
+            content: string | components["schemas"]["ChatCompletionContentPartTextParam"][];
+            /**
+             * Role
+             * @constant
+             */
+            role: "system";
+            /** Name */
+            name?: string;
         };
         /** ChatCompletionTokenLogprob */
         ChatCompletionTokenLogprob: {
@@ -1538,12 +2236,41 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** ChatMessage */
-        ChatMessage: {
-            /** Role */
-            role: string;
+        /** ChatCompletionToolMessageParam */
+        ChatCompletionToolMessageParam: {
             /** Content */
-            content: string;
+            content: string | components["schemas"]["ChatCompletionContentPartTextParam"][];
+            /**
+             * Role
+             * @constant
+             */
+            role: "tool";
+            /** Tool Call Id */
+            tool_call_id: string;
+        };
+        /** ChatCompletionUserMessageParam */
+        "ChatCompletionUserMessageParam-Input": {
+            /** Content */
+            content: string | (components["schemas"]["ChatCompletionContentPartTextParam"] | components["schemas"]["ChatCompletionContentPartImageParam"] | components["schemas"]["ChatCompletionContentPartInputAudioParam"] | components["schemas"]["File"])[];
+            /**
+             * Role
+             * @constant
+             */
+            role: "user";
+            /** Name */
+            name?: string;
+        };
+        /** ChatCompletionUserMessageParam */
+        "ChatCompletionUserMessageParam-Output": {
+            /** Content */
+            content: string | (components["schemas"]["ChatCompletionContentPartTextParam"] | components["schemas"]["ChatCompletionContentPartImageParam"] | components["schemas"]["ChatCompletionContentPartInputAudioParam"] | components["schemas"]["File"])[];
+            /**
+             * Role
+             * @constant
+             */
+            role: "user";
+            /** Name */
+            name?: string;
         };
         /**
          * ChildEvaluationStatus
@@ -1608,6 +2335,16 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * ContextResponse
+         * @description Response model for current Kubernetes context.
+         */
+        ContextResponse: {
+            /** Namespace */
+            namespace: string;
+            /** Cluster */
+            cluster: string | null;
+        };
         /** Custom */
         Custom: {
             /** Input */
@@ -1616,6 +2353,13 @@ export interface components {
             name: string;
         } & {
             [key: string]: unknown;
+        };
+        /** Custom */
+        "Custom-Input": {
+            /** Input */
+            input: string;
+            /** Name */
+            name: string;
         };
         /**
          * DirectEvaluationMetadata
@@ -1685,6 +2429,10 @@ export interface components {
             type: string;
             /** Phase */
             phase?: string | null;
+            /** Conditions */
+            conditions?: {
+                [key: string]: unknown;
+            }[] | null;
             /** Score */
             score?: string | null;
             /** Passed */
@@ -1702,7 +2450,7 @@ export interface components {
             input?: string | null;
             /** Output */
             output?: string | null;
-            queryRef?: components["schemas"]["QueryRef"] | null;
+            queryRef?: components["schemas"]["ark_api__models__evaluations__QueryRef"] | null;
             /** Evaluations */
             evaluations?: components["schemas"]["EvaluationRef"][] | null;
             /** Rules */
@@ -1791,6 +2539,10 @@ export interface components {
             type: string;
             /** Phase */
             phase?: string | null;
+            /** Conditions */
+            conditions?: {
+                [key: string]: unknown;
+            }[] | null;
             /** Score */
             score?: string | null;
             /** Passed */
@@ -1999,6 +2751,24 @@ export interface components {
             /** Namespace */
             namespace?: string | null;
         };
+        /** File */
+        File: {
+            file: components["schemas"]["FileFile"];
+            /**
+             * Type
+             * @constant
+             */
+            type: "file";
+        };
+        /** FileFile */
+        FileFile: {
+            /** File Data */
+            file_data?: string;
+            /** File Id */
+            file_id?: string;
+            /** Filename */
+            filename?: string;
+        };
         /** Function */
         Function: {
             /** Arguments */
@@ -2008,6 +2778,13 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** Function */
+        "Function-Input": {
+            /** Arguments */
+            arguments: string;
+            /** Name */
+            name: string;
+        };
         /** FunctionCall */
         FunctionCall: {
             /** Arguments */
@@ -2016,6 +2793,13 @@ export interface components {
             name: string;
         } & {
             [key: string]: unknown;
+        };
+        /** FunctionCall */
+        "FunctionCall-Input": {
+            /** Arguments */
+            arguments: string;
+            /** Name */
+            name: string;
         };
         /**
          * Graph
@@ -2055,6 +2839,24 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * HeaderValue
+         * @description Value configuration for a header.
+         */
+        "HeaderValue-Input": {
+            /** Value */
+            value?: string | null;
+            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
+        };
+        /**
+         * HeaderValue
+         * @description Value configuration for a header.
+         */
+        "HeaderValue-Output": {
+            /** Value */
+            value?: string | null;
+            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
+        };
+        /**
          * HealthResponse
          * @description Health check response model.
          */
@@ -2072,6 +2874,48 @@ export interface components {
              */
             service: string;
         };
+        /** ImageURL */
+        ImageURL: {
+            /** Url */
+            url: string;
+            /**
+             * Detail
+             * @enum {string}
+             */
+            detail?: "auto" | "low" | "high";
+        };
+        /** InputAudio */
+        InputAudio: {
+            /** Data */
+            data: string;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "wav" | "mp3";
+        };
+        /**
+         * InputType
+         * @description Input type enumeration.
+         * @enum {string}
+         */
+        InputType: "user" | "messages";
+        /** MCPServerCreateRequest */
+        MCPServerCreateRequest: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace: string;
+            /** Labels */
+            labels?: {
+                [key: string]: string;
+            } | null;
+            /** Annotations */
+            annotations?: {
+                [key: string]: string;
+            } | null;
+            spec: components["schemas"]["MCPServerSpec"];
+        };
         /** MCPServerDetailResponse */
         MCPServerDetailResponse: {
             /** Name */
@@ -2088,14 +2932,15 @@ export interface components {
             annotations?: {
                 [key: string]: string;
             } | null;
-            /** Spec */
-            spec?: {
-                [key: string]: unknown;
-            } | null;
-            /** Status */
-            status?: {
-                [key: string]: unknown;
-            } | null;
+            available?: components["schemas"]["AvailabilityStatus"] | null;
+            /** Address */
+            address?: string | null;
+            /** Transport */
+            transport?: string | null;
+            /** Headers */
+            headers: components["schemas"]["ark_api__models__mcp_servers__Header-Output"][] | null;
+            /** Tool Count */
+            tool_count?: number | null;
         };
         /** MCPServerListResponse */
         MCPServerListResponse: {
@@ -2110,12 +2955,6 @@ export interface components {
             name: string;
             /** Namespace */
             namespace: string;
-            /** Description */
-            description?: string | null;
-            /** Labels */
-            labels?: {
-                [key: string]: string;
-            } | null;
             /** Address */
             address?: string | null;
             /** Annotations */
@@ -2124,14 +2963,23 @@ export interface components {
             } | null;
             /** Transport */
             transport?: string | null;
-            /** Ready */
-            ready?: boolean | null;
-            /** Discovering */
-            discovering?: boolean | null;
+            available?: components["schemas"]["AvailabilityStatus"] | null;
             /** Status Message */
             status_message?: string | null;
             /** Tool Count */
             tool_count?: number | null;
+        };
+        /** MCPServerSpec */
+        MCPServerSpec: {
+            /** Transport */
+            transport: string;
+            /** Description */
+            description?: string | null;
+            /** Tools */
+            tools?: string[] | null;
+            address: components["schemas"]["ark_api__models__mcp_servers__ValueSource-Input"];
+            /** Headers */
+            headers?: components["schemas"]["ark_api__models__mcp_servers__Header-Input"][] | null;
         };
         /**
          * Memory
@@ -2212,6 +3060,8 @@ export interface components {
             message: {
                 [key: string]: unknown;
             };
+            /** Sequence */
+            sequence?: number | null;
         };
         /**
          * MemoryResponse
@@ -2285,11 +3135,10 @@ export interface components {
                 [key: string]: {
                     [key: string]: string | {
                         [key: string]: unknown;
-                    };
+                    } | unknown[];
                 };
             };
-            /** Status */
-            status?: string | null;
+            available?: components["schemas"]["AvailabilityStatus"] | null;
             /** Resolved Address */
             resolved_address?: string | null;
             /** Annotations */
@@ -2333,8 +3182,7 @@ export interface components {
             type: "openai" | "azure" | "bedrock";
             /** Model */
             model: string;
-            /** Status */
-            status?: string | null;
+            available?: components["schemas"]["AvailabilityStatus"] | null;
             /** Annotations */
             annotations?: {
                 [key: string]: string;
@@ -2384,6 +3232,30 @@ export interface components {
             apiKey: string | components["schemas"]["ark_api__models__models__ValueSource"];
             /** Baseurl */
             baseUrl: string | components["schemas"]["ark_api__models__models__ValueSource"];
+            /** Headers */
+            headers?: components["schemas"]["ark_api__models__agents__Header-Input"][] | null;
+        };
+        /**
+         * Override
+         * @description Header override configuration for models and MCP servers.
+         */
+        "Override-Input": {
+            /** Headers */
+            headers: components["schemas"]["ark_api__models__agents__Header-Input"][];
+            /** Resourcetype */
+            resourceType: string;
+            labelSelector?: components["schemas"]["ark_api__models__agents__LabelSelector"] | null;
+        };
+        /**
+         * Override
+         * @description Header override configuration for models and MCP servers.
+         */
+        "Override-Output": {
+            /** Headers */
+            headers: components["schemas"]["ark_api__models__agents__Header-Output"][];
+            /** Resourcetype */
+            resourceType: string;
+            labelSelector?: components["schemas"]["ark_api__models__agents__LabelSelector"] | null;
         };
         /** PromptTokensDetails */
         PromptTokensDetails: {
@@ -2401,8 +3273,10 @@ export interface components {
         QueryCreateRequest: {
             /** Name */
             name: string;
+            /** @default user */
+            type: components["schemas"]["InputType"] | null;
             /** Input */
-            input: string;
+            input: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Input"] | components["schemas"]["ChatCompletionAssistantMessageParam-Input"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[];
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ark_api__models__queries__Parameter-Input"][] | null;
@@ -2419,9 +3293,15 @@ export interface components {
             ttl?: string | null;
             /** Cancel */
             cancel?: boolean | null;
+            /** Overrides */
+            overrides?: components["schemas"]["Override-Input"][] | null;
             /** Evaluators */
             evaluators?: components["schemas"]["Memory"][] | null;
             evaluatorSelector?: components["schemas"]["ark_api__models__queries__LabelSelector"] | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * QueryDetailResponse
@@ -2432,8 +3312,10 @@ export interface components {
             name: string;
             /** Namespace */
             namespace: string;
+            /** @default user */
+            type: components["schemas"]["InputType"] | null;
             /** Input */
-            input: string;
+            input: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Output"] | components["schemas"]["ChatCompletionAssistantMessageParam-Output"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[];
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ark_api__models__queries__Parameter-Output"][] | null;
@@ -2450,9 +3332,12 @@ export interface components {
             ttl?: string | null;
             /** Cancel */
             cancel?: boolean | null;
-            /** Evaluators */
-            evaluators?: components["schemas"]["Memory"][] | null;
-            evaluatorSelector?: components["schemas"]["ark_api__models__queries__LabelSelector"] | null;
+            /** Overrides */
+            overrides?: components["schemas"]["Override-Output"][] | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
             /** Status */
             status?: {
                 [key: string]: unknown;
@@ -2489,18 +3374,6 @@ export interface components {
             count: number;
         };
         /**
-         * QueryRef
-         * @description Reference to a query for evaluation.
-         */
-        QueryRef: {
-            /** Name */
-            name: string;
-            /** Namespace */
-            namespace?: string | null;
-            /** Responsetarget */
-            responseTarget?: string | null;
-        };
-        /**
          * QueryResponse
          * @description Basic query response for list operations.
          */
@@ -2509,8 +3382,10 @@ export interface components {
             name: string;
             /** Namespace */
             namespace: string;
+            /** @default user */
+            type: components["schemas"]["InputType"] | null;
             /** Input */
-            input: string;
+            input: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Output"] | components["schemas"]["ChatCompletionAssistantMessageParam-Output"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[];
             memory?: components["schemas"]["Memory"] | null;
             /** Sessionid */
             sessionId?: string | null;
@@ -2526,8 +3401,9 @@ export interface components {
          * @description Request body for updating a query.
          */
         QueryUpdateRequest: {
+            type?: components["schemas"]["InputType"] | null;
             /** Input */
-            input?: string | null;
+            input?: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Input"] | components["schemas"]["ChatCompletionAssistantMessageParam-Input"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[] | null;
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ark_api__models__queries__Parameter-Input"][] | null;
@@ -2544,9 +3420,8 @@ export interface components {
             ttl?: string | null;
             /** Cancel */
             cancel?: boolean | null;
-            /** Evaluators */
-            evaluators?: components["schemas"]["Memory"][] | null;
-            evaluatorSelector?: components["schemas"]["ark_api__models__queries__LabelSelector"] | null;
+            /** Overrides */
+            overrides?: components["schemas"]["Override-Input"][] | null;
         };
         /**
          * ReadinessResponse
@@ -2655,8 +3530,8 @@ export interface components {
          * @description Team selector configuration.
          */
         Selector: {
-            /** Model */
-            model?: string | null;
+            /** Agent */
+            agent?: string | null;
             /** Selectorprompt */
             selectorPrompt?: string | null;
         };
@@ -2754,6 +3629,7 @@ export interface components {
             /** Maxturns */
             maxTurns?: number | null;
             selector?: components["schemas"]["Selector"] | null;
+            available?: components["schemas"]["AvailabilityStatus"] | null;
             /** Status */
             status?: {
                 [key: string]: unknown;
@@ -2895,6 +3771,8 @@ export interface components {
             annotations?: {
                 [key: string]: string;
             } | null;
+            /** Type */
+            type?: string | null;
         };
         /** TopLogprob */
         TopLogprob: {
@@ -2936,6 +3814,18 @@ export interface components {
             type: string;
         };
         /**
+         * QueryRef
+         * @description Reference to a Query.
+         */
+        ark_api__models__a2a_tasks__QueryRef: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace?: string | null;
+            /** Responsetarget */
+            responseTarget?: string | null;
+        };
+        /**
          * ConfigMapKeyRef
          * @description Reference to a key in a ConfigMap.
          */
@@ -2946,6 +3836,24 @@ export interface components {
             name: string;
             /** Optional */
             optional?: boolean | null;
+        };
+        /**
+         * Header
+         * @description HTTP header configuration.
+         */
+        "ark_api__models__agents__Header-Input": {
+            /** Name */
+            name: string;
+            value: components["schemas"]["HeaderValue-Input"];
+        };
+        /**
+         * Header
+         * @description HTTP header configuration.
+         */
+        "ark_api__models__agents__Header-Output": {
+            /** Name */
+            name: string;
+            value: components["schemas"]["HeaderValue-Output"];
         };
         /**
          * LabelSelector
@@ -2994,6 +3902,14 @@ export interface components {
             valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
         };
         /**
+         * QueryParameterRef
+         * @description Reference to a parameter in a query.
+         */
+        ark_api__models__agents__QueryParameterRef: {
+            /** Name */
+            name: string;
+        };
+        /**
          * SecretKeyRef
          * @description Reference to a key in a Secret.
          */
@@ -3006,12 +3922,40 @@ export interface components {
             optional?: boolean | null;
         };
         /**
+         * ServiceRef
+         * @description Reference to a service.
+         */
+        ark_api__models__agents__ServiceRef: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace?: string | null;
+            /** Port */
+            port?: string | null;
+            /** Path */
+            path?: string | null;
+        };
+        /**
          * ValueFrom
          * @description Reference to external sources for parameter values.
          */
         ark_api__models__agents__ValueFrom: {
             configMapKeyRef?: components["schemas"]["ark_api__models__agents__ConfigMapKeyRef"] | null;
             secretKeyRef?: components["schemas"]["ark_api__models__agents__SecretKeyRef"] | null;
+            serviceRef?: components["schemas"]["ark_api__models__agents__ServiceRef"] | null;
+            queryParameterRef?: components["schemas"]["ark_api__models__agents__QueryParameterRef"] | null;
+        };
+        /**
+         * QueryRef
+         * @description Reference to a query for evaluation.
+         */
+        ark_api__models__evaluations__QueryRef: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace?: string | null;
+            /** Responsetarget */
+            responseTarget?: string | null;
         };
         /**
          * ConfigMapKeyRef
@@ -3094,6 +4038,77 @@ export interface components {
             /** Value */
             value?: string | null;
             valueFrom?: components["schemas"]["ark_api__models__evaluators__ValueFrom"] | null;
+        };
+        /** ConfigMapKeyRef */
+        ark_api__models__mcp_servers__ConfigMapKeyRef: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Optional */
+            optional?: boolean | null;
+        };
+        /** Header */
+        "ark_api__models__mcp_servers__Header-Input": {
+            /** Name */
+            name: string;
+            value: components["schemas"]["ark_api__models__mcp_servers__ValueSource-Input"];
+        };
+        /** Header */
+        "ark_api__models__mcp_servers__Header-Output": {
+            /** Name */
+            name: string;
+            value: components["schemas"]["ark_api__models__mcp_servers__ValueSource"];
+        };
+        /** QueryParameterRef */
+        ark_api__models__mcp_servers__QueryParameterRef: {
+            /** Name */
+            name: string;
+        };
+        /** SecretKeyRef */
+        ark_api__models__mcp_servers__SecretKeyRef: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Optional */
+            optional?: boolean | null;
+        };
+        /** ServiceRef */
+        ark_api__models__mcp_servers__ServiceRef: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace?: string | null;
+            /** Port */
+            port?: string | null;
+            /** Path */
+            path?: string | null;
+        };
+        /** ValueFrom */
+        ark_api__models__mcp_servers__ValueFrom: {
+            configMapKeyRef?: components["schemas"]["ark_api__models__mcp_servers__ConfigMapKeyRef"] | null;
+            secretKeyRef?: components["schemas"]["ark_api__models__mcp_servers__SecretKeyRef"] | null;
+            serviceRef?: components["schemas"]["ark_api__models__mcp_servers__ServiceRef"] | null;
+            queryParameterRef?: components["schemas"]["ark_api__models__mcp_servers__QueryParameterRef"] | null;
+        };
+        /**
+         * ValueSource
+         * @description ValueSource for configuration (supports direct value or valueFrom).
+         */
+        ark_api__models__mcp_servers__ValueSource: {
+            /** Value */
+            value?: string | null;
+            valueFrom?: components["schemas"]["ark_api__models__mcp_servers__ValueFrom"] | null;
+        };
+        /**
+         * ValueSource
+         * @description ValueSource for configuration (supports direct value or valueFrom).
+         */
+        "ark_api__models__mcp_servers__ValueSource-Input": {
+            /** Value */
+            value?: string | null;
+            valueFrom?: components["schemas"]["ark_api__models__mcp_servers__ValueFrom"] | null;
         };
         /**
          * ValueSource
@@ -3193,6 +4208,27 @@ export interface components {
             configMapKeyRef?: components["schemas"]["ark_api__models__queries__ConfigMapKeyRef"] | null;
             secretKeyRef?: components["schemas"]["ark_api__models__queries__SecretKeyRef"] | null;
         };
+        /** FunctionCall */
+        openai__types__chat__chat_completion_assistant_message_param__FunctionCall: {
+            /** Arguments */
+            arguments: string;
+            /** Name */
+            name: string;
+        };
+        /** Custom */
+        openai__types__chat__chat_completion_message_custom_tool_call_param__Custom: {
+            /** Input */
+            input: string;
+            /** Name */
+            name: string;
+        };
+        /** Function */
+        openai__types__chat__chat_completion_message_function_tool_call_param__Function: {
+            /** Arguments */
+            arguments: string;
+            /** Name */
+            name: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -3238,6 +4274,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+        };
+    };
+    list_agents_a2a_agents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
                 };
             };
         };
@@ -3295,13 +4353,34 @@ export interface operations {
             };
         };
     };
-    list_secrets_v1_namespaces__namespace__secrets_get: {
+    get_context_endpoint_v1_context_get: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                namespace: string;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextResponse"];
+                };
             };
+        };
+    };
+    list_secrets_v1_secrets_get: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -3326,13 +4405,14 @@ export interface operations {
             };
         };
     };
-    create_secret_v1_namespaces__namespace__secrets_post: {
+    create_secret_v1_secrets_post: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -3361,12 +4441,14 @@ export interface operations {
             };
         };
     };
-    get_secret_v1_namespaces__namespace__secrets__secret_name__get: {
+    get_secret_v1_secrets__secret_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 secret_name: string;
             };
             cookie?: never;
@@ -3393,12 +4475,14 @@ export interface operations {
             };
         };
     };
-    update_secret_v1_namespaces__namespace__secrets__secret_name__put: {
+    update_secret_v1_secrets__secret_name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 secret_name: string;
             };
             cookie?: never;
@@ -3429,12 +4513,14 @@ export interface operations {
             };
         };
     };
-    delete_secret_v1_namespaces__namespace__secrets__secret_name__delete: {
+    delete_secret_v1_secrets__secret_name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 secret_name: string;
             };
             cookie?: never;
@@ -3442,11 +4528,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {
@@ -3459,13 +4547,50 @@ export interface operations {
             };
         };
     };
-    list_agents_v1_namespaces__namespace__agents_get: {
+    get_configmap_v1_configmaps__configmap_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
+                configmap_name: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_agents_v1_agents_get: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -3490,13 +4615,14 @@ export interface operations {
             };
         };
     };
-    create_agent_v1_namespaces__namespace__agents_post: {
+    create_agent_v1_agents_post: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -3525,12 +4651,14 @@ export interface operations {
             };
         };
     };
-    get_agent_v1_namespaces__namespace__agents__agent_name__get: {
+    get_agent_v1_agents__agent_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 agent_name: string;
             };
             cookie?: never;
@@ -3557,12 +4685,14 @@ export interface operations {
             };
         };
     };
-    update_agent_v1_namespaces__namespace__agents__agent_name__put: {
+    update_agent_v1_agents__agent_name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 agent_name: string;
             };
             cookie?: never;
@@ -3593,12 +4723,14 @@ export interface operations {
             };
         };
     };
-    delete_agent_v1_namespaces__namespace__agents__agent_name__delete: {
+    delete_agent_v1_agents__agent_name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 agent_name: string;
             };
             cookie?: never;
@@ -3623,13 +4755,14 @@ export interface operations {
             };
         };
     };
-    list_models_v1_namespaces__namespace__models_get: {
+    list_models_v1_models_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -3654,13 +4787,14 @@ export interface operations {
             };
         };
     };
-    create_model_v1_namespaces__namespace__models_post: {
+    create_model_v1_models_post: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -3689,12 +4823,14 @@ export interface operations {
             };
         };
     };
-    get_model_v1_namespaces__namespace__models__model_name__get: {
+    get_model_v1_models__model_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 model_name: string;
             };
             cookie?: never;
@@ -3721,12 +4857,14 @@ export interface operations {
             };
         };
     };
-    update_model_v1_namespaces__namespace__models__model_name__put: {
+    update_model_v1_models__model_name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 model_name: string;
             };
             cookie?: never;
@@ -3757,12 +4895,14 @@ export interface operations {
             };
         };
     };
-    delete_model_v1_namespaces__namespace__models__model_name__delete: {
+    delete_model_v1_models__model_name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 model_name: string;
             };
             cookie?: never;
@@ -3787,13 +4927,14 @@ export interface operations {
             };
         };
     };
-    list_teams_v1_namespaces__namespace__teams_get: {
+    list_teams_v1_teams_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -3818,13 +4959,14 @@ export interface operations {
             };
         };
     };
-    create_team_v1_namespaces__namespace__teams_post: {
+    create_team_v1_teams_post: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -3853,12 +4995,14 @@ export interface operations {
             };
         };
     };
-    get_team_v1_namespaces__namespace__teams__team_name__get: {
+    get_team_v1_teams__team_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 team_name: string;
             };
             cookie?: never;
@@ -3885,12 +5029,14 @@ export interface operations {
             };
         };
     };
-    update_team_v1_namespaces__namespace__teams__team_name__put: {
+    update_team_v1_teams__team_name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 team_name: string;
             };
             cookie?: never;
@@ -3921,12 +5067,14 @@ export interface operations {
             };
         };
     };
-    delete_team_v1_namespaces__namespace__teams__team_name__delete: {
+    delete_team_v1_teams__team_name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 team_name: string;
             };
             cookie?: never;
@@ -3951,13 +5099,14 @@ export interface operations {
             };
         };
     };
-    list_queries_v1_namespaces__namespace__queries_get: {
+    list_queries_v1_queries_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -3982,13 +5131,14 @@ export interface operations {
             };
         };
     };
-    create_query_v1_namespaces__namespace__queries_post: {
+    create_query_v1_queries_post: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -4017,12 +5167,14 @@ export interface operations {
             };
         };
     };
-    get_query_v1_namespaces__namespace__queries__query_name__get: {
+    get_query_v1_queries__query_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 query_name: string;
             };
             cookie?: never;
@@ -4049,12 +5201,14 @@ export interface operations {
             };
         };
     };
-    update_query_v1_namespaces__namespace__queries__query_name__put: {
+    update_query_v1_queries__query_name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 query_name: string;
             };
             cookie?: never;
@@ -4085,12 +5239,14 @@ export interface operations {
             };
         };
     };
-    delete_query_v1_namespaces__namespace__queries__query_name__delete: {
+    delete_query_v1_queries__query_name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 query_name: string;
             };
             cookie?: never;
@@ -4115,12 +5271,14 @@ export interface operations {
             };
         };
     };
-    cancel_query_v1_namespaces__namespace__queries__query_name__cancel_patch: {
+    cancel_query_v1_queries__query_name__cancel_patch: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 query_name: string;
             };
             cookie?: never;
@@ -4147,13 +5305,14 @@ export interface operations {
             };
         };
     };
-    list_tools_v1_namespaces__namespace__tools_get: {
+    list_tools_v1_tools_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4178,12 +5337,14 @@ export interface operations {
             };
         };
     };
-    get_tool_v1_namespaces__namespace__tools__tool_name__get: {
+    get_tool_v1_tools__tool_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 tool_name: string;
             };
             cookie?: never;
@@ -4210,12 +5371,14 @@ export interface operations {
             };
         };
     };
-    delete_tool_v1_namespaces__namespace__tools__tool_name__delete: {
+    delete_tool_v1_tools__tool_name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 tool_name: string;
             };
             cookie?: never;
@@ -4240,13 +5403,14 @@ export interface operations {
             };
         };
     };
-    list_mcp_servers_v1_namespaces__namespace__mcp_servers_get: {
+    list_mcp_servers_v1_mcp_servers_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4271,12 +5435,50 @@ export interface operations {
             };
         };
     };
-    get_mcp_server_v1_namespaces__namespace__mcp_servers__mcp_server_name__get: {
+    create_mcp_server_v1_mcp_servers_post: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPServerCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPServerDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_mcp_server_v1_mcp_servers__mcp_server_name__get: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 mcp_server_name: string;
             };
             cookie?: never;
@@ -4303,12 +5505,14 @@ export interface operations {
             };
         };
     };
-    delete_mcp_server_v1_namespaces__namespace__mcp_servers__mcp_server_name__delete: {
+    delete_mcp_server_v1_mcp_servers__mcp_server_name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 mcp_server_name: string;
             };
             cookie?: never;
@@ -4333,13 +5537,14 @@ export interface operations {
             };
         };
     };
-    list_a2a_servers_v1_namespaces__namespace__a2a_servers_get: {
+    list_a2a_servers_v1_a2a_servers_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4364,12 +5569,14 @@ export interface operations {
             };
         };
     };
-    get_a2a_server_v1_namespaces__namespace__a2a_servers__a2a_server_name__get: {
+    get_a2a_server_v1_a2a_servers__a2a_server_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 a2a_server_name: string;
             };
             cookie?: never;
@@ -4396,12 +5603,14 @@ export interface operations {
             };
         };
     };
-    delete_a2a_server_v1_namespaces__namespace__a2a_servers__a2a_server_name__delete: {
+    delete_a2a_server_v1_a2a_servers__a2a_server_name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 a2a_server_name: string;
             };
             cookie?: never;
@@ -4426,13 +5635,112 @@ export interface operations {
             };
         };
     };
-    list_memories_v1_namespaces__namespace__memories_get: {
+    list_a2a_tasks_v1_a2a_tasks_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["A2ATaskListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_a2a_task_v1_a2a_tasks__task_name__get: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
+                task_name: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["A2ATaskDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_a2a_task_v1_a2a_tasks__task_name__delete: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path: {
+                task_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_memories_v1_memories_get: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4457,13 +5765,14 @@ export interface operations {
             };
         };
     };
-    create_memory_v1_namespaces__namespace__memories_post: {
+    create_memory_v1_memories_post: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -4492,12 +5801,14 @@ export interface operations {
             };
         };
     };
-    get_memory_v1_namespaces__namespace__memories__name__get: {
+    get_memory_v1_memories__name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -4524,12 +5835,14 @@ export interface operations {
             };
         };
     };
-    update_memory_v1_namespaces__namespace__memories__name__put: {
+    update_memory_v1_memories__name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -4560,12 +5873,14 @@ export interface operations {
             };
         };
     };
-    delete_memory_v1_namespaces__namespace__memories__name__delete: {
+    delete_memory_v1_memories__name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -4594,12 +5909,14 @@ export interface operations {
             };
         };
     };
-    get_memory_messages_v1_namespaces__namespace__memories__name__sessions__session_id__messages_get: {
+    get_memory_messages_v1_memories__name__sessions__session_id__messages_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
                 session_id: string;
             };
@@ -4629,9 +5946,11 @@ export interface operations {
             };
         };
     };
-    list_memory_messages_v1_namespaces__namespace__memory_messages_get: {
+    list_memory_messages_v1_memory_messages_get: {
         parameters: {
             query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
                 /** @description Filter by memory name */
                 memory?: string | null;
                 /** @description Filter by session ID */
@@ -4640,9 +5959,7 @@ export interface operations {
                 query?: string | null;
             };
             header?: never;
-            path: {
-                namespace: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4667,16 +5984,16 @@ export interface operations {
             };
         };
     };
-    list_sessions_v1_namespaces__namespace__sessions_get: {
+    list_sessions_v1_sessions_get: {
         parameters: {
             query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
                 /** @description Filter by memory name */
                 memory?: string | null;
             };
             header?: never;
-            path: {
-                namespace: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4688,6 +6005,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_all_sessions_v1_sessions_delete: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_session_v1_sessions__session_id__delete: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_query_messages_v1_sessions__session_id__queries__query_id__messages_delete: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path: {
+                session_id: string;
+                query_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -4721,16 +6145,16 @@ export interface operations {
             };
         };
     };
-    list_ark_services_v1_namespaces__namespace__ark_services_get: {
+    list_ark_services_v1_ark_services_get: {
         parameters: {
             query?: {
                 /** @description List all Helm releases, not just ARK services */
                 list_all_services?: boolean | null;
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
             header?: never;
-            path: {
-                namespace: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4755,12 +6179,14 @@ export interface operations {
             };
         };
     };
-    get_ark_service_v1_namespaces__namespace__ark_services__service_name__get: {
+    get_ark_service_v1_ark_services__service_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 service_name: string;
             };
             cookie?: never;
@@ -4787,9 +6213,11 @@ export interface operations {
             };
         };
     };
-    list_events_v1_namespaces__namespace__events_get: {
+    list_events_v1_events_get: {
         parameters: {
             query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
                 /** @description Filter by event type (Normal, Warning) */
                 type?: string | null;
                 /** @description Filter by involved object kind */
@@ -4802,9 +6230,7 @@ export interface operations {
                 page?: number | null;
             };
             header?: never;
-            path: {
-                namespace: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4829,12 +6255,14 @@ export interface operations {
             };
         };
     };
-    get_event_v1_namespaces__namespace__events__event_name__get: {
+    get_event_v1_events__event_name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 event_name: string;
             };
             cookie?: never;
@@ -4861,16 +6289,18 @@ export interface operations {
             };
         };
     };
-    list_evaluations_v1_namespaces__namespace__evaluations_get: {
+    list_evaluations_v1_evaluations_get: {
         parameters: {
             query?: {
                 /** @description Include enhanced metadata from annotations */
                 enhanced?: boolean;
+                /** @description Filter evaluations by query reference name */
+                query_ref?: string;
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
             header?: never;
-            path: {
-                namespace: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4895,13 +6325,14 @@ export interface operations {
             };
         };
     };
-    create_evaluation_v1_namespaces__namespace__evaluations_post: {
+    create_evaluation_v1_evaluations_post: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -4930,15 +6361,16 @@ export interface operations {
             };
         };
     };
-    get_evaluation_v1_namespaces__namespace__evaluations__name__get: {
+    get_evaluation_v1_evaluations__name__get: {
         parameters: {
             query?: {
                 /** @description Include enhanced metadata from annotations */
                 enhanced?: boolean;
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -4965,12 +6397,14 @@ export interface operations {
             };
         };
     };
-    update_evaluation_v1_namespaces__namespace__evaluations__name__put: {
+    update_evaluation_v1_evaluations__name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -5001,12 +6435,14 @@ export interface operations {
             };
         };
     };
-    delete_evaluation_v1_namespaces__namespace__evaluations__name__delete: {
+    delete_evaluation_v1_evaluations__name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -5035,12 +6471,14 @@ export interface operations {
             };
         };
     };
-    cancel_evaluation_v1_namespaces__namespace__evaluations__name__cancel_patch: {
+    cancel_evaluation_v1_evaluations__name__cancel_patch: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -5067,13 +6505,14 @@ export interface operations {
             };
         };
     };
-    list_evaluators_v1_namespaces__namespace__evaluators_get: {
+    list_evaluators_v1_evaluators_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -5098,13 +6537,14 @@ export interface operations {
             };
         };
     };
-    create_evaluator_v1_namespaces__namespace__evaluators_post: {
+    create_evaluator_v1_evaluators_post: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                namespace: string;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -5133,12 +6573,14 @@ export interface operations {
             };
         };
     };
-    get_evaluator_v1_namespaces__namespace__evaluators__name__get: {
+    get_evaluator_v1_evaluators__name__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -5165,12 +6607,14 @@ export interface operations {
             };
         };
     };
-    update_evaluator_v1_namespaces__namespace__evaluators__name__put: {
+    update_evaluator_v1_evaluators__name__put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -5201,12 +6645,14 @@ export interface operations {
             };
         };
     };
-    delete_evaluator_v1_namespaces__namespace__evaluators__name__delete: {
+    delete_evaluator_v1_evaluators__name__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
             header?: never;
             path: {
-                namespace: string;
                 name: string;
             };
             cookie?: never;
@@ -5223,6 +6669,88 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_api_keys_v1_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyListResponse"];
+                };
+            };
+        };
+    };
+    create_api_key_v1_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_key_v1_api_keys__public_key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                public_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
