@@ -159,7 +159,7 @@ data: [DONE]
 
 Do we need to normalise/transform raw ugly OTEL into more user friendly ark events? These would make it easier for consumers.
 
-TODO
+TODO we should show what 1-2 events look like, comparing raw OTEL to normalised events.
 
 ## Open Questions
 
