@@ -220,38 +220,34 @@ export default function BrokerPage() {
     <>
       <PageHeader breadcrumbs={breadcrumbs} currentPage="Broker" />
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="flex items-center justify-between">
-          <div className="text-muted-foreground text-sm">
-            Real-time diagnostic view of broker data streams. Enable streaming
-            to see live data.
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-sm">Memory:</span>
-            <Select
-              value={selectedMemory}
-              onValueChange={setSelectedMemory}
-              disabled={loading}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue
-                  placeholder={loading ? 'Loading...' : 'Select memory'}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {memories.map(memory => (
-                  <SelectItem key={memory.name} value={memory.name}>
-                    {memory.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
         <Tabs defaultValue="traces" className="flex-1">
-          <TabsList>
-            <TabsTrigger value="traces">OTEL Traces</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="chunks">LLM Chunks</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-sm">Memory:</span>
+              <Select
+                value={selectedMemory}
+                onValueChange={setSelectedMemory}
+                disabled={loading}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue
+                    placeholder={loading ? 'Loading...' : 'Select memory'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {memories.map(memory => (
+                    <SelectItem key={memory.name} value={memory.name}>
+                      {memory.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <TabsList>
+              <TabsTrigger value="traces">OTEL Traces</TabsTrigger>
+              <TabsTrigger value="messages">Messages</TabsTrigger>
+              <TabsTrigger value="chunks">LLM Chunks</TabsTrigger>
+            </TabsList>
+          </div>
           <TabsContent value="traces" className="mt-4 flex-1">
             <StreamView
               title="OTEL Traces"
