@@ -11,8 +11,8 @@ description: Plan and Journal for the Ark Broker exploration
 
 ## Prior Art
 
-This task builds on exploration in:
-- https://github.com/dwmkerr/agents-at-scale-ark/pull/164
+- OTEL eventing: investigated in https://github.com/dwmkerr/agents-at-scale-ark/pull/164
+- Questions, Waiting Query Status, Resumable Queries: investigated in https://github.com/dwmkerr/agents-at-scale-ark/pull/164
 
 See `99-references/` for detailed findings from the spike.
 

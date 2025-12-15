@@ -44,6 +44,13 @@ This suggests that (again) keeping all essential query data is essential to supp
 
 The suggests that replacing ark cluster memory with a single broker service would simplify. If the broker service itself already receives all queries and messages then it may be possible to simplify how conversations are loaded.
 
+**Architecture to enable query reconciliation**
+
+- We will have to move query reconciliation off the controller at some point (or at least allow it to run off controller)
+- This'll likely mean a broker for queries with a processor/reconciler
+
+This suggests that the broker/db pattern, along with a reconciler which can process query events would be an enabling capability for the future. If we get this right we have the architectural components needed to offload query reconciliation.
+
 ## Summary - the Ark Broker
 
 Our hypothesis is that a single 'Ark Broker', which is the main 'sink' for all controller data (LLM completion chunks, query events, correlation data, etc) which operates as an event stream (with the option to persist data for long term storage) would support this. We would receive the same OTEL data that we send to the OTEL endpoints, as well as handle the LLM completion streams, and in future the A2A Task Updates.
