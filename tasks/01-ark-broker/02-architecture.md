@@ -36,40 +36,6 @@ The key components.
                                       Ark Platform
 +------------------------------------------------------------------------------------------------------+
 |                                                                                                      |
-|  PRODUCERS                                  ARK-BROKER                        CONSUMERS              |
-|                                                                                                      |
-|  +------------------+                  +---------------------------+      +------------------+       |
-|  |  Query           |   OTLP/HTTP      |                           | SSE  |  Dashboard       |       |
-|  |  Controller      +------+---------->|   +=========+   +=====+   +----->|  (Sessions UI)   |       |
-|  +------------------+      |           |   | Session |   | PVC |   |      +------------------+       |
-|                            |           |   | Store   +-->|     |   |                                 |
-|                            |           |   |         |   +=====+   |      +------------------+       |
-|                            |           |   +=========+             | SSE  |  CLI (ark)       |       |
-|                            |           |                           +----->|                  |       |
-|                            |           |   APIs:                   |      +------------------+       |
-|                            |           |   - POST /v1/traces       |                                 |
-|                            |           |   - GET  /events          |      +------------------+       |
-|                            |           |   - GET  /sessions        | REST |  API Clients     |       |
-|                            |           |   - GET  /sessions/:id    +----->|                  |       |
-|                            |           |                           |      +------------------+       |
-|                            |           +---------------------------+                                 |
-|                            |                                                                         |
-|                            | OTLP/HTTP or gRPC (independent)                                         |
-|                            v                                                                         |
-|              +---------------------------+                                                           |
-|              |  External OTEL Backend    |                                                           |
-|              |  (Langfuse, Phoenix, etc.)|                                                           |
-|              +---------------------------+                                                           |
-|                                                                                                      |
-+------------------------------------------------------------------------------------------------------+
-```
-
-### Consolidated View
-
-```
-                                      Ark Platform
-+------------------------------------------------------------------------------------------------------+
-|                                                                                                      |
 |  PRODUCERS                              ARK-BROKER                            CONSUMERS              |
 |  ---------                              ----------                            ---------              |
 |                                                                                                      |
@@ -84,14 +50,14 @@ The key components.
 |  +------------------+  |           |   +=========+             |           +------------------+       |
 |                        |  Streaming|                           |                                      |
 |  +------------------+  |           |   APIs:                   |           +------------------+       |
-|  |  MCP Servers     +--+---------->|   - POST /v1/traces       |   gRPC    |  API Clients     |       |
+|  |  MCP Servers     +--+---------->|   - POST /v1/traces       |   SSE     |  API Clients     |       |
 |  |  (tools)         |  |           |   - GET  /events          +---------->|  (v1/completions)|       |
 |  +------------------+  |           |   - GET  /sessions        |           +------------------+       |
 |                        |           |   - GET  /stream/{topic}  |                                      |
 |  +------------------+  |           |                           |           +------------------+       |
-|  |  A2A Servers     +--+---------->|   Reconcilers:            |   HTTP    |  Custom          |       |
-|  |  (agents)        |              |   - Query processing      +---------->|  Consumers       |       |
-|  +------------------+              |   - Messages (in/out)     |           +------------------+       |
+|  |  A2A Servers     +--+---------->|   Reconcilers:            | HTTP/gRPC/etc |  Custom          |       |
+|  |  (agents)        |              |   - Query processing *    +---------->|  Consumers       |       |
+|  +------------------+              |   - Messages (in/out) *   |           +------------------+       |
 |                                    |                           |                                      |
 |                                    +-------------+-------------+                                      |
 |                                                  |                                                    |
@@ -102,61 +68,8 @@ The key components.
 |  |  (fork to both)  |  OTLP/HTTP   |  (Langfuse, Phoenix, etc.)|                                      |
 |  +------------------+              +---------------------------+                                      |
 |                                                                                                      |
+|  * Later / for discussion                                                                            |
 +------------------------------------------------------------------------------------------------------+
-```
-
-### Reference: Original Diagrams
-
-```
-                                      Ark Platform
-+------------------------------------------------------------------------------------------------------+
-|                                                                                                      |
-|  PRODUCERS                              ARK-BROKER                            CONSUMERS              |
-|  ─────────                              ──────────                            ─────────              |
-|                                                                                                      |
-|  +------------------+              +---------------------------+           +------------------+       |
-|  |  Query           |              |                           |           |  Dashboard       |       |
-|  |  Controller      +------------->|   +=========+   +=====+   +---------->|  (Sessions UI)   |       |
-|  +------------------+              |   |  Event  |   | DB  |   |           +------------------+       |
-|                        OTEL spans  |   |  Queue  |   | | | |   |                                      |
-|  +------------------+  & LLM chunks|   |   ( )   +-->| | | |   |           +------------------+       |
-|  |  Executor        +------------->|   |   ( )   |   +=====+   +---------->|  CLI             |       |
-|  |  (LangChain)     |              |   |   ( )   |             |           |  (fark/ark)      |       |
-|  +------------------+              |   +=========+             |           +------------------+       |
-|                                    |                           |                                      |
-|  +------------------+              |   Reconcilers (future):   |           +------------------+       |
-|  |  MCP Servers     +------------->|   - Query processing      +---------->|  API Clients     |       |
-|  |  (tools)         |              |   - Event triggers        |           |  (v1/completions)|       |
-|  +------------------+              |   - Notifications         |           +------------------+       |
-|                                    |                           |                                      |
-|  +------------------+              +-------------+-------------+                                      |
-|  |  A2A Servers     +------------->              |                                                    |
-|  |  (agents)        |                            v                                                    |
-|  +------------------+              +-------------+-------------+                                      |
-|                                    |  Upstream OTEL (optional) |                                      |
-|  +------------------+              |  (Langfuse, Jaeger, etc.) |                                      |
-|  |  Custom          +------------->+---------------------------+                                      |
-|  |  Producers       |      OR                                                                         |
-|  +------------------+      |                                                                          |
-|         |                  |                                                                          |
-|         +------------------+-------> External OTEL (works without broker)                            |
-|                                                                                                      |
-+------------------------------------------------------------------------------------------------------+
-```
-
-
-
-The 'forking' is basically this:
-
-```
-# Current.
-Controller -> Telemetry Provider -> Span Processor -> OTLP Exporter -> External Backend
-
-# Proposed. The broker is now a sink for Memory Messages, LLM Chunks and OTEL traces.
-# The broker also ensures consumers can read 'events' as well as the raw traces.
-Controller -> Telemetry Provider -> Span Processor -> Forking Exporter -> External Backend
-                                                                       |
-                                                                       +-> ark-broker (if configured)
 ```
 
 ## APIs
