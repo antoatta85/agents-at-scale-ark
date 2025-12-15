@@ -162,7 +162,7 @@ const defaultArkServices: ServiceCollection = {
     name: 'ark-evaluator',
     helmReleaseName: 'ark-evaluator',
     description: 'AI-powered query evaluation service with LLM-as-a-Judge',
-    enabled: true,
+    enabled: false,
     category: 'service',
     chartPath: `${REGISTRY_BASE}/ark-evaluator`,
     installArgs: [],
