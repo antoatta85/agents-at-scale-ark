@@ -40,33 +40,37 @@ The key components.
 |  ---------                              ----------                            ---------              |
 |                                                                                                      |
 |  +------------------+              +---------------------------+           +------------------+       |
-|  |  Query           |  gRPC        |                           |   SSE     |  Dashboard       |       |
-|  |  Controller      +--+---------->|   +=========+   +=====+   +---------->|  (Sessions UI)   |       |
-|  +------------------+  |           |   |  Event  |   | DB  |   |           +------------------+       |
-|                        |  HTTP     |   |  Queue  |   | | | |   |                                      |
-|  +------------------+  |  REST     |   |   ( )   +-->| | | |   |           +------------------+       |
-|  |  Executor        +--+---------->|   |   ( )   |   +=====+   |   REST    |  CLI             |       |
-|  |  (LangChain)     |  |           |   |   ( )   |             +---------->|  (fark/ark)      |       |
-|  +------------------+  |           |   +=========+             |           +------------------+       |
-|                        |  Streaming|                           |                                      |
-|  +------------------+  |           |   APIs:                   |           +------------------+       |
-|  |  MCP Servers     +--+---------->|   - POST /v1/traces       |   SSE     |  API Clients     |       |
-|  |  (tools)         |  |           |   - GET  /events          +---------->|  (v1/completions)|       |
-|  +------------------+  |           |   - GET  /sessions        |           +------------------+       |
-|                        |           |   - GET  /stream/{topic}  |                                      |
-|  +------------------+  |           |                           |           +------------------+       |
-|  |  A2A Servers     +--+---------->|   Reconcilers:            | HTTP/gRPC/etc |  Custom          |       |
-|  |  (agents)        |              |   - Query processing *    +---------->|  Consumers       |       |
-|  +------------------+              |   - Messages (in/out) *   |           +------------------+       |
-|                                    |                           |                                      |
-|                                    +-------------+-------------+                                      |
-|                                                  |                                                    |
-|                                                  | OTLP/gRPC (optional forward)                      |
-|  +------------------+                            v                                                    |
-|  |  Query           |              +---------------------------+                                      |
-|  |  Controller      +------------->|  External OTEL Backend    |                                      |
-|  |  (fork to both)  |  OTLP/HTTP   |  (Langfuse, Phoenix, etc.)|                                      |
-|  +------------------+              +---------------------------+                                      |
+|  |  Query           |  OTLP       |                           |   SSE     |  Dashboard       |       |
+|  |  Controller      +--+--+------>|   +=========+   +=====+   +---------->|  (Sessions UI)   |       |
+|  +--------+---------+  |  |       |   |  Event  |   | DB  |   |           +------------------+       |
+|           |            |  |       |   |  Queue  |   | | | |   |                                      |
+|           | OTLP       |  |       |   |   ( )   +-->| | | |   |           +------------------+       |
+|           | (fork) [1] |  |       |   |   ( )   |   +=====+   |   REST    |  CLI             |       |
+|           v            |  |       |   |   ( )   |             +---------->|  (fark/ark)      |       |
+|  +------------------+  |  |       |   +=========+             |           +------------------+       |
+|  | External OTEL    |  |  |       |                           |                                      |
+|  | Backend          |  |  |       |   APIs:                   |           +------------------+       |
+|  | (Langfuse, etc.) |  |  |       |   - POST /v1/traces       |   SSE     |  API Clients     |       |
+|  +------------------+  |  |       |   - GET  /events          +---------->|  (v1/completions)|       |
+|                        |  |       |   - GET  /sessions        |           +------------------+       |
+|  +------------------+  |  |       |   - GET  /stream/{topic}  |                                      |
+|  |  MCP Servers     +--+  |       |                           |           +------------------+       |
+|  |  (tools)         |     |       |   Reconcilers:            | HTTP/etc  |  Custom          |       |
+|  +------------------+     |       |   - Query processing *    +---------->|  Consumers       |       |
+|                           |       |   - Messages (in/out) *   |           +------------------+       |
+|  +------------------+     |       |                           |                                      |
+|  |  A2A Servers     +-----+       +---------------------------+                                      |
+|  |  (agents)        |     |                                                                          |
+|  +------------------+     |                                                                          |
+|                           |                                                                          |
+|  +------------------+     |                                                                          |
+|  |  Custom          +-----+                                                                          |
+|  |  Producers       |                                                                                |
+|  +------------------+                                                                                |
+|                                                                                                      |
+|  [1] OPEN QUESTION: Should only Query Controller fork to external OTEL, or should ark-broker        |
+|      forward on behalf of all producers? Trade-off: broker-forwarding gives visibility into         |
+|      MCP/A2A/Custom events in external backends, but adds complexity and latency.                   |
 |                                                                                                      |
 |  * Later / for discussion                                                                            |
 +------------------------------------------------------------------------------------------------------+
