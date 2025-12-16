@@ -1,5 +1,4 @@
 import {
-  isExperimentalFeaturesEnabledAtom,
   storedIsA2ATasksEnabledAtom,
   storedIsBrokerEnabledAtom,
   storedIsChatStreamingEnabledAtom,
@@ -10,16 +9,6 @@ import {
 import type { ExperimentalFeatureGroup } from './types';
 
 export const experimentalFeatureGroups: ExperimentalFeatureGroup[] = [
-  {
-    groupKey: 'system',
-    features: [
-      {
-        feature: 'Experimental Features',
-        description: 'Turning this off will disable experimental features',
-        atom: isExperimentalFeaturesEnabledAtom,
-      },
-    ],
-  },
   {
     groupKey: 'ui-ux',
     groupLabel: 'UI/UX',

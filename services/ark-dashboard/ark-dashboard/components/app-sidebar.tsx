@@ -1,12 +1,13 @@
 'use client';
 
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import {
   AlertCircle,
   Check,
   ChevronRight,
   ChevronsUpDown,
   ChevronsUpDownIcon,
+  FlaskConical,
   Home,
   LogOut,
   Plus,
@@ -22,6 +23,7 @@ import {
   isBrokerEnabledAtom,
   isExperimentalDarkModeEnabledAtom,
 } from '@/atoms/experimental-features';
+import { experimentalFeaturesDialogOpenAtom } from '@/atoms/internal-states';
 import { NamespaceEditor } from '@/components/editors';
 import {
   Collapsible,
@@ -71,6 +73,9 @@ export function AppSidebar() {
   const isBrokerEnabled = useAtomValue(isBrokerEnabledAtom);
   const isExperimentalDarkModeEnabled = useAtomValue(
     isExperimentalDarkModeEnabledAtom,
+  );
+  const setExperimentalFeaturesDialogOpen = useSetAtom(
+    experimentalFeaturesDialogOpenAtom,
   );
 
   const {
@@ -203,6 +208,11 @@ export function AppSidebar() {
                     onSelect={() => setNamespaceEditorOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Namespace
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setExperimentalFeaturesDialogOpen(true)}>
+                    <FlaskConical className="mr-2 h-4 w-4" />
+                    Experimental Features
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
