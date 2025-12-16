@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { StreamStore } from '../stream-store.js';
 import { StreamError } from '../types.js';
-import { writeSSEEvent } from '../sse.js';
+import { writeSSEEvent, startSSEHeartbeat } from '../sse.js';
 
 const parseTimeout = (timeoutStr: string | undefined, defaultTimeout: number): number => {
   if (!timeoutStr) return defaultTimeout;
@@ -58,12 +58,15 @@ export function createStreamRouter(stream: StreamStore): Router {
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('Access-Control-Allow-Origin', '*');
 
+      const heartbeat = startSSEHeartbeat(res);
+
       let chunkCount = 0;
       let lastLogTime = Date.now();
 
       const unsubscribe = stream.subscribeToAllChunks((data) => {
         if (!writeSSEEvent(res, data)) {
           console.log('[STREAM-OUT] Client disconnected (write failed)');
+          clearInterval(heartbeat);
           unsubscribe();
           return;
         }
@@ -78,6 +81,7 @@ export function createStreamRouter(stream: StreamStore): Router {
 
       req.on('close', () => {
         console.log(`[STREAM-OUT] Client disconnected after ${chunkCount} chunks`);
+        clearInterval(heartbeat);
         unsubscribe();
       });
 
@@ -87,6 +91,7 @@ export function createStreamRouter(stream: StreamStore): Router {
         } else {
           console.error('[STREAM-OUT] Client connection error:', error);
         }
+        clearInterval(heartbeat);
         unsubscribe();
       });
     } else {

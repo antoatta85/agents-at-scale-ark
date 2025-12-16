@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { TraceStore, OTELSpan } from '../trace-store.js';
-import { writeSSEEvent } from '../sse.js';
+import { writeSSEEvent, startSSEHeartbeat } from '../sse.js';
 
 export function createTracesRouter(traces: TraceStore): Router {
   const router = Router();
@@ -16,12 +16,15 @@ export function createTracesRouter(traces: TraceStore): Router {
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('Access-Control-Allow-Origin', '*');
 
+      const heartbeat = startSSEHeartbeat(res);
+
       let spanCount = 0;
       let lastLogTime = Date.now();
 
       const unsubscribe = traces.subscribeToAllSpans((span: OTELSpan) => {
         if (!writeSSEEvent(res, span)) {
           console.log('[TRACES-OUT] Client disconnected (write failed)');
+          clearInterval(heartbeat);
           unsubscribe();
           return;
         }
@@ -36,6 +39,7 @@ export function createTracesRouter(traces: TraceStore): Router {
 
       req.on('close', () => {
         console.log(`[TRACES-OUT] Client disconnected after ${spanCount} spans`);
+        clearInterval(heartbeat);
         unsubscribe();
       });
 
@@ -45,6 +49,7 @@ export function createTracesRouter(traces: TraceStore): Router {
         } else {
           console.error('[TRACES-OUT] Client connection error:', error);
         }
+        clearInterval(heartbeat);
         unsubscribe();
       });
     } else {
@@ -76,6 +81,8 @@ export function createTracesRouter(traces: TraceStore): Router {
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('Access-Control-Allow-Origin', '*');
 
+      const heartbeat = startSSEHeartbeat(res);
+
       let spanCount = 0;
 
       if (fromBeginning) {
@@ -84,6 +91,7 @@ export function createTracesRouter(traces: TraceStore): Router {
         for (const span of existingSpans) {
           if (!writeSSEEvent(res, span)) {
             console.log(`[TRACES-OUT] Error writing existing span for trace ${trace_id}`);
+            clearInterval(heartbeat);
             return;
           }
           spanCount++;
@@ -93,6 +101,7 @@ export function createTracesRouter(traces: TraceStore): Router {
       const unsubscribe = traces.subscribeToTrace(trace_id, (span: OTELSpan) => {
         if (!writeSSEEvent(res, span)) {
           console.log(`[TRACES-OUT] Trace ${trace_id}: Client disconnected (write failed)`);
+          clearInterval(heartbeat);
           unsubscribe();
           return;
         }
@@ -101,6 +110,7 @@ export function createTracesRouter(traces: TraceStore): Router {
 
       req.on('close', () => {
         console.log(`[TRACES-OUT] Trace ${trace_id}: Client disconnected after ${spanCount} spans`);
+        clearInterval(heartbeat);
         unsubscribe();
       });
 
@@ -110,6 +120,7 @@ export function createTracesRouter(traces: TraceStore): Router {
         } else {
           console.error(`[TRACES-OUT] Trace ${trace_id}: Client connection error:`, error);
         }
+        clearInterval(heartbeat);
         unsubscribe();
       });
     } else {

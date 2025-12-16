@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { randomUUID } from 'crypto';
 import { MemoryStore } from '../memory-store.js';
-import { writeSSEEvent } from '../sse.js';
+import { writeSSEEvent, startSSEHeartbeat } from '../sse.js';
 
 export function createMemoryRouter(memory: MemoryStore): Router {
   const router = Router();
@@ -86,6 +86,8 @@ export function createMemoryRouter(memory: MemoryStore): Router {
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('Access-Control-Allow-Origin', '*');
 
+      const heartbeat = startSSEHeartbeat(res);
+
       let messageCount = 0;
       let lastLogTime = Date.now();
 
@@ -96,6 +98,7 @@ export function createMemoryRouter(memory: MemoryStore): Router {
 
         if (!writeSSEEvent(res, storedMessage)) {
           console.log('[MESSAGES-OUT] Client disconnected (write failed)');
+          clearInterval(heartbeat);
           unsubscribe();
           return;
         }
@@ -110,6 +113,7 @@ export function createMemoryRouter(memory: MemoryStore): Router {
 
       req.on('close', () => {
         console.log(`[MESSAGES-OUT] Client disconnected after ${messageCount} messages`);
+        clearInterval(heartbeat);
         unsubscribe();
       });
 
@@ -119,6 +123,7 @@ export function createMemoryRouter(memory: MemoryStore): Router {
         } else {
           console.error('[MESSAGES-OUT] Client connection error:', error);
         }
+        clearInterval(heartbeat);
         unsubscribe();
       });
     } else {
