@@ -53,9 +53,8 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       const parts = value.split(TEMPLATE_REGEX);
 
       return parts.map((part, index) => {
-        if (TEMPLATE_REGEX.test(part)) {
-          TEMPLATE_REGEX.lastIndex = 0;
-          const match = part.match(PARAM_NAME_REGEX);
+        const match = part.match(PARAM_NAME_REGEX);
+        if (match) {
           const paramName = match?.[1] || '';
           const isDefined = definedParams.has(paramName);
 

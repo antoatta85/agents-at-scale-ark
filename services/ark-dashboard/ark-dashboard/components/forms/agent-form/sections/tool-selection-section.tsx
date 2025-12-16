@@ -157,7 +157,7 @@ export function ToolSelectionSection({
           Tools
         </h3>
         <span className="ml-auto text-xs text-muted-foreground">
-          {availableTools.filter(t => isToolSelected(t.name)).length} selected
+          {[...availableTools, ...unavailableTools].filter(t => isToolSelected(t.name)).length} selected
         </span>
       </div>
 
