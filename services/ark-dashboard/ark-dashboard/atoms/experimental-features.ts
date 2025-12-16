@@ -62,7 +62,5 @@ export const storedIsBrokerEnabledAtom = atomWithStorage<boolean>(
 );
 
 export const isBrokerEnabledAtom = atom(get => {
-  return get(isExperimentalFeaturesEnabledAtom)
-    ? get(storedIsBrokerEnabledAtom)
-    : false;
+  return get(storedIsBrokerEnabledAtom);
 });
