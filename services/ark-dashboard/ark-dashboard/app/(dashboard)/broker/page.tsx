@@ -1,11 +1,13 @@
 'use client';
 
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BreadcrumbElement } from '@/components/common/page-header';
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -119,6 +121,8 @@ function StreamView({
   onClear,
 }: StreamViewProps) {
   const [autoScroll, setAutoScroll] = useState(true);
+  const [expandAll, setExpandAll] = useState(true);
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -127,8 +131,22 @@ function StreamView({
     }
   }, [entries, autoScroll]);
 
+  const isExpanded = (id: string) => {
+    if (id in overrides) {
+      return overrides[id];
+    }
+    return expandAll;
+  };
+
+  const toggleEntry = (id: string) => {
+    setOverrides(prev => ({
+      ...prev,
+      [id]: !isExpanded(id),
+    }));
+  };
+
   return (
-    <Card className="flex h-full flex-col">
+    <Card className="flex h-full min-w-0 flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <CardTitle className="text-base font-medium">{title}</CardTitle>
@@ -146,9 +164,13 @@ function StreamView({
             onClick={() => setAutoScroll(!autoScroll)}>
             Auto-scroll
           </Button>
+          <div className="flex items-center gap-1">
+            <Switch checked={expandAll} onCheckedChange={setExpandAll} />
+            <span className="text-muted-foreground text-xs">Expand</span>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden">
+      <CardContent className="min-w-0 flex-1 overflow-hidden">
         {error && (
           <div className="mb-2 rounded bg-red-100 p-2 text-sm text-red-700">
             {error}
@@ -156,24 +178,52 @@ function StreamView({
         )}
         <div
           ref={containerRef}
-          className="bg-muted h-[calc(100vh-320px)] overflow-auto rounded-md p-2 font-mono text-xs">
+          className="bg-muted h-[calc(100vh-320px)] w-full overflow-auto rounded-md p-2 font-mono text-xs">
           {entries.length === 0 ? (
             <div className="text-muted-foreground flex h-full items-center justify-center">
               Waiting for data...
             </div>
           ) : (
-            entries.map(entry => (
-              <div
-                key={entry.id}
-                className="border-border mb-1 border-b pb-1 last:border-b-0">
-                <div className="text-muted-foreground mb-0.5 text-[10px]">
-                  {entry.timestamp}
+            entries.map(entry => {
+              const expanded = isExpanded(entry.id);
+              return (
+                <div
+                  key={entry.id}
+                  className="border-border mb-1 border-b pb-1 last:border-b-0">
+                  <div className="flex min-w-0 items-start gap-1 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleEntry(entry.id)}
+                      className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0">
+                      {expanded ? (
+                        <ChevronDown className="h-3 w-3" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3" />
+                      )}
+                    </button>
+                    {expanded ? (
+                      <div className="min-w-0 flex-1">
+                        <div className="text-muted-foreground mb-0.5 text-[10px]">
+                          {entry.timestamp}
+                        </div>
+                        <pre className="max-w-full overflow-hidden break-all whitespace-pre-wrap">
+                          {JSON.stringify(entry.data, null, 2)}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                        <span className="text-muted-foreground shrink-0 text-[10px]">
+                          {entry.timestamp}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">
+                          {JSON.stringify(entry.data)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <pre className="break-all whitespace-pre-wrap">
-                  {JSON.stringify(entry.data, null, 2)}
-                </pre>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </CardContent>
@@ -208,10 +258,10 @@ export default function BrokerPage() {
   }, [selectedMemory]);
 
   return (
-    <>
+    <div className="flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden">
       <PageHeader breadcrumbs={breadcrumbs} currentPage="Broker" />
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <Tabs defaultValue="traces" className="flex-1">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden p-4">
+        <Tabs defaultValue="traces" className="min-w-0 flex-1">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground text-sm">Memory:</span>
@@ -239,7 +289,7 @@ export default function BrokerPage() {
               <TabsTrigger value="chunks">LLM Chunks</TabsTrigger>
             </TabsList>
           </div>
-          <TabsContent value="traces" className="mt-4 flex-1">
+          <TabsContent value="traces" className="mt-4 min-w-0 flex-1">
             <StreamView
               title="OTEL Traces"
               entries={traces.entries}
@@ -248,7 +298,7 @@ export default function BrokerPage() {
               onClear={traces.clear}
             />
           </TabsContent>
-          <TabsContent value="messages" className="mt-4 flex-1">
+          <TabsContent value="messages" className="mt-4 min-w-0 flex-1">
             <StreamView
               title="Messages"
               entries={messages.entries}
@@ -257,7 +307,7 @@ export default function BrokerPage() {
               onClear={messages.clear}
             />
           </TabsContent>
-          <TabsContent value="chunks" className="mt-4 flex-1">
+          <TabsContent value="chunks" className="mt-4 min-w-0 flex-1">
             <StreamView
               title="LLM Chunks"
               entries={chunks.entries}
@@ -268,6 +318,6 @@ export default function BrokerPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </>
+    </div>
   );
 }
