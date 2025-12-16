@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"go.opentelemetry.io/otel/sdk/trace"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"mckinsey.com/ark/internal/telemetry"
 )
 
 var log = logf.Log.WithName("telemetry.broker")
@@ -42,20 +43,13 @@ type StatusData struct {
 }
 
 type Exporter struct {
-	endpoint string
-	client   *http.Client
+	client *http.Client
 }
 
 func NewExporter() *Exporter {
-	endpoint := os.Getenv("ARK_BROKER_ENDPOINT")
-	if endpoint == "" {
-		return nil
-	}
-
-	log.Info("creating broker exporter", "endpoint", endpoint)
+	log.Info("creating dynamic broker exporter (routes spans by memory.endpoint attribute)")
 
 	return &Exporter{
-		endpoint: endpoint,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -67,6 +61,37 @@ func (e *Exporter) ExportSpans(ctx context.Context, spans []trace.ReadOnlySpan) 
 		return nil
 	}
 
+	spansByEndpoint := make(map[string][]trace.ReadOnlySpan)
+	for _, span := range spans {
+		endpoint := getMemoryEndpoint(span)
+		if endpoint == "" {
+			continue
+		}
+		spansByEndpoint[endpoint] = append(spansByEndpoint[endpoint], span)
+	}
+
+	for endpoint, endpointSpans := range spansByEndpoint {
+		e.exportToEndpoint(ctx, endpoint, endpointSpans)
+	}
+
+	return nil
+}
+
+func getMemoryEndpoint(span trace.ReadOnlySpan) string {
+	for _, attr := range span.Attributes() {
+		if string(attr.Key) == telemetry.AttrMemoryEndpoint {
+			return attr.Value.AsString()
+		}
+	}
+
+	if span.Parent().HasSpanID() {
+		return ""
+	}
+
+	return ""
+}
+
+func (e *Exporter) exportToEndpoint(ctx context.Context, endpoint string, spans []trace.ReadOnlySpan) {
 	var buf bytes.Buffer
 	for _, span := range spans {
 		spanData := convertSpan(span)
@@ -80,13 +105,14 @@ func (e *Exporter) ExportSpans(ctx context.Context, spans []trace.ReadOnlySpan) 
 	}
 
 	if buf.Len() == 0 {
-		return nil
+		return
 	}
 
-	url := fmt.Sprintf("%s/traces", e.endpoint)
+	url := fmt.Sprintf("%s/traces", endpoint)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &buf)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		log.Error(err, "failed to create request", "endpoint", url)
+		return
 	}
 
 	req.Header.Set("Content-Type", "application/x-ndjson")
@@ -94,18 +120,17 @@ func (e *Exporter) ExportSpans(ctx context.Context, spans []trace.ReadOnlySpan) 
 	resp, err := e.client.Do(req)
 	if err != nil {
 		log.Error(err, "failed to send spans to broker", "endpoint", url, "spanCount", len(spans))
-		return nil
+		return
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Error(nil, "broker returned non-OK status", "status", resp.StatusCode, "body", string(body))
-		return nil
+		log.Error(nil, "broker returned non-OK status", "status", resp.StatusCode, "body", string(body), "endpoint", url)
+		return
 	}
 
-	log.V(1).Info("exported spans to broker", "count", len(spans))
-	return nil
+	log.V(1).Info("exported spans to broker", "endpoint", endpoint, "count", len(spans))
 }
 
 func (e *Exporter) Shutdown(ctx context.Context) error {

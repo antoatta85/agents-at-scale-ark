@@ -27,8 +27,6 @@ deployments:
             image:
               repository: ${runtime.images.ark-controller.image}
               tag: ${runtime.images.ark-controller.tag}
-            env:
-              ARK_BROKER_ENDPOINT: "http://ark-cluster-memory.default.svc.cluster.local:80"
             resources:
               limits:
                 memory: "2048Mi"

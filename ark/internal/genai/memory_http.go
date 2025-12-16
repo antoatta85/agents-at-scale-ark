@@ -276,6 +276,16 @@ func (m *HTTPMemory) GetConversationID() string {
 	return m.conversationId
 }
 
+// GetBaseURL returns the memory service base URL for trace routing
+func (m *HTTPMemory) GetBaseURL() string {
+	return m.baseURL
+}
+
+// GetName returns the memory resource name
+func (m *HTTPMemory) GetName() string {
+	return m.name
+}
+
 // Close closes the HTTP client connections
 func (m *HTTPMemory) Close() error {
 	if m.httpClient != nil {
