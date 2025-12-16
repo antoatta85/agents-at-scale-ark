@@ -151,7 +151,7 @@ async def get_trace(
 @router.get("/messages")
 async def get_messages(
     watch: bool = Query(False, description="Stream messages via SSE"),
-    session_id: str = Query(None, alias="session-id", description="Filter by session ID"),
+    conversation_id: str = Query(None, alias="conversation-id", description="Filter by conversation ID"),
     memory: str = Query("default", description="Memory resource name"),
 ):
     """Get or stream messages from the broker."""
@@ -164,8 +164,8 @@ async def get_messages(
 
     if watch:
         url = f"{cluster_memory_url}/messages?watch=true"
-        if session_id:
-            url += f"&session_id={session_id}"
+        if conversation_id:
+            url += f"&conversation_id={conversation_id}"
         logger.info(f"Proxying messages SSE stream from {url}")
         return StreamingResponse(
             proxy_sse_stream(url),
@@ -176,8 +176,8 @@ async def get_messages(
     try:
         async with httpx.AsyncClient() as client:
             url = f"{cluster_memory_url}/messages"
-            if session_id:
-                url += f"?session_id={session_id}"
+            if conversation_id:
+                url += f"?conversation_id={conversation_id}"
             response = await client.get(url)
             return JSONResponse(content=response.json(), status_code=response.status_code)
     except httpx.ConnectError as e:
