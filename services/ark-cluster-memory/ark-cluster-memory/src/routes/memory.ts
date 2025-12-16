@@ -128,10 +128,7 @@ export function createMemoryRouter(memory: MemoryStore): Router {
         const allMessages = memory.getAllMessages();
         let filteredMessages = allMessages;
 
-        if (
-        
-        
-        ses) {
+        if (conversation_id) {
           filteredMessages = filteredMessages.filter(m => m.conversation_id === conversation_id);
         }
 

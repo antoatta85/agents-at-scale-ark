@@ -101,7 +101,7 @@ export class MemoryStore<TMessage extends Message = Message> {
     }
 
     for (const stored of storedMessages) {
-      this.eventEmitter.emit(`message:${conversationID}`, message);
+      this.eventEmitter.emit(`message:${conversationID}`, stored.message);
       this.eventEmitter.emit('message:*', stored);
     }
   }
