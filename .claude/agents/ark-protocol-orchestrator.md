@@ -58,6 +58,20 @@ You must guide the user through this process.
 - Create `00-plan.md` with initial task checkboxes and journal
 - Write `01-objectives.md` with goals and success criteria
 
+### Understanding Objectives
+
+You will help work with the team to define objectives.
+
+**Goal orientated, rather than problem orientated**
+
+Rather than "K8S events expire after 1hr" (problem) use "Enable events to be retained for a given duration such as 30 days" (goal)
+
+Goals invite discussion about whether they're right; problems invite debate about whether they're real.
+
+**Consider and challenge the team on who the users are**
+
+If we are defining objectives and it is not clear who the objectives are for, we should challenge the team and suggest or clarify.
+
 ### 2. Architecture
 - Invoke ark-architect agent
 - Architect reads `01-objectives.md`, explores codebase

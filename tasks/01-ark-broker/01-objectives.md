@@ -56,6 +56,18 @@ The suggests that replacing ark cluster memory with a single broker service woul
 
 This suggests that the broker/db pattern, along with a reconciler which can process query events would be an enabling capability for the future. If we get this right we have the architectural components needed to offload query reconciliation.
 
+**Create a source of data for higher order Ark services**
+
+The Ark controller must be able to operate without the broker, but higher order components could depend upon data in the broker, for example a questions service could use the broker for data, the Noah agent could consume the data if needed, an MCP server could build on top of this data.
+
+## Users
+
+Who might use these capabilities?
+
+- The Ark Dashboard users - they want to see what is going on (tool calls etc)
+- The Ark CLI and Fark CLI - similar to above
+- People building on top of Ark - e.g. someone is building a VS Code extension
+
 ## Summary - the Ark Broker
 
 Our hypothesis is that a single 'Ark Broker', which is the main 'sink' for all controller data (LLM completion chunks, query events, correlation data, etc) which operates as an event stream (with the option to persist data for long term storage) would support this. We would receive the same OTEL data that we send to the OTEL endpoints, as well as handle the LLM completion streams, and in future the A2A Task Updates.
