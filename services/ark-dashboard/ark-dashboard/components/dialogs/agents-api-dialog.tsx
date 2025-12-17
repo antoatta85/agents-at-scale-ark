@@ -1,7 +1,7 @@
 'use client';
 
 import copy from 'copy-to-clipboard';
-import { Check, Copy, Rocket } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -186,13 +186,6 @@ func main() {
             systems.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="bg-muted/50 rounded-md border p-3 text-xs">
-          <span className="font-medium">Note:</span> This API works for native
-          Ark agents. For A2A agents, look for the{' '}
-          <Rocket className="inline h-3 w-3" /> button on that specific agent
-          row to learn more.
-        </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
