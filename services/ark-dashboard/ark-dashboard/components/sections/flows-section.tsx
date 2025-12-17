@@ -42,6 +42,12 @@ const MOCK_FLOWS: Flow[] = [
     title: 'Data Validation Workflow',
     stages: 4,
   },
+  {
+    id: 'd8e9f0a1-2b3c-4d5e-6f7a-8b9c0d1e2f3a',
+    title: 'Enterprise-Grade Multi-Stage Data Processing Pipeline with Advanced Quality Checks, Automated Reporting, and Real-Time Notification System',
+    description: 'This comprehensive workflow orchestrates a complex data pipeline that extracts data from multiple sources, performs sophisticated transformations using parallel processing, validates data quality through multiple checkpoints, loads the processed data into a distributed data warehouse, generates detailed analytical reports with visualizations, and sends real-time notifications to stakeholders across various communication channels including email, Slack, and webhooks',
+    stages: 8,
+  },
 ];
 
 export function FlowsSection() {

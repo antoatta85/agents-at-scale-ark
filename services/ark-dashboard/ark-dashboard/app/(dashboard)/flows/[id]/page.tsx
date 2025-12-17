@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -29,6 +28,228 @@ spec:
       image: docker/whalesay
       command: [cowsay]
       args: ["hello world"]`;
+
+const LARGE_MANIFEST = `apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: complex-data-pipeline-
+  labels:
+    workflows.argoproj.io/archive-strategy: "false"
+  annotations:
+    workflows.argoproj.io/description: |
+      This is a complex multi-stage data processing pipeline that demonstrates
+      various Argo Workflows features including DAG execution, parameter passing,
+      conditional execution, and artifact management across multiple stages.
+spec:
+  entrypoint: main-dag
+  arguments:
+    parameters:
+    - name: data-source
+      value: "s3://my-bucket/input-data"
+    - name: processing-mode
+      value: "batch"
+    - name: batch-size
+      value: "1000"
+    - name: parallel-workers
+      value: "5"
+
+  volumeClaimTemplates:
+  - metadata:
+      name: workdir
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+
+  templates:
+  - name: main-dag
+    dag:
+      tasks:
+      - name: validate-input
+        template: validate
+        arguments:
+          parameters:
+          - name: source
+            value: "{{workflow.parameters.data-source}}"
+
+      - name: data-extraction
+        dependencies: [validate-input]
+        template: extract-data
+        arguments:
+          parameters:
+          - name: source
+            value: "{{workflow.parameters.data-source}}"
+          - name: batch-size
+            value: "{{workflow.parameters.batch-size}}"
+
+      - name: data-transformation
+        dependencies: [data-extraction]
+        template: transform-data
+        arguments:
+          parameters:
+          - name: mode
+            value: "{{workflow.parameters.processing-mode}}"
+          - name: workers
+            value: "{{workflow.parameters.parallel-workers}}"
+          artifacts:
+          - name: raw-data
+            from: "{{tasks.data-extraction.outputs.artifacts.extracted-data}}"
+
+      - name: quality-check
+        dependencies: [data-transformation]
+        template: validate-quality
+        arguments:
+          artifacts:
+          - name: processed-data
+            from: "{{tasks.data-transformation.outputs.artifacts.transformed-data}}"
+
+      - name: load-to-warehouse
+        dependencies: [quality-check]
+        template: load-data
+        when: "{{tasks.quality-check.outputs.result}} == Passed"
+        arguments:
+          artifacts:
+          - name: final-data
+            from: "{{tasks.data-transformation.outputs.artifacts.transformed-data}}"
+
+      - name: generate-report
+        dependencies: [load-to-warehouse]
+        template: create-report
+        arguments:
+          parameters:
+          - name: warehouse-location
+            value: "{{tasks.load-to-warehouse.outputs.parameters.location}}"
+
+      - name: send-notification
+        dependencies: [generate-report]
+        template: notify
+        arguments:
+          parameters:
+          - name: status
+            value: "success"
+          - name: report-url
+            value: "{{tasks.generate-report.outputs.parameters.report-url}}"
+
+  - name: validate
+    inputs:
+      parameters:
+      - name: source
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Validating data source {{inputs.parameters.source}} && sleep 2"]
+
+  - name: extract-data
+    inputs:
+      parameters:
+      - name: source
+      - name: batch-size
+    outputs:
+      artifacts:
+      - name: extracted-data
+        path: /tmp/extracted-data.json
+    container:
+      image: python:3.9
+      command: [python]
+      args: ["-c", "import json; import time; data={'records': [{'id': i} for i in range(100)]}; time.sleep(5); open('/tmp/extracted-data.json', 'w').write(json.dumps(data))"]
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "500m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
+
+  - name: transform-data
+    inputs:
+      parameters:
+      - name: mode
+      - name: workers
+      artifacts:
+      - name: raw-data
+        path: /tmp/raw-data.json
+    outputs:
+      artifacts:
+      - name: transformed-data
+        path: /tmp/transformed-data.json
+    container:
+      image: python:3.9
+      command: [python]
+      args:
+      - "-c"
+      - |
+        import json
+        import time
+        with open('/tmp/raw-data.json') as f:
+          data = json.load(f)
+        # Simulate transformation
+        time.sleep(10)
+        transformed = {'processed': len(data['records']), 'mode': '{{inputs.parameters.mode}}'}
+        with open('/tmp/transformed-data.json', 'w') as f:
+          json.dump(transformed, f)
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: "1000m"
+        limits:
+          memory: "2Gi"
+          cpu: "2000m"
+
+  - name: validate-quality
+    inputs:
+      artifacts:
+      - name: processed-data
+        path: /tmp/data.json
+    outputs:
+      result:
+        value: "Passed"
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Running quality checks && sleep 3 && echo Passed"]
+
+  - name: load-data
+    inputs:
+      artifacts:
+      - name: final-data
+        path: /tmp/final-data.json
+    outputs:
+      parameters:
+      - name: location
+        valueFrom:
+          path: /tmp/warehouse-location.txt
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo 'warehouse://processed-data/batch-001' > /tmp/warehouse-location.txt && sleep 5"]
+
+  - name: create-report
+    inputs:
+      parameters:
+      - name: warehouse-location
+    outputs:
+      parameters:
+      - name: report-url
+        value: "https://reports.example.com/pipeline-report-{{workflow.name}}.html"
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Generating report for {{inputs.parameters.warehouse-location}} && sleep 3"]
+
+  - name: notify
+    inputs:
+      parameters:
+      - name: status
+      - name: report-url
+    container:
+      image: curlimages/curl:latest
+      command: [sh, -c]
+      args:
+      - |
+        echo "Sending notification: Pipeline {{inputs.parameters.status}}"
+        echo "Report available at: {{inputs.parameters.report-url}}"
+        sleep 2`;
 
 const MOCK_FLOWS: Flow[] = [
   {
@@ -62,6 +283,13 @@ const MOCK_FLOWS: Flow[] = [
     title: 'Data Validation Workflow',
     stages: 4,
     manifest: EXAMPLE_MANIFEST,
+  },
+  {
+    id: 'd8e9f0a1-2b3c-4d5e-6f7a-8b9c0d1e2f3a',
+    title: 'Enterprise-Grade Multi-Stage Data Processing Pipeline with Advanced Quality Checks, Automated Reporting, and Real-Time Notification System',
+    description: 'This comprehensive workflow orchestrates a complex data pipeline that extracts data from multiple sources, performs sophisticated transformations using parallel processing, validates data quality through multiple checkpoints, loads the processed data into a distributed data warehouse, generates detailed analytical reports with visualizations, and sends real-time notifications to stakeholders across various communication channels including email, Slack, and webhooks',
+    stages: 8,
+    manifest: LARGE_MANIFEST,
   },
 ];
 
@@ -142,10 +370,10 @@ export default function FlowDetailPage() {
       <div className="flex flex-col gap-6 p-6">
         <div className="bg-card flex w-full flex-wrap items-center gap-4 rounded-md border px-4 py-3">
           <div className="flex flex-grow items-center gap-3 overflow-hidden">
-            <div className="relative">
-              <Workflow className="text-muted-foreground h-5 w-5 flex-shrink-0" />
+            <div className="relative p-2">
+              <Workflow className="text-muted-foreground h-8 w-8 flex-shrink-0" />
               {isComposerFlow && (
-                <Sparkle className="absolute -top-1 -right-1 h-2.5 w-2.5 fill-primary text-primary opacity-60" />
+                <Sparkle className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 fill-primary text-primary opacity-60" />
               )}
             </div>
 
