@@ -18,6 +18,7 @@ import type {
 import { useEffect, useRef, useState } from 'react';
 
 import { isChatStreamingEnabledAtom } from '@/atoms/experimental-features';
+import { A2ATaskLink } from '@/components/a2a-task-link';
 import { ChatMessage } from '@/components/chat/chat-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -393,14 +394,28 @@ export default function FloatingChat({
                       .join('\n');
                   }
 
-                  return content ? (
-                    <ChatMessage
-                      key={index}
-                      role={message.role as 'user' | 'assistant' | 'system'}
-                      content={content}
-                      viewMode={viewMode}
-                    />
-                  ) : null;
+                  const metadata = messageMetadata.get(index);
+                  const hasTaskId = metadata?.taskId;
+
+                  return (
+                    <div key={index}>
+                      {content ? (
+                        <ChatMessage
+                          role={message.role as 'user' | 'assistant' | 'system'}
+                          content={content}
+                          viewMode={viewMode}
+                        />
+                      ) : null}
+                      {hasTaskId && metadata && (
+                        <div className="mt-2">
+                          <A2ATaskLink
+                            taskId={metadata.taskId}
+                            artifactCount={metadata.artifactIds?.length}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
                 })}
 
                 {/* Show typing indicator when processing */}
