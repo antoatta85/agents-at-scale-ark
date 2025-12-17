@@ -50,6 +50,21 @@ streaming:
   # Enable streaming support via ConfigMap (creates 'ark-config-streaming' when enabled)
   enabled: true
 
+# OTEL environment variable secrets - creates secrets in specified namespaces
+# To use in deployments, add this to container spec:
+#   envFrom:
+#   - secretRef:
+#       name: otel-environment-variables
+#       optional: true
+#
+# Note: Existing deployments must be restarted to pick up new/updated secrets:
+#   kubectl rollout restart deployment/<name> -n <namespace>
+otelEnvironmentVariableSecrets:
+  enabled: false
+  namespaces:
+    - ark-system
+    - default
+
 # Persistence configuration
 persistence:
   enabled: false

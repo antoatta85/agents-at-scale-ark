@@ -6,6 +6,7 @@ import { TraceStore } from './trace-store.js';
 import { createMemoryRouter } from './routes/memory.js';
 import { createStreamRouter } from './routes/stream.js';
 import { createTracesRouter } from './routes/traces.js';
+import { createOTLPRouter } from './routes/otlp.js';
 
 const app = express();
 const memory = new MemoryStore();
@@ -118,6 +119,7 @@ app.get('/stream-statistics', (req, res) => {
 app.use('/', createMemoryRouter(memory));
 app.use('/stream', createStreamRouter(stream));
 app.use('/traces', createTracesRouter(traces));
+app.use('/v1', createOTLPRouter(traces));
 
 // Error handling
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
