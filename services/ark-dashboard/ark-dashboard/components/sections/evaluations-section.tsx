@@ -43,7 +43,10 @@ import {
 } from '@/components/ui/tooltip';
 import type { components } from '@/lib/api/generated/types';
 import { DASHBOARD_SECTIONS } from '@/lib/constants';
-import type { Evaluation, EvaluationDetailResponse } from '@/lib/services';
+import type {
+  EvaluationDetailResponse,
+  EvaluationResponse,
+} from '@/lib/services';
 import { evaluationsService } from '@/lib/services/evaluations';
 import { useGetAllEvaluationsWithDetails } from '@/lib/services/evaluations-hooks';
 import { formatAge } from '@/lib/utils/time';
@@ -105,14 +108,13 @@ export const EvaluationsSection = forwardRef<
   EvaluationsSectionProps
 >(function EvaluationsSection({ initialQueryFilter }, ref) {
   const [evaluations, setEvaluations] = useState<
-    (Evaluation | EvaluationDetailResponse)[]
+    (EvaluationResponse | EvaluationDetailResponse)[]
   >([]);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingEvaluation, setEditingEvaluation] = useState<Evaluation | null>(
-    null,
-  );
+  const [editingEvaluation, setEditingEvaluation] =
+    useState<EvaluationResponse | null>(null);
   const [activeTab, setActiveTab] = useState('standard');
   const [filters, setFilters] = useState<EvaluationFilters>({
     search: initialQueryFilter || '',
@@ -168,7 +170,7 @@ export const EvaluationsSection = forwardRef<
   }, []);
 
   const getEvaluatorDisplay = (
-    evaluation: Evaluation | EvaluationDetailResponse,
+    evaluation: EvaluationResponse | EvaluationDetailResponse,
   ) => {
     // First try to get from spec if available (detailed API response)
     const spec = (evaluation as EvaluationDetailResponse)?.spec;
@@ -221,7 +223,7 @@ export const EvaluationsSection = forwardRef<
   };
 
   const getQueryRefDisplay = (
-    evaluation: Evaluation | EvaluationDetailResponse,
+    evaluation: EvaluationResponse | EvaluationDetailResponse,
   ) => {
     // First try to get from spec if available (detailed API response)
     const spec = (evaluation as EvaluationDetailResponse)?.spec;
@@ -285,17 +287,19 @@ export const EvaluationsSection = forwardRef<
   };
 
   const getTypeDisplay = (
-    evaluation: Evaluation | EvaluationDetailResponse,
+    evaluation: EvaluationResponse | EvaluationDetailResponse,
   ) => {
     const spec = (evaluation as EvaluationDetailResponse)?.spec;
     const specMode = spec?.type as string;
-    const basicMode = (evaluation as Evaluation).type;
+    const basicMode = (evaluation as EvaluationResponse).type;
     return specMode || basicMode || 'unknown';
   };
 
-  const getStatus = (evaluation: Evaluation | EvaluationDetailResponse) => {
+  const getStatus = (
+    evaluation: EvaluationResponse | EvaluationDetailResponse,
+  ) => {
     // Try to get phase from basic evaluation first
-    let phase = (evaluation as Evaluation).phase;
+    let phase = (evaluation as EvaluationResponse).phase;
 
     // If not found, try to get from detailed response status
     if (!phase) {
@@ -308,11 +312,12 @@ export const EvaluationsSection = forwardRef<
   };
 
   const getScoreDisplay = (
-    evaluation: Evaluation | EvaluationDetailResponse,
+    evaluation: EvaluationResponse | EvaluationDetailResponse,
   ) => {
     // Try to get score from basic evaluation first
-    let score: string | number | null | undefined = (evaluation as Evaluation)
-      .score;
+    let score: string | number | null | undefined = (
+      evaluation as EvaluationResponse
+    ).score;
 
     // If not found, try to get from detailed response status
     if (score === null || score === undefined) {
@@ -328,10 +333,10 @@ export const EvaluationsSection = forwardRef<
   };
 
   const getPassedDisplay = (
-    evaluation: Evaluation | EvaluationDetailResponse,
+    evaluation: EvaluationResponse | EvaluationDetailResponse,
   ) => {
     // Try to get passed from basic evaluation first
-    let passed = (evaluation as Evaluation).passed;
+    let passed = (evaluation as EvaluationResponse).passed;
 
     // If not found, try to get from detailed response status
     if (passed === null || passed === undefined) {
@@ -415,7 +420,7 @@ export const EvaluationsSection = forwardRef<
     // Pass/Fail filter
     if (filters.passed !== 'all') {
       // Try to get passed from basic evaluation first
-      let passed = (evaluation as Evaluation).passed;
+      let passed = (evaluation as EvaluationResponse).passed;
 
       // If not found, try to get from detailed response status
       if (passed === null || passed === undefined) {
@@ -437,8 +442,9 @@ export const EvaluationsSection = forwardRef<
     // Score range filter
     if (filters.scoreMin || filters.scoreMax) {
       // Try to get score from basic evaluation first
-      let score: string | number | null | undefined = (evaluation as Evaluation)
-        .score;
+      let score: string | number | null | undefined = (
+        evaluation as EvaluationResponse
+      ).score;
 
       // If not found, try to get from detailed response status
       if (score === null || score === undefined) {
@@ -515,7 +521,7 @@ export const EvaluationsSection = forwardRef<
       let bScore: number = 0;
 
       // Get aScore as number
-      const aScoreRaw = (a as Evaluation).score;
+      const aScoreRaw = (a as EvaluationResponse).score;
       if (aScoreRaw !== null && aScoreRaw !== undefined) {
         aScore =
           typeof aScoreRaw === 'number'
@@ -532,7 +538,7 @@ export const EvaluationsSection = forwardRef<
       }
 
       // Get bScore as number
-      const bScoreRaw = (b as Evaluation).score;
+      const bScoreRaw = (b as EvaluationResponse).score;
       if (bScoreRaw !== null && bScoreRaw !== undefined) {
         bScore =
           typeof bScoreRaw === 'number'
@@ -551,8 +557,8 @@ export const EvaluationsSection = forwardRef<
       return sortDirection === 'desc' ? bScore - aScore : aScore - bScore;
     } else if (sortField === 'status') {
       // Get status using the same logic as getStatus
-      let aStatus = (a as Evaluation).phase || 'pending';
-      let bStatus = (b as Evaluation).phase || 'pending';
+      let aStatus = (a as EvaluationResponse).phase || 'pending';
+      let bStatus = (b as EvaluationResponse).phase || 'pending';
 
       if (!aStatus || aStatus === 'pending') {
         const aDetailedStatus = (a as EvaluationDetailResponse)
@@ -669,9 +675,9 @@ export const EvaluationsSection = forwardRef<
   };
 
   const handleEditEvaluation = (
-    evaluation: Evaluation | EvaluationDetailResponse,
+    evaluation: EvaluationResponse | EvaluationDetailResponse,
   ) => {
-    setEditingEvaluation(evaluation as Evaluation);
+    setEditingEvaluation(evaluation as EvaluationResponse);
     setEditorOpen(true);
   };
 
@@ -835,7 +841,8 @@ export const EvaluationsSection = forwardRef<
                       <span
                         className={`text-lg ${(() => {
                           // Get passed value using the same logic as getPassedDisplay
-                          let passed = (evaluation as Evaluation).passed;
+                          let passed = (evaluation as EvaluationResponse)
+                            .passed;
                           if (passed === null || passed === undefined) {
                             const detailedStatus = (
                               evaluation as EvaluationDetailResponse

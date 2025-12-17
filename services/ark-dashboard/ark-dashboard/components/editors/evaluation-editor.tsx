@@ -35,7 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { components } from '@/lib/api/generated/types';
 import {
   type Agent,
-  type Evaluation,
+  type EvaluationResponse,
   type Evaluator,
   type Model,
   type Team,
@@ -54,7 +54,7 @@ type QueryResponse = components['schemas']['QueryResponse'];
 interface EvaluationEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  evaluation: Evaluation | null;
+  evaluation: EvaluationResponse | null;
   onSave: (
     evaluation: (EvaluationCreateRequest | EvaluationUpdateRequest) & {
       id?: string;
