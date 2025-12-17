@@ -718,6 +718,35 @@ func (r *EvaluatorReconciler) mergeEvaluationMetadata(query *arkv1alpha1.Query, 
 	return evaluationLabels, annotationsMap
 }
 
+// mergeEvaluationMetadata merges query metadata (labels and annotations) into evaluation metadata
+func (r *EvaluatorReconciler) mergeEvaluationMetadata(query *arkv1alpha1.Query, evaluator *arkv1alpha1.Evaluator) (map[string]string, map[string]string) {
+	// Merge labels: copy all labels from query, then set required labels (these take precedence)
+	evaluationLabels := make(map[string]string)
+	if query.Labels != nil {
+		for k, v := range query.Labels {
+			evaluationLabels[k] = v
+		}
+	}
+	// Required labels take precedence
+	evaluationLabels[annotations.Evaluator] = evaluator.Name
+	evaluationLabels[annotations.Query] = query.Name
+	evaluationLabels[annotations.Auto] = "true"
+
+	// Merge annotations: copy all annotations from query, then set required annotations (these take precedence)
+	annotationsMap := make(map[string]string)
+	if query.Annotations != nil {
+		for k, v := range query.Annotations {
+			annotationsMap[k] = v
+		}
+	}
+	
+	// Required annotations take precedence
+	annotationsMap[annotations.QueryGeneration] = fmt.Sprintf("%d", query.Generation)
+	annotationsMap[annotations.QueryPhase] = query.Status.Phase
+
+	return evaluationLabels, annotationsMap
+}
+
 // createEvaluationForQuery creates an evaluation for a specific query
 func (r *EvaluatorReconciler) createEvaluationForQuery(ctx context.Context, evaluator *arkv1alpha1.Evaluator, query *arkv1alpha1.Query) error {
 	log := logf.FromContext(ctx)

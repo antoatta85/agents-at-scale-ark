@@ -86,7 +86,7 @@ var _ = Describe("Evaluator Controller", func() {
 						"environment":       "production",
 					},
 					Annotations: map[string]string{
-						"ark.mckinsey.com/run-id":     "run-123",
+						"ark.mckinsey.com/run-id":    "run-123",
 						"ark.mckinsey.com/session-id": "session-456",
 					},
 				},
@@ -129,11 +129,11 @@ var _ = Describe("Evaluator Controller", func() {
 					Labels: map[string]string{
 						annotations.Evaluator: "wrong-evaluator",
 						annotations.Query:     "wrong-query",
-						annotations.Auto:      "false",
+						annotations.Auto:       "false",
 					},
 					Annotations: map[string]string{
 						annotations.QueryGeneration: "999",
-						annotations.QueryPhase:      "wrong-phase",
+						annotations.QueryPhase:       "wrong-phase",
 					},
 				},
 				Status: arkv1alpha1.QueryStatus{

@@ -839,7 +839,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/memories/{name}/sessions/{session_id}/messages": {
+    "/v1/memories/{name}/conversations/{conversation_id}/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -848,9 +848,9 @@ export interface paths {
         };
         /**
          * Get Memory Messages
-         * @description Get messages for a specific session from a memory resource.
+         * @description Get messages for a specific conversation from a memory resource.
          */
-        get: operations["get_memory_messages_v1_memories__name__sessions__session_id__messages_get"];
+        get: operations["get_memory_messages_v1_memories__name__conversations__conversation_id__messages_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -879,7 +879,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sessions": {
+    "/v1/conversations": {
         parameters: {
             query?: never;
             header?: never;
@@ -887,23 +887,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Sessions
-         * @description List all sessions in a namespace, optionally filtered by memory.
+         * List Conversations
+         * @description List all conversations in a namespace, optionally filtered by memory.
          */
-        get: operations["list_sessions_v1_sessions_get"];
+        get: operations["list_conversations_v1_conversations_get"];
         put?: never;
         post?: never;
         /**
-         * Delete All Sessions
-         * @description Delete all sessions and their messages.
+         * Delete All Conversations
+         * @description Delete all conversations and their messages.
          */
-        delete: operations["delete_all_sessions_v1_sessions_delete"];
+        delete: operations["delete_all_conversations_v1_conversations_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/sessions/{session_id}": {
+    "/v1/conversations/{conversation_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -914,16 +914,16 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Delete Session
-         * @description Delete a specific session and all its messages.
+         * Delete Conversation
+         * @description Delete a specific conversation and all its messages.
          */
-        delete: operations["delete_session_v1_sessions__session_id__delete"];
+        delete: operations["delete_conversation_v1_conversations__conversation_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/sessions/{session_id}/queries/{query_id}/messages": {
+    "/v1/conversations/{conversation_id}/queries/{query_id}/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -935,9 +935,9 @@ export interface paths {
         post?: never;
         /**
          * Delete Query Messages
-         * @description Delete messages for a specific query within a session.
+         * @description Delete messages for a specific query within a conversation.
          */
-        delete: operations["delete_query_messages_v1_sessions__session_id__queries__query_id__messages_delete"];
+        delete: operations["delete_query_messages_v1_conversations__conversation_id__queries__query_id__messages_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1090,7 +1090,11 @@ export interface paths {
          * @description Create a new evaluation.
          */
         post: operations["create_evaluation_v1_evaluations_post"];
-        delete?: never;
+        /**
+         * Bulk Delete Evaluations
+         * @description Bulk delete evaluations.
+         */
+        delete: operations["bulk_delete_evaluations_v1_evaluations_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2429,6 +2433,14 @@ export interface components {
             type: string;
             /** Phase */
             phase?: string | null;
+            /** Spec */
+            spec: {
+                [key: string]: unknown;
+            };
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
             /** Conditions */
             conditions?: {
                 [key: string]: unknown;
@@ -2440,6 +2452,28 @@ export interface components {
             /** Message */
             message?: string | null;
             enhanced_metadata?: components["schemas"]["UnifiedEvaluationMetadata"] | null;
+        };
+        /**
+         * EvaluationBulkDeleteRequest
+         * @description Request body for bulk deleting evaluations.
+         */
+        EvaluationBulkDeleteRequest: {
+            /** Names */
+            names: string[];
+        };
+        /**
+         * EvaluationBulkDeleteResponse
+         * @description Response for bulk deleting evaluations.
+         */
+        EvaluationBulkDeleteResponse: {
+            /** Message */
+            message: string;
+            /** Deleted */
+            deleted: number;
+            /** Failed */
+            failed: number;
+            /** Errors */
+            errors?: string[] | null;
         };
         /**
          * EvaluationConfig
@@ -2539,6 +2573,14 @@ export interface components {
             type: string;
             /** Phase */
             phase?: string | null;
+            /** Spec */
+            spec: {
+                [key: string]: unknown;
+            };
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
             /** Conditions */
             conditions?: {
                 [key: string]: unknown;
@@ -3103,8 +3145,8 @@ export interface components {
             timestamp?: string | null;
             /** Memoryname */
             memoryName: string;
-            /** Sessionid */
-            sessionId: string;
+            /** Conversationid */
+            conversationId: string;
             /** Queryid */
             queryId?: string | null;
             /** Message */
@@ -3598,11 +3640,11 @@ export interface components {
         };
         /**
          * SessionResponse
-         * @description Response model for a session.
+         * @description Response model for a conversation.
          */
         SessionResponse: {
-            /** Sessionid */
-            sessionId: string;
+            /** Conversationid */
+            conversationId: string;
             /** Memoryname */
             memoryName: string;
             /** Queries */
@@ -5960,7 +6002,7 @@ export interface operations {
             };
         };
     };
-    get_memory_messages_v1_memories__name__sessions__session_id__messages_get: {
+    get_memory_messages_v1_memories__name__conversations__conversation_id__messages_get: {
         parameters: {
             query?: {
                 /** @description Namespace for this request (defaults to current context) */
@@ -5969,7 +6011,7 @@ export interface operations {
             header?: never;
             path: {
                 name: string;
-                session_id: string;
+                conversation_id: string;
             };
             cookie?: never;
         };
@@ -6004,8 +6046,8 @@ export interface operations {
                 namespace?: string | null;
                 /** @description Filter by memory name */
                 memory?: string | null;
-                /** @description Filter by session ID */
-                session?: string | null;
+                /** @description Filter by conversation ID */
+                conversation?: string | null;
                 /** @description Filter by query ID */
                 query?: string | null;
             };
@@ -6035,7 +6077,7 @@ export interface operations {
             };
         };
     };
-    list_sessions_v1_sessions_get: {
+    list_conversations_v1_conversations_get: {
         parameters: {
             query?: {
                 /** @description Namespace for this request (defaults to current context) */
@@ -6069,7 +6111,7 @@ export interface operations {
             };
         };
     };
-    delete_all_sessions_v1_sessions_delete: {
+    delete_all_conversations_v1_conversations_delete: {
         parameters: {
             query?: {
                 /** @description Namespace for this request (defaults to current context) */
@@ -6103,7 +6145,7 @@ export interface operations {
             };
         };
     };
-    delete_session_v1_sessions__session_id__delete: {
+    delete_conversation_v1_conversations__conversation_id__delete: {
         parameters: {
             query?: {
                 /** @description Namespace for this request (defaults to current context) */
@@ -6111,7 +6153,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                session_id: string;
+                conversation_id: string;
             };
             cookie?: never;
         };
@@ -6139,7 +6181,7 @@ export interface operations {
             };
         };
     };
-    delete_query_messages_v1_sessions__session_id__queries__query_id__messages_delete: {
+    delete_query_messages_v1_conversations__conversation_id__queries__query_id__messages_delete: {
         parameters: {
             query?: {
                 /** @description Namespace for this request (defaults to current context) */
@@ -6147,7 +6189,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                session_id: string;
+                conversation_id: string;
                 query_id: string;
             };
             cookie?: never;
@@ -6399,6 +6441,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvaluationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_delete_evaluations_v1_evaluations_delete: {
+        parameters: {
+            query?: {
+                /** @description Namespace for this request (defaults to current context) */
+                namespace?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationBulkDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationBulkDeleteResponse"];
                 };
             };
             /** @description Validation Error */

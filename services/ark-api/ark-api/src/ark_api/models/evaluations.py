@@ -108,6 +108,8 @@ class EvaluationResponse(BaseModel):
     namespace: str
     type: str
     phase: Optional[str] = None
+    spec: dict
+    metadata: dict
     conditions: Optional[List[Dict[str, Any]]] = None
     score: Optional[str] = None
     passed: Optional[bool] = None
@@ -120,6 +122,8 @@ class EnhancedEvaluationResponse(BaseModel):
     namespace: str
     type: str
     phase: Optional[str] = None
+    spec: dict
+    metadata: dict
     conditions: Optional[List[Dict[str, Any]]] = None
     score: Optional[str] = None
     passed: Optional[bool] = None
@@ -147,6 +151,19 @@ class EvaluationCreateRequest(BaseModel):
     evaluator: EvaluatorReference
     ttl: Optional[str] = "720h"
     timeout: Optional[str] = "5m"
+
+
+class EvaluationBulkDeleteRequest(BaseModel):
+    """Request body for bulk deleting evaluations."""
+    names: List[str]
+
+
+class EvaluationBulkDeleteResponse(BaseModel):
+    """Response for bulk deleting evaluations."""
+    message: str
+    deleted: int
+    failed: int
+    errors: Optional[List[str]] = None
 
 
 class EvaluationUpdateRequest(BaseModel):
@@ -220,11 +237,16 @@ def evaluation_to_response(evaluation: dict) -> EvaluationResponse:
     """Convert a Kubernetes evaluation object to response model."""
     spec = evaluation.get("spec", {})
     status = evaluation.get("status", {})
+    metadata = evaluation.get("metadata", {})
+
+    print(f"evaluation: {evaluation}")
     
     return EvaluationResponse(
         name=evaluation["metadata"]["name"],
         namespace=evaluation["metadata"]["namespace"],
         type=spec.get("type", "direct"),
+        spec=spec,
+        metadata=metadata,
         phase=status.get("phase"),
         conditions=status.get("conditions"),
         score=status.get("score"),
@@ -268,6 +290,7 @@ def enhanced_evaluation_to_response(evaluation: dict) -> EnhancedEvaluationRespo
     """Convert a Kubernetes evaluation object to enhanced response model."""
     spec = evaluation.get("spec", {})
     status = evaluation.get("status", {})
+    metadata = evaluation.get("metadata", {})
     
     # Extract enhanced metadata from annotations
     enhanced_metadata = extract_unified_metadata_from_annotations(evaluation)
@@ -276,6 +299,8 @@ def enhanced_evaluation_to_response(evaluation: dict) -> EnhancedEvaluationRespo
         name=evaluation["metadata"]["name"],
         namespace=evaluation["metadata"]["namespace"],
         type=spec.get("type", "direct"),
+        spec=spec,
+        metadata=metadata,
         phase=status.get("phase"),
         conditions=status.get("conditions"),
         score=status.get("score"),
