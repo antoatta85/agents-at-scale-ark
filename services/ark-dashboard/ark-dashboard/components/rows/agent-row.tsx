@@ -1,8 +1,9 @@
 'use client';
 
-import { Bot, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import { Bot, MessageCircle, Pencil, Rocket, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
+import { AgentAPIDialog } from '@/components/dialogs/agent-api-dialog';
 import { ConfirmationDialog } from '@/components/dialogs/confirmation-dialog';
 import { AgentEditor } from '@/components/editors';
 import { AvailabilityStatusBadge } from '@/components/ui/availability-status-badge';
@@ -47,6 +48,7 @@ export function AgentRow({
   const isChatOpen = isOpen(agent.name);
   const [editorOpen, setEditorOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [apiDialogOpen, setApiDialogOpen] = useState(false);
 
   // Get the model name from the modelRef
   const modelName = agent.modelRef?.name || 'No model assigned';
@@ -129,6 +131,25 @@ export function AgentRow({
             </TooltipProvider>
           )}
 
+          {isA2A && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setApiDialogOpen(true)}>
+                    <Rocket className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Grab the API to use your agent anywhere
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -166,6 +187,13 @@ export function AgentRow({
           cancelText="Cancel"
           onConfirm={() => onDelete(agent.id)}
           variant="destructive"
+        />
+      )}
+      {isA2A && (
+        <AgentAPIDialog
+          open={apiDialogOpen}
+          onOpenChange={setApiDialogOpen}
+          agentName={agent.name}
         />
       )}
     </>
