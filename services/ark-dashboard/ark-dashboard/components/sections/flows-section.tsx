@@ -16,33 +16,30 @@ import { useDelayedLoading } from '@/lib/hooks';
 
 const MOCK_FLOWS: Flow[] = [
   {
-    id: '1',
+    id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     title: 'Customer Onboarding Flow',
     description: 'Automated workflow for onboarding new customers',
     stages: 5,
   },
   {
-    id: '2',
+    id: 'a3bb189e-8bf9-3888-9912-ace4e6543002',
     title: 'Invoice Processing',
     description: 'Extract and process invoice data from documents',
     stages: 3,
   },
   {
-    id: '3',
-    title: 'Support Ticket Triage',
-    description: 'Classify and route support tickets to appropriate teams',
+    id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
     stages: 4,
   },
   {
-    id: '4',
+    id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
     title: 'Content Moderation Pipeline',
     description: 'Review and moderate user-generated content',
     stages: 6,
   },
   {
-    id: '5',
+    id: '9f4e7c3a-5d6b-4e8f-9a2b-1c3d4e5f6a7b',
     title: 'Data Validation Workflow',
-    description: 'Validate and clean incoming data from multiple sources',
     stages: 4,
   },
 ];
