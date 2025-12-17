@@ -8,6 +8,7 @@ export interface Flow {
   title?: string;
   description?: string;
   stages: number;
+  manifest?: string;
 }
 
 interface FlowRowProps {
