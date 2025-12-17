@@ -27,7 +27,7 @@ Each of these conventions has been surfaced during architecture discussions. The
 - Read actual CRD definitions from `ark/api/v1alpha1/*_types.go` before showing examples
 
 **API Design**
-- Watch and SSE Streaming: For the Ark APIs service use a `?watch=true` query parameter for SSE streaming, meaning that our APIs are designed with 'Kubernetes Style' watch SSE*
+- Watch and SSE Streaming: For Ark APIs use `?watch=true` query parameter for SSE streaming (inspired by K8s watch semantics, but using SSE transport - `text/event-stream` with `data:` prefixed lines)
 - Real-time APIs for the Dashboard: The pattern is two-shot - first use classic REST to load resources and fetch `resource version` and then start a `watch=true` to real-time update on server side changes
 
 **Charts and Services**

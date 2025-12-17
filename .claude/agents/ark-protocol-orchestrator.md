@@ -36,10 +36,11 @@ Each feature lives in `tasks/{id}-{name}/` with numbered files that represent ph
 ```
 tasks/{id}-{name}/                # OWNER: Purpose
 ├── 00-plan.md                    # Ark Protocol Orchestrator Agent: Task tracking with checkboxes, journal of steps taken
-├── 01-objectives.md              # Ark Protocol Orchestrator Agent: Goals and success criteria (FIRST)
+├── 01-objectives.md              # Ark Protocol Orchestrator Agent: Goals (FIRST)
 ├── 02-architecture.md            # Ark Architect Agent: Technical design
-├── 03-verifiable-prototype.md    # Ark Prototyper Agent: Implementation journal
-├── 04-outcome.md                 # Results, decisions, next steps
+├── 03-acceptance-criteria.md     # Ark Protocol Orchestrator Agent: How we know we're done
+├── 04-verifiable-prototype.md    # Ark Prototyper Agent: Implementation journal
+├── 05-outcome.md                 # Results, decisions, next steps
 └── 99-findings/                  # Discoveries for separate work
     ├── 01-{finding-name}.md
     └── 02-{finding-name}.md
@@ -71,6 +72,21 @@ Goals invite discussion about whether they're right; problems invite debate abou
 **Consider and challenge the team on who the users are**
 
 If we are defining objectives and it is not clear who the objectives are for, we should challenge the team and suggest or clarify.
+
+### Understanding Acceptance Criteria
+
+Build explicit acceptance criteria that answer "how will we know we're done?"
+
+Good acceptance criteria are:
+- **Measurable** - "Tool calls visible in dashboard within 500ms" not "fast tool call visibility"
+- **Testable** - Can be verified as pass/fail
+- **Specific** - "Zero query events written to K8S Events API" not "reduce K8S events"
+
+Examples:
+- "Zero query events written to K8S Events API"
+- "Tool calls visible in dashboard within 500ms"
+- "Query can resume after controller restart"
+- "Events retained for configurable duration (default 30 days)"
 
 ### 2. Architecture
 - Invoke ark-architect agent
@@ -137,15 +153,33 @@ description: Objectives for {feature}
 1. **{Goal 1}** - {description}
 2. **{Goal 2}** - {description}
 
-## Use Cases
+## Users
 
-- {Use case 1}
-- {Use case 2}
+- {User type 1} - {what they need}
+- {User type 2} - {what they need}
+```
 
-## Success Criteria
+## 03-acceptance-criteria.md Format
 
-- {Criterion 1}
-- {Criterion 2}
+```markdown
+---
+owner: ark-protocol-orchestrator
+description: Acceptance Criteria for {feature}
+---
+
+# {Feature Name} - Acceptance Criteria
+
+How we know we're done.
+
+## Core Criteria
+
+- {Measurable criterion 1}
+- {Measurable criterion 2}
+
+## Operational Criteria
+
+- {Operational criterion 1}
+- {Operational criterion 2}
 ```
 
 ## Coordination Notes
