@@ -18,6 +18,7 @@ import type {
 import { useEffect, useRef, useState } from 'react';
 
 import { isChatStreamingEnabledAtom } from '@/atoms/experimental-features';
+import { A2ATaskLink } from '@/components/a2a-task-link';
 import { ChatMessage } from '@/components/chat/chat-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -42,6 +43,51 @@ interface FloatingChatProps {
   onClose: () => void;
 }
 
+interface MessageMetadata {
+  taskId: string;
+}
+
+interface CompletedQueryStatus {
+  phase: string;
+  conditions: {
+    type: string;
+    status: string;
+    lastTransitionTime: string;
+    reason: string;
+    message: string;
+  }[];
+  responses: {
+    a2a: {
+      contextId: string;
+      taskId: string;
+    };
+    content: string;
+  }[];
+}
+
+interface ArkMetadata {
+  completedQuery: {
+    status: CompletedQueryStatus;
+  };
+}
+
+interface ArkChunk extends ChatCompletionChunk {
+  ark: ArkMetadata;
+}
+
+function getA2ATaskFromArkChunk(chunk: ArkChunk): string | undefined {
+  const arkMetadata = (chunk as unknown as ArkChunk).ark;
+  if (
+    !arkMetadata ||
+    !arkMetadata.completedQuery ||
+    !arkMetadata.completedQuery.status.responses[0].a2a
+  ) {
+    return undefined;
+  }
+
+  return arkMetadata.completedQuery.status.responses[0].a2a.taskId;
+}
+
 export default function FloatingChat({
   name,
   type,
@@ -51,6 +97,9 @@ export default function FloatingChat({
   const [chatMessages, setChatMessages] = useState<
     ChatCompletionMessageParam[]
   >([]);
+  const [messageMetadata, setMessageMetadata] = useState<
+    Map<number, MessageMetadata>
+  >(new Map());
   const [currentMessage, setCurrentMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +175,17 @@ export default function FloatingChat({
             role: 'assistant',
             content: accumulatedContent,
           };
+          return updated;
+        });
+      }
+
+      const a2aTaskId = getA2ATaskFromArkChunk(chunk as unknown as ArkChunk);
+      if (a2aTaskId) {
+        setMessageMetadata(prev => {
+          const updated = new Map(prev);
+          updated.set(assistantMessageIndex, {
+            taskId: a2aTaskId,
+          });
           return updated;
         });
       }
@@ -393,14 +453,25 @@ export default function FloatingChat({
                       .join('\n');
                   }
 
-                  return content ? (
-                    <ChatMessage
-                      key={index}
-                      role={message.role as 'user' | 'assistant' | 'system'}
-                      content={content}
-                      viewMode={viewMode}
-                    />
-                  ) : null;
+                  const metadata = messageMetadata.get(index);
+                  const hasTaskId = metadata?.taskId;
+
+                  return (
+                    <div key={index}>
+                      {content ? (
+                        <ChatMessage
+                          role={message.role as 'user' | 'assistant' | 'system'}
+                          content={content}
+                          viewMode={viewMode}
+                        />
+                      ) : null}
+                      {hasTaskId && metadata && (
+                        <div className="mt-2">
+                          <A2ATaskLink taskId={metadata.taskId} />
+                        </div>
+                      )}
+                    </div>
+                  );
                 })}
 
                 {/* Show typing indicator when processing */}

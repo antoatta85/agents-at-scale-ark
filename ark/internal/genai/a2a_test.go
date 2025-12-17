@@ -205,7 +205,7 @@ func TestExtractTextFromTask(t *testing.T) {
 					},
 				},
 			},
-			expected:    "Here is a list of items in your chart:\n1. Bread - 1kg, Apples - 10, Eggs - 12",
+			expected:    "",
 			expectError: false,
 		},
 		{
@@ -230,7 +230,7 @@ func TestExtractTextFromTask(t *testing.T) {
 					},
 				},
 			},
-			expected:    "First artifact\nSecond artifact",
+			expected:    "",
 			expectError: false,
 		},
 		{
@@ -264,7 +264,7 @@ func TestExtractTextFromTask(t *testing.T) {
 					},
 				},
 			},
-			expected:    "Part 1 Part 2\nFirst artifact\nSecond artifact",
+			expected:    "Part 1 Part 2",
 			expectError: false,
 		},
 	}

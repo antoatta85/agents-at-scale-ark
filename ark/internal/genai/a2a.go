@@ -245,19 +245,9 @@ func extractTextFromTask(task *protocol.Task) (string, error) {
 
 	switch task.Status.State {
 	case TaskStateCompleted:
-		var text strings.Builder
-
-		text.WriteString(extractTextFromHistory(task.History))
-
-		if text.Len() > 0 && len(task.Artifacts) > 0 {
-			text.WriteString("\n")
-		}
-		text.WriteString(extractTextFromArtifacts(task.Artifacts))
-
-		return text.String(), nil
+		return extractTextFromHistory(task.History), nil
 
 	case TaskStateFailed:
-		// Extract error message from status.message
 		errorMsg := "task failed"
 		if task.Status.Message != nil && len(task.Status.Message.Parts) > 0 {
 			errorMsg = extractTextFromParts(task.Status.Message.Parts)
@@ -279,22 +269,6 @@ func extractTextFromHistory(history []protocol.Message) string {
 					text.WriteString("\n")
 				}
 				text.WriteString(msgText)
-			}
-		}
-	}
-	return text.String()
-}
-
-func extractTextFromArtifacts(artifacts []protocol.Artifact) string {
-	var text strings.Builder
-	for _, artifact := range artifacts {
-		if len(artifact.Parts) > 0 {
-			artifactText := extractTextFromParts(artifact.Parts)
-			if artifactText != "" {
-				if text.Len() > 0 {
-					text.WriteString("\n")
-				}
-				text.WriteString(artifactText)
 			}
 		}
 	}
