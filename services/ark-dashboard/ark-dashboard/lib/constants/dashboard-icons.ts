@@ -12,6 +12,7 @@ import {
   Server,
   Settings,
   Users,
+  Workflow,
   Wrench,
   Zap,
 } from 'lucide-react';
@@ -90,6 +91,12 @@ export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
     icon: ClipboardList,
     group: 'operations',
     enablerFeature: A2A_TASKS_FEATURE_KEY,
+  },
+  flows: {
+    key: 'flows',
+    title: 'Flows',
+    icon: Workflow,
+    group: 'operations',
   },
 
   // Runtime
