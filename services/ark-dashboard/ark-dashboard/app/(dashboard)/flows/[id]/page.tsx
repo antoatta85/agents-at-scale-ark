@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, Download, Sparkle, Workflow } from 'lucide-react';
+import { Copy, Download, FileCode, Network, Sparkle, Workflow } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -15,6 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { WorkflowDagViewer } from '@/components/workflow-dag-viewer';
 
 const EXAMPLE_MANIFEST = `apiVersion: argoproj.io/v1alpha1
 kind: Workflow
@@ -28,6 +30,135 @@ spec:
       image: docker/whalesay
       command: [cowsay]
       args: ["hello world"]`;
+
+const STEPS_MANIFEST = `apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: steps-workflow-
+spec:
+  entrypoint: main-steps
+  templates:
+  - name: main-steps
+    steps:
+    - - name: init
+        template: initialize
+
+    - - name: fetch-users
+        template: fetch-data
+      - name: fetch-products
+        template: fetch-data
+      - name: fetch-orders
+        template: fetch-data
+
+    - - name: process-users
+        template: process-data
+      - name: process-products
+        template: process-data
+      - name: process-orders
+        template: process-data
+
+    - - name: validate-users
+        template: validate
+      - name: validate-products
+        template: validate
+      - name: validate-orders
+        template: validate
+
+    - - name: aggregate
+        template: merge-data
+
+    - - name: index-search
+        template: build-index
+      - name: cache-warm
+        template: warm-cache
+      - name: metrics-update
+        template: update-metrics
+
+    - - name: health-check
+        template: verify
+
+    - - name: deploy-staging
+        template: deploy
+      - name: deploy-backup
+        template: deploy
+
+    - - name: smoke-test
+        template: test
+
+    - - name: notify-success
+        template: send-notification
+
+  - name: initialize
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Initializing workflow"]
+
+  - name: fetch-data
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Fetching data"]
+
+  - name: process-data
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Processing data"]
+
+  - name: validate
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Validating data"]
+
+  - name: merge-data
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Merging data"]
+
+  - name: build-index
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Building search index"]
+
+  - name: warm-cache
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Warming cache"]
+
+  - name: update-metrics
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Updating metrics"]
+
+  - name: verify
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Running health check"]
+
+  - name: deploy
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Deploying application"]
+
+  - name: test
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Running smoke tests"]
+
+  - name: send-notification
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo Sending notification"]`;
 
 const LARGE_MANIFEST = `apiVersion: argoproj.io/v1alpha1
 kind: Workflow
@@ -73,7 +204,7 @@ spec:
           - name: source
             value: "{{workflow.parameters.data-source}}"
 
-      - name: data-extraction
+      - name: extract-data
         dependencies: [validate-input]
         template: extract-data
         arguments:
@@ -83,53 +214,129 @@ spec:
           - name: batch-size
             value: "{{workflow.parameters.batch-size}}"
 
-      - name: data-transformation
-        dependencies: [data-extraction]
+      - name: transform-batch-1
+        dependencies: [extract-data]
         template: transform-data
         arguments:
           parameters:
-          - name: mode
-            value: "{{workflow.parameters.processing-mode}}"
-          - name: workers
-            value: "{{workflow.parameters.parallel-workers}}"
+          - name: batch-id
+            value: "batch-1"
           artifacts:
           - name: raw-data
-            from: "{{tasks.data-extraction.outputs.artifacts.extracted-data}}"
+            from: "{{tasks.extract-data.outputs.artifacts.extracted-data}}"
 
-      - name: quality-check
-        dependencies: [data-transformation]
+      - name: transform-batch-2
+        dependencies: [extract-data]
+        template: transform-data
+        arguments:
+          parameters:
+          - name: batch-id
+            value: "batch-2"
+          artifacts:
+          - name: raw-data
+            from: "{{tasks.extract-data.outputs.artifacts.extracted-data}}"
+
+      - name: transform-batch-3
+        dependencies: [extract-data]
+        template: transform-data
+        arguments:
+          parameters:
+          - name: batch-id
+            value: "batch-3"
+          artifacts:
+          - name: raw-data
+            from: "{{tasks.extract-data.outputs.artifacts.extracted-data}}"
+
+      - name: validate-batch-1
+        dependencies: [transform-batch-1]
         template: validate-quality
         arguments:
           artifacts:
           - name: processed-data
-            from: "{{tasks.data-transformation.outputs.artifacts.transformed-data}}"
+            from: "{{tasks.transform-batch-1.outputs.artifacts.transformed-data}}"
 
-      - name: load-to-warehouse
+      - name: validate-batch-2
+        dependencies: [transform-batch-2]
+        template: validate-quality
+        arguments:
+          artifacts:
+          - name: processed-data
+            from: "{{tasks.transform-batch-2.outputs.artifacts.transformed-data}}"
+
+      - name: validate-batch-3
+        dependencies: [transform-batch-3]
+        template: validate-quality
+        arguments:
+          artifacts:
+          - name: processed-data
+            from: "{{tasks.transform-batch-3.outputs.artifacts.transformed-data}}"
+
+      - name: merge-results
+        dependencies: [validate-batch-1, validate-batch-2, validate-batch-3]
+        template: merge-data
+        arguments:
+          artifacts:
+          - name: batch-1
+            from: "{{tasks.validate-batch-1.outputs.artifacts.validated-data}}"
+          - name: batch-2
+            from: "{{tasks.validate-batch-2.outputs.artifacts.validated-data}}"
+          - name: batch-3
+            from: "{{tasks.validate-batch-3.outputs.artifacts.validated-data}}"
+
+      - name: quality-check
+        dependencies: [merge-results]
+        template: final-quality-check
+        arguments:
+          artifacts:
+          - name: merged-data
+            from: "{{tasks.merge-results.outputs.artifacts.merged-data}}"
+
+      - name: load-warehouse
         dependencies: [quality-check]
         template: load-data
         when: "{{tasks.quality-check.outputs.result}} == Passed"
         arguments:
           artifacts:
           - name: final-data
-            from: "{{tasks.data-transformation.outputs.artifacts.transformed-data}}"
+            from: "{{tasks.merge-results.outputs.artifacts.merged-data}}"
 
-      - name: generate-report
-        dependencies: [load-to-warehouse]
+      - name: generate-stats
+        dependencies: [quality-check]
+        template: compute-statistics
+        arguments:
+          artifacts:
+          - name: data
+            from: "{{tasks.merge-results.outputs.artifacts.merged-data}}"
+
+      - name: create-backup
+        dependencies: [quality-check]
+        template: backup-data
+        arguments:
+          artifacts:
+          - name: data
+            from: "{{tasks.merge-results.outputs.artifacts.merged-data}}"
+
+      - name: final-report
+        dependencies: [load-warehouse, generate-stats, create-backup]
         template: create-report
         arguments:
           parameters:
           - name: warehouse-location
-            value: "{{tasks.load-to-warehouse.outputs.parameters.location}}"
+            value: "{{tasks.load-warehouse.outputs.parameters.location}}"
+          - name: stats-summary
+            value: "{{tasks.generate-stats.outputs.parameters.summary}}"
+          - name: backup-location
+            value: "{{tasks.create-backup.outputs.parameters.location}}"
 
       - name: send-notification
-        dependencies: [generate-report]
+        dependencies: [final-report]
         template: notify
         arguments:
           parameters:
           - name: status
             value: "success"
           - name: report-url
-            value: "{{tasks.generate-report.outputs.parameters.report-url}}"
+            value: "{{tasks.final-report.outputs.parameters.report-url}}"
 
   - name: validate
     inputs:
@@ -291,6 +498,13 @@ const MOCK_FLOWS: Flow[] = [
     stages: 8,
     manifest: LARGE_MANIFEST,
   },
+  {
+    id: 'e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b',
+    title: 'Multi-Stage Deployment Pipeline',
+    description: 'Step-based workflow demonstrating parallel data fetching, processing, validation, deployment, and testing across multiple environments with comprehensive monitoring and notification',
+    stages: 10,
+    manifest: STEPS_MANIFEST,
+  },
 ];
 
 export default function FlowDetailPage() {
@@ -437,9 +651,26 @@ export default function FlowDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <pre className="bg-muted rounded-lg p-4 overflow-x-auto text-xs font-mono">
-                <code>{flow.manifest}</code>
-              </pre>
+              <Tabs defaultValue="yaml">
+                <TabsList>
+                  <TabsTrigger value="yaml">
+                    <FileCode className="mr-2 h-4 w-4" />
+                    YAML
+                  </TabsTrigger>
+                  <TabsTrigger value="tree">
+                    <Network className="mr-2 h-4 w-4" />
+                    Tree
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="yaml">
+                  <pre className="bg-muted rounded-lg p-4 overflow-x-auto text-xs font-mono">
+                    <code>{flow.manifest}</code>
+                  </pre>
+                </TabsContent>
+                <TabsContent value="tree">
+                  <WorkflowDagViewer manifest={flow.manifest} />
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         )}

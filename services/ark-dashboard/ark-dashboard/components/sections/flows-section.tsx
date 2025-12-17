@@ -48,6 +48,12 @@ const MOCK_FLOWS: Flow[] = [
     description: 'This comprehensive workflow orchestrates a complex data pipeline that extracts data from multiple sources, performs sophisticated transformations using parallel processing, validates data quality through multiple checkpoints, loads the processed data into a distributed data warehouse, generates detailed analytical reports with visualizations, and sends real-time notifications to stakeholders across various communication channels including email, Slack, and webhooks',
     stages: 8,
   },
+  {
+    id: 'e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b',
+    title: 'Multi-Stage Deployment Pipeline',
+    description: 'Step-based workflow demonstrating parallel data fetching, processing, validation, deployment, and testing across multiple environments with comprehensive monitoring and notification',
+    stages: 10,
+  },
 ];
 
 export function FlowsSection() {
