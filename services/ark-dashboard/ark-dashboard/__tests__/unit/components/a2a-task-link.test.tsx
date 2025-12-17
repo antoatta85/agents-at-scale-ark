@@ -82,7 +82,7 @@ describe('A2ATaskLink', () => {
     });
 
     const link = screen.getByRole('link', { name: /view task details/i });
-    expect(link).toHaveAttribute('href', '/tasks/task-123');
+    expect(link).toHaveAttribute('href', '/tasks/a2a-task-task-123');
     expect(screen.getByText(/2 artifacts/i)).toBeInTheDocument();
   });
 
@@ -102,15 +102,33 @@ describe('A2ATaskLink', () => {
             name: 'artifact-1',
             parts: [],
           },
+          {
+            artifactId: 'art-2',
+            name: 'artifact-2',
+            parts: [],
+          },
+          {
+            artifactId: 'art-3',
+            name: 'artifact-3',
+            parts: [],
+          },
+          {
+            artifactId: 'art-4',
+            name: 'artifact-4',
+            parts: [],
+          },
+          {
+            artifactId: 'art-5',
+            name: 'artifact-5',
+            parts: [],
+          },
         ],
       },
     };
 
     vi.mocked(a2aTasksService.get).mockResolvedValue(mockTask as any);
 
-    renderWithClient(
-      <A2ATaskLink taskId="task-456" artifactCount={5} />,
-    );
+    renderWithClient(<A2ATaskLink taskId="task-456" artifactCount={5} />);
 
     await waitFor(() => {
       expect(screen.getByText(/5 artifacts/i)).toBeInTheDocument();
@@ -207,7 +225,7 @@ describe('A2ATaskLink', () => {
 
     await waitFor(() => {
       const link = screen.getByRole('link', { name: /view task details/i });
-      expect(link).toHaveAttribute('href', '/tasks/custom-task-id');
+      expect(link).toHaveAttribute('href', '/tasks/a2a-task-custom-task-id');
     });
   });
 });
