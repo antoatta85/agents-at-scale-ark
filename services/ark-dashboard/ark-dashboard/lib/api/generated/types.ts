@@ -1764,10 +1764,7 @@ export interface components {
             /** Overrides */
             overrides?: components["schemas"]["Override-Input"][] | null;
         };
-        /**
-         * Annotation
-         * @description A URL citation when using web search.
-         */
+        /** Annotation */
         Annotation: {
             /**
              * Type
@@ -1778,10 +1775,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * AnnotationURLCitation
-         * @description A URL citation when using web search.
-         */
+        /** AnnotationURLCitation */
         AnnotationURLCitation: {
             /** End Index */
             end_index: number;
@@ -1843,11 +1837,7 @@ export interface components {
             /** Count */
             count: number;
         };
-        /**
-         * Audio
-         * @description Data about a previous audio response from the model.
-         *     [Learn more](https://platform.openai.com/docs/guides/audio).
-         */
+        /** Audio */
         Audio: {
             /** Id */
             id: string;
@@ -1974,10 +1964,7 @@ export interface components {
             /** Description */
             description?: string | null;
         };
-        /**
-         * ChatCompletion
-         * @description Represents a chat completion response returned by model, based on the provided input.
-         */
+        /** ChatCompletion */
         ChatCompletion: {
             /** Id */
             id: string;
@@ -2000,10 +1987,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * ChatCompletionAssistantMessageParam
-         * @description Messages sent by the model in response to user messages.
-         */
+        /** ChatCompletionAssistantMessageParam */
         "ChatCompletionAssistantMessageParam-Input": {
             /**
              * Role
@@ -2021,10 +2005,7 @@ export interface components {
             /** Tool Calls */
             tool_calls?: (components["schemas"]["ChatCompletionMessageFunctionToolCallParam-Input"] | components["schemas"]["ChatCompletionMessageCustomToolCallParam-Input"])[];
         };
-        /**
-         * ChatCompletionAssistantMessageParam
-         * @description Messages sent by the model in response to user messages.
-         */
+        /** ChatCompletionAssistantMessageParam */
         "ChatCompletionAssistantMessageParam-Output": {
             /**
              * Role
@@ -2042,11 +2023,7 @@ export interface components {
             /** Tool Calls */
             tool_calls?: (components["schemas"]["ChatCompletionMessageFunctionToolCallParam-Output"] | components["schemas"]["ChatCompletionMessageCustomToolCallParam-Output"])[];
         };
-        /**
-         * ChatCompletionAudio
-         * @description If the audio output modality is requested, this object contains data
-         *     about the audio response from the model. [Learn more](https://platform.openai.com/docs/guides/audio).
-         */
+        /** ChatCompletionAudio */
         ChatCompletionAudio: {
             /** Id */
             id: string;
@@ -2059,10 +2036,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * ChatCompletionContentPartImageParam
-         * @description Learn about [image inputs](https://platform.openai.com/docs/guides/vision).
-         */
+        /** ChatCompletionContentPartImageParam */
         ChatCompletionContentPartImageParam: {
             image_url: components["schemas"]["ImageURL"];
             /**
@@ -2071,10 +2045,7 @@ export interface components {
              */
             type: "image_url";
         };
-        /**
-         * ChatCompletionContentPartInputAudioParam
-         * @description Learn about [audio inputs](https://platform.openai.com/docs/guides/audio).
-         */
+        /** ChatCompletionContentPartInputAudioParam */
         ChatCompletionContentPartInputAudioParam: {
             input_audio: components["schemas"]["InputAudio"];
             /**
@@ -2093,10 +2064,7 @@ export interface components {
              */
             type: "refusal";
         };
-        /**
-         * ChatCompletionContentPartTextParam
-         * @description Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation).
-         */
+        /** ChatCompletionContentPartTextParam */
         ChatCompletionContentPartTextParam: {
             /** Text */
             text: string;
@@ -2106,12 +2074,7 @@ export interface components {
              */
             type: "text";
         };
-        /**
-         * ChatCompletionDeveloperMessageParam
-         * @description Developer-provided instructions that the model should follow, regardless of
-         *     messages sent by the user. With o1 models and newer, `developer` messages
-         *     replace the previous `system` messages.
-         */
+        /** ChatCompletionDeveloperMessageParam */
         ChatCompletionDeveloperMessageParam: {
             /** Content */
             content: string | components["schemas"]["ChatCompletionContentPartTextParam"][];
@@ -2135,10 +2098,7 @@ export interface components {
              */
             role: "function";
         };
-        /**
-         * ChatCompletionMessage
-         * @description A chat completion message generated by the model.
-         */
+        /** ChatCompletionMessage */
         ChatCompletionMessage: {
             /** Content */
             content?: string | null;
@@ -2158,10 +2118,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * ChatCompletionMessageCustomToolCall
-         * @description A call to a custom tool created by the model.
-         */
+        /** ChatCompletionMessageCustomToolCall */
         ChatCompletionMessageCustomToolCall: {
             /** Id */
             id: string;
@@ -2174,10 +2131,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * ChatCompletionMessageCustomToolCallParam
-         * @description A call to a custom tool created by the model.
-         */
+        /** ChatCompletionMessageCustomToolCallParam */
         "ChatCompletionMessageCustomToolCallParam-Input": {
             /** Id */
             id: string;
@@ -2188,10 +2142,7 @@ export interface components {
              */
             type: "custom";
         };
-        /**
-         * ChatCompletionMessageCustomToolCallParam
-         * @description A call to a custom tool created by the model.
-         */
+        /** ChatCompletionMessageCustomToolCallParam */
         "ChatCompletionMessageCustomToolCallParam-Output": {
             /** Id */
             id: string;
@@ -2202,10 +2153,7 @@ export interface components {
              */
             type: "custom";
         };
-        /**
-         * ChatCompletionMessageFunctionToolCall
-         * @description A call to a function tool created by the model.
-         */
+        /** ChatCompletionMessageFunctionToolCall */
         ChatCompletionMessageFunctionToolCall: {
             /** Id */
             id: string;
@@ -2218,10 +2166,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * ChatCompletionMessageFunctionToolCallParam
-         * @description A call to a function tool created by the model.
-         */
+        /** ChatCompletionMessageFunctionToolCallParam */
         "ChatCompletionMessageFunctionToolCallParam-Input": {
             /** Id */
             id: string;
@@ -2232,10 +2177,7 @@ export interface components {
              */
             type: "function";
         };
-        /**
-         * ChatCompletionMessageFunctionToolCallParam
-         * @description A call to a function tool created by the model.
-         */
+        /** ChatCompletionMessageFunctionToolCallParam */
         "ChatCompletionMessageFunctionToolCallParam-Output": {
             /** Id */
             id: string;
@@ -2269,12 +2211,7 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /**
-         * ChatCompletionSystemMessageParam
-         * @description Developer-provided instructions that the model should follow, regardless of
-         *     messages sent by the user. With o1 models and newer, use `developer` messages
-         *     for this purpose instead.
-         */
+        /** ChatCompletionSystemMessageParam */
         ChatCompletionSystemMessageParam: {
             /** Content */
             content: string | components["schemas"]["ChatCompletionContentPartTextParam"][];
@@ -2311,11 +2248,7 @@ export interface components {
             /** Tool Call Id */
             tool_call_id: string;
         };
-        /**
-         * ChatCompletionUserMessageParam
-         * @description Messages sent by an end user, containing prompts or additional context
-         *     information.
-         */
+        /** ChatCompletionUserMessageParam */
         "ChatCompletionUserMessageParam-Input": {
             /** Content */
             content: string | (components["schemas"]["ChatCompletionContentPartTextParam"] | components["schemas"]["ChatCompletionContentPartImageParam"] | components["schemas"]["ChatCompletionContentPartInputAudioParam"] | components["schemas"]["File"])[];
@@ -2327,11 +2260,7 @@ export interface components {
             /** Name */
             name?: string;
         };
-        /**
-         * ChatCompletionUserMessageParam
-         * @description Messages sent by an end user, containing prompts or additional context
-         *     information.
-         */
+        /** ChatCompletionUserMessageParam */
         "ChatCompletionUserMessageParam-Output": {
             /** Content */
             content: string | (components["schemas"]["ChatCompletionContentPartTextParam"] | components["schemas"]["ChatCompletionContentPartImageParam"] | components["schemas"]["ChatCompletionContentPartInputAudioParam"] | components["schemas"]["File"])[];
@@ -2371,10 +2300,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * ChoiceLogprobs
-         * @description Log probability information for the choice.
-         */
+        /** ChoiceLogprobs */
         ChoiceLogprobs: {
             /** Content */
             content?: components["schemas"]["ChatCompletionTokenLogprob"][] | null;
@@ -2383,10 +2309,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * CompletionTokensDetails
-         * @description Breakdown of tokens used in a completion.
-         */
+        /** CompletionTokensDetails */
         CompletionTokensDetails: {
             /** Accepted Prediction Tokens */
             accepted_prediction_tokens?: number | null;
@@ -2399,10 +2322,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * CompletionUsage
-         * @description Usage statistics for the completion request.
-         */
+        /** CompletionUsage */
         CompletionUsage: {
             /** Completion Tokens */
             completion_tokens: number;
@@ -2425,10 +2345,7 @@ export interface components {
             /** Cluster */
             cluster: string | null;
         };
-        /**
-         * Custom
-         * @description The custom tool that the model called.
-         */
+        /** Custom */
         Custom: {
             /** Input */
             input: string;
@@ -2437,10 +2354,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * Custom
-         * @description The custom tool that the model called.
-         */
+        /** Custom */
         "Custom-Input": {
             /** Input */
             input: string;
@@ -2656,6 +2570,37 @@ export interface components {
             timeout?: string | null;
         };
         /**
+         * EvaluatorBatchConfig
+         * @description Configuration for batch evaluation mode.
+         * @example {
+         *       "concurrency": 10,
+         *       "continue_on_failure": true,
+         *       "group_by_label": "run-id",
+         *       "name": "daily-batch",
+         *       "update_mode": "immutable"
+         *     }
+         */
+        EvaluatorBatchConfig: {
+            /** Name */
+            name?: string | null;
+            /** Update Mode */
+            update_mode: string;
+            /** Group By Label */
+            group_by_label?: string | null;
+            /** Group By Annotation */
+            group_by_annotation?: string | null;
+            /**
+             * Concurrency
+             * @default 10
+             */
+            concurrency: number | null;
+            /**
+             * Continue On Failure
+             * @default true
+             */
+            continue_on_failure: boolean | null;
+        };
+        /**
          * EvaluatorCreateRequest
          * @description Request body for creating an evaluator.
          */
@@ -2668,6 +2613,19 @@ export interface components {
             selector?: components["schemas"]["ResourceSelector"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ark_api__models__evaluators__Parameter"][] | null;
+            /**
+             * Query Age Filter
+             * @default all
+             */
+            query_age_filter: string | null;
+            /** Created After */
+            created_after?: string | null;
+            /**
+             * Evaluation Mode
+             * @default individual
+             */
+            evaluation_mode: string | null;
+            batch_config?: components["schemas"]["EvaluatorBatchConfig"] | null;
         };
         /**
          * EvaluatorDetailResponse
@@ -2744,6 +2702,13 @@ export interface components {
             selector?: components["schemas"]["ResourceSelector"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ark_api__models__evaluators__Parameter"][] | null;
+            /** Query Age Filter */
+            query_age_filter?: string | null;
+            /** Created After */
+            created_after?: string | null;
+            /** Evaluation Mode */
+            evaluation_mode?: string | null;
+            batch_config?: components["schemas"]["EvaluatorBatchConfig"] | null;
         };
         /**
          * EventEvaluationMetadata
@@ -2837,10 +2802,7 @@ export interface components {
             /** Namespace */
             namespace?: string | null;
         };
-        /**
-         * File
-         * @description Learn about [file inputs](https://platform.openai.com/docs/guides/text) for text generation.
-         */
+        /** File */
         File: {
             file: components["schemas"]["FileFile"];
             /**
@@ -2858,10 +2820,7 @@ export interface components {
             /** Filename */
             filename?: string;
         };
-        /**
-         * Function
-         * @description The function that the model called.
-         */
+        /** Function */
         Function: {
             /** Arguments */
             arguments: string;
@@ -2870,22 +2829,14 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * Function
-         * @description The function that the model called.
-         */
+        /** Function */
         "Function-Input": {
             /** Arguments */
             arguments: string;
             /** Name */
             name: string;
         };
-        /**
-         * FunctionCall
-         * @description Deprecated and replaced by `tool_calls`.
-         *
-         *     The name and arguments of a function that should be called, as generated by the model.
-         */
+        /** FunctionCall */
         FunctionCall: {
             /** Arguments */
             arguments: string;
@@ -2894,12 +2845,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * FunctionCall
-         * @description Deprecated and replaced by `tool_calls`.
-         *
-         *     The name and arguments of a function that should be called, as generated by the model.
-         */
+        /** FunctionCall */
         "FunctionCall-Input": {
             /** Arguments */
             arguments: string;
@@ -3362,10 +3308,7 @@ export interface components {
             resourceType: string;
             labelSelector?: components["schemas"]["ark_api__models__agents__LabelSelector"] | null;
         };
-        /**
-         * PromptTokensDetails
-         * @description Breakdown of tokens used in the prompt.
-         */
+        /** PromptTokensDetails */
         PromptTokensDetails: {
             /** Audio Tokens */
             audio_tokens?: number | null;
@@ -4316,32 +4259,21 @@ export interface components {
             configMapKeyRef?: components["schemas"]["ark_api__models__queries__ConfigMapKeyRef"] | null;
             secretKeyRef?: components["schemas"]["ark_api__models__queries__SecretKeyRef"] | null;
         };
-        /**
-         * FunctionCall
-         * @description Deprecated and replaced by `tool_calls`.
-         *
-         *     The name and arguments of a function that should be called, as generated by the model.
-         */
+        /** FunctionCall */
         openai__types__chat__chat_completion_assistant_message_param__FunctionCall: {
             /** Arguments */
             arguments: string;
             /** Name */
             name: string;
         };
-        /**
-         * Custom
-         * @description The custom tool that the model called.
-         */
+        /** Custom */
         openai__types__chat__chat_completion_message_custom_tool_call_param__Custom: {
             /** Input */
             input: string;
             /** Name */
             name: string;
         };
-        /**
-         * Function
-         * @description The function that the model called.
-         */
+        /** Function */
         openai__types__chat__chat_completion_message_function_tool_call_param__Function: {
             /** Arguments */
             arguments: string;

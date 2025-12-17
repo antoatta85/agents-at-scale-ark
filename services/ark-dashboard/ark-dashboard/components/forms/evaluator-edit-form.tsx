@@ -123,6 +123,11 @@ export function EvaluatorEditForm({
 
   useEffect(() => {
     if (evaluator) {
+      console.log('Loading evaluator:', evaluator.name);
+      console.log('Evaluator spec:', evaluator.spec);
+      console.log('evaluationMode:', evaluator.spec?.evaluationMode);
+      console.log('batchConfig:', evaluator.spec?.batchConfig);
+
       setName(evaluator.name);
       setDescription((evaluator.spec?.description as string) || '');
 
