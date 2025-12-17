@@ -905,6 +905,47 @@ func (r *EvaluationReconciler) ensureChildEvaluations(ctx context.Context, paren
 	return len(existingChildren) == totalExpectedChildren, nil
 }
 
+// updateBatchProgress updates the BatchProgress field in the parent evaluation status
+func (r *EvaluationReconciler) updateBatchProgress(parentEvaluation *arkv1alpha1.Evaluation, childEvaluations []arkv1alpha1.Evaluation) error {
+	// Count statuses
+	var completedCount, failedCount, runningCount int32
+	childStatuses := make([]arkv1alpha1.ChildEvaluationStatus, 0, len(childEvaluations))
+
+	for _, child := range childEvaluations {
+		phase := child.Status.Phase
+		if phase == statusDone || phase == statusError {
+			completedCount++
+		}
+		if phase == statusError {
+			failedCount++
+		}
+		if phase == statusRunning {
+			runningCount++
+		}
+
+		// Build child status entry
+		childStatus := arkv1alpha1.ChildEvaluationStatus{
+			Name:    child.Name,
+			Phase:   child.Status.Phase,
+			Score:   child.Status.Score,
+			Passed:  child.Status.Passed,
+			Message: child.Status.Message,
+		}
+		childStatuses = append(childStatuses, childStatus)
+	}
+
+	// Update parent batch progress
+	parentEvaluation.Status.BatchProgress = &arkv1alpha1.BatchEvaluationProgress{
+		Total:            int32(len(childEvaluations)),
+		Completed:        completedCount,
+		Failed:           failedCount,
+		Running:          runningCount,
+		ChildEvaluations: childStatuses,
+	}
+
+	return nil
+}
+
 func (r *EvaluationReconciler) checkChildEvaluationStatus(ctx context.Context, parentEvaluation arkv1alpha1.Evaluation) (bool, error) {
 	log := logf.FromContext(ctx)
 
@@ -922,13 +963,24 @@ func (r *EvaluationReconciler) checkChildEvaluationStatus(ctx context.Context, p
 		}
 	}
 
-	// Update parent status to reflect child progress
-	if err := r.Status().Update(ctx, &parentEvaluation); err != nil {
-		log.Error(err, "Failed to update parent evaluation status", "evaluation", parentEvaluation.Name)
-		return false, err
+	allCompleted := completedCount == len(childEvaluations.Items)
+
+	// Only update batch progress if not all completed
+	// If all completed, let aggregateChildResults handle the final update
+	if !allCompleted {
+		// Update batch progress
+		if err := r.updateBatchProgress(&parentEvaluation, childEvaluations.Items); err != nil {
+			log.Error(err, "Failed to update batch progress", "evaluation", parentEvaluation.Name)
+			return false, err
+		}
+
+		// Update parent status to reflect child progress
+		if err := r.Status().Update(ctx, &parentEvaluation); err != nil {
+			log.Error(err, "Failed to update parent evaluation status", "evaluation", parentEvaluation.Name)
+			return false, err
+		}
 	}
 
-	allCompleted := completedCount == len(childEvaluations.Items)
 	log.Info("Child evaluation status check", "parent", parentEvaluation.Name, "completed", completedCount, "total", len(childEvaluations.Items), "allCompleted", allCompleted)
 
 	return allCompleted, nil
@@ -998,16 +1050,33 @@ func (r *EvaluationReconciler) aggregateChildResults(ctx context.Context, parent
 	message := fmt.Sprintf("Batch evaluation completed: %d/%d children passed",
 		passedTests, totalTests)
 
-	parentEvaluation.Status.Score = averageScore
-	parentEvaluation.Status.Passed = parentPassed
-	parentEvaluation.Status.Phase = statusDone
-	parentEvaluation.Status.Message = message
-	parentEvaluation.Status.TokenUsage = &aggregatedTokenUsage
+	// Refetch the latest version of parent evaluation to avoid conflicts
+	var latestParent arkv1alpha1.Evaluation
+	if err := r.Get(ctx, client.ObjectKey{
+		Name:      parentEvaluation.Name,
+		Namespace: parentEvaluation.Namespace,
+	}, &latestParent); err != nil {
+		log.Error(err, "Failed to refetch parent evaluation", "evaluation", parentEvaluation.Name)
+		return err
+	}
 
-	r.setConditionCompleted(&parentEvaluation, metav1.ConditionTrue, "EvaluationCompleted", message)
+	// Update status fields on the latest version
+	latestParent.Status.Score = averageScore
+	latestParent.Status.Passed = parentPassed
+	latestParent.Status.Phase = statusDone
+	latestParent.Status.Message = message
+	latestParent.Status.TokenUsage = &aggregatedTokenUsage
 
-	if err := r.Status().Update(ctx, &parentEvaluation); err != nil {
-		log.Error(err, "Failed to update parent evaluation with batch results", "evaluation", parentEvaluation.Name)
+	// Update batch progress with final state
+	if err := r.updateBatchProgress(&latestParent, childEvaluations.Items); err != nil {
+		log.Error(err, "Failed to update batch progress", "evaluation", latestParent.Name)
+		return err
+	}
+
+	r.setConditionCompleted(&latestParent, metav1.ConditionTrue, "EvaluationCompleted", message)
+
+	if err := r.Status().Update(ctx, &latestParent); err != nil {
+		log.Error(err, "Failed to update parent evaluation with batch results", "evaluation", latestParent.Name)
 		return err
 	}
 

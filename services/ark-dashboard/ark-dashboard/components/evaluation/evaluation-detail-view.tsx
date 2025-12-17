@@ -29,6 +29,7 @@ import type { components } from '@/lib/api/generated/types';
 import { useDelayedLoading } from '@/lib/hooks/use-delayed-loading';
 import { evaluationsService } from '@/lib/services/evaluations';
 
+import { BatchEvaluationDisplay } from './batch-evaluation-display';
 import { EnhancedEvaluationDetailView } from './enhanced-evaluation-detail-view';
 import { EventMetricsDisplay } from './event-metrics-display';
 import { MetricsEvaluationDisplay } from './metrics-evaluation-display';
@@ -126,7 +127,6 @@ export function EvaluationDetailView({
       const data = await evaluationsService.getDetailsByName(evaluationId);
       setEvaluation(data);
 
-      // Check if enhanced data is available by trying to fetch it
       try {
         const enhancedData =
           await evaluationsService.getEnhancedDetailsByName(evaluationId);
@@ -134,7 +134,6 @@ export function EvaluationDetailView({
           setEnhancedAvailable(true);
         }
       } catch {
-        // Enhanced data not available, continue with basic view
         setEnhancedAvailable(false);
       }
     } catch (error) {
@@ -157,7 +156,6 @@ export function EvaluationDetailView({
     initialLoad();
   }, [loadEvaluation]);
 
-  // Auto-refresh for running evaluation
   useEffect(() => {
     if (!evaluation) return;
 
@@ -169,7 +167,7 @@ export function EvaluationDetailView({
 
     const intervalId = setInterval(() => {
       loadEvaluation();
-    }, 5000); // Poll every 5 seconds when evaluation is running
+    }, 5000);
 
     return () => clearInterval(intervalId);
   }, [evaluation, loadEvaluation]);
@@ -184,7 +182,6 @@ export function EvaluationDetailView({
         description: 'Successfully canceled the evaluation',
       });
 
-      // Reload evaluation data
       await loadEvaluation();
     } catch (error) {
       toast.error('Failed to Cancel Evaluation', {
@@ -198,7 +195,6 @@ export function EvaluationDetailView({
     }
   };
 
-  // If enhanced mode is requested, use the enhanced component
   if (useEnhanced) {
     return (
       <EnhancedEvaluationDetailView
@@ -240,12 +236,10 @@ export function EvaluationDetailView({
   const annotations =
     (evaluationMetadata?.annotations as Record<string, unknown>) || {};
 
-  // Extract evaluation metadata from annotations
   const metadata: Record<string, unknown> = {};
   Object.entries(annotations).forEach(([key, value]) => {
     if (key.startsWith('evaluation.metadata/')) {
       const metadataKey = key.replace('evaluation.metadata/', '');
-      // Parse JSON strings if needed
       if (
         typeof value === 'string' &&
         (value.startsWith('[') || value.startsWith('{'))
@@ -274,15 +268,14 @@ export function EvaluationDetailView({
     Object.keys(metadata).length > 0;
   const reasoning = metadata?.reasoning as string | undefined;
 
-  // Check if this is an event evaluation
   const evaluationType = (spec?.type as string) || 'unknown';
+  const isBatchEvaluation = evaluationType === 'batch';
   const isEventEvaluation =
     evaluationType === 'event' ||
     metadata?.rule_results ||
     metadata?.total_rules !== undefined ||
     metadata?.events_analyzed !== undefined;
 
-  // Check if this is a metrics-based evaluation
   const evaluatorSpec = spec?.evaluator as { name?: string };
   const isMetricsEvaluation =
     evaluatorSpec?.name?.includes('metrics') ||
@@ -294,10 +287,10 @@ export function EvaluationDetailView({
       metadata?.quality_score !== undefined) ||
     reasoning?.includes('threshold violations');
 
-  // Check if this is a quality-based evaluation (LLM assessments)
   const isQualityEvaluation =
     !isEventEvaluation &&
     !isMetricsEvaluation &&
+    !isBatchEvaluation &&
     hasMetadata &&
     (evaluatorSpec?.name?.includes('quality') ||
       evaluatorSpec?.name?.includes('llm') ||
@@ -314,12 +307,12 @@ export function EvaluationDetailView({
           key.toLowerCase().includes('refusal_handling') ||
           key.toLowerCase().includes('appropriateness'),
       ) ||
-      reasoning); // LLM evaluations often have reasoning text
+      reasoning);
 
-  // Debug logging for development
   if (process.env.NODE_ENV === 'development') {
     console.log('EvaluationDetailView - metadata:', metadata);
     console.log('EvaluationDetailView - evaluatorSpec:', evaluatorSpec);
+    console.log('EvaluationDetailView - isBatchEvaluation:', isBatchEvaluation);
     console.log('EvaluationDetailView - isEventEvaluation:', isEventEvaluation);
     console.log(
       'EvaluationDetailView - isMetricsEvaluation:',
@@ -335,7 +328,6 @@ export function EvaluationDetailView({
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -364,7 +356,6 @@ export function EvaluationDetailView({
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Overview Card */}
         <Card>
           <CardHeader className="hover:bg-muted/50 cursor-pointer transition-colors">
             <CardTitle className="flex items-center justify-between">
@@ -442,7 +433,6 @@ export function EvaluationDetailView({
           </CardContent>
         </Card>
 
-        {/* Configuration Card */}
         <Card>
           <CardHeader className="hover:bg-muted/50 cursor-pointer transition-colors">
             <CardTitle className="flex items-center justify-between">
@@ -493,15 +483,32 @@ export function EvaluationDetailView({
         </Card>
       </div>
 
-      {/* Evaluation Display - Use appropriate display based on evaluation type */}
-      {isEventEvaluation && hasMetadata ? (
+      {isBatchEvaluation && status?.batchProgress ? (
+        <BatchEvaluationDisplay
+          batchProgress={
+            status.batchProgress as {
+              total: number;
+              completed: number;
+              failed: number;
+              running: number;
+              childEvaluations: Array<{
+                name: string;
+                phase: string;
+                score: string;
+                passed: boolean;
+                message?: string;
+              }>;
+            }
+          }
+          namespace={namespace}
+        />
+      ) : isEventEvaluation && hasMetadata ? (
         <EventMetricsDisplay
           eventMetadata={{
             total_rules: metadata.total_rules as number | undefined,
             passed_rules: metadata.passed_rules as number | undefined,
             failed_rules: metadata.failed_rules as number | undefined,
             rule_results: (() => {
-              // First try to get structured rule_results
               const rules = metadata.rule_results;
               if (Array.isArray(rules)) {
                 return rules;
@@ -515,7 +522,6 @@ export function EvaluationDetailView({
                 }
               }
 
-              // Parse flattened rule format (rule_0_name_passed, rule_0_name_weight, etc.)
               const flattenedRules: {
                 [key: string]: {
                   rule_name: string;
@@ -549,7 +555,6 @@ export function EvaluationDetailView({
                 }
               });
 
-              // Convert to array format
               return Object.values(flattenedRules).sort(
                 (a, b) => a.index - b.index,
               );
@@ -629,7 +634,6 @@ export function EvaluationDetailView({
         </Card>
       ) : null}
 
-      {/* Reasoning Card - only show for basic evaluations (not metrics or quality) */}
       {reasoning && !isMetricsEvaluation && !isQualityEvaluation && (
         <Card>
           <CardHeader>

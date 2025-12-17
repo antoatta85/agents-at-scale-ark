@@ -1,14 +1,8 @@
-{{- if .Values.crd.enable }}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  labels:
-    {{- include "chart.labels" . | nindent 4 }}
   annotations:
-    {{- if .Values.crd.keep }}
-    "helm.sh/resource-policy": keep
-    {{- end }}
     controller-gen.kubebuilder.io/version: v0.18.0
   name: evaluators.ark.mckinsey.com
 spec:
@@ -145,9 +139,70 @@ spec:
                         type: object
                     type: object
                 type: object
+              batchConfig:
+                description: |-
+                  BatchConfig contains configuration for batch evaluation mode
+                  Required when evaluationMode=batch
+                properties:
+                  concurrency:
+                    default: 10
+                    description: Concurrency controls max concurrent child evaluations
+                      in batch
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  continueOnFailure:
+                    default: true
+                    description: ContinueOnFailure controls whether to continue if
+                      a child evaluation fails
+                    type: boolean
+                  groupByAnnotation:
+                    description: |-
+                      GroupByAnnotation groups queries by an annotation key's value
+                      Creates separate batch evaluations for each unique annotation value
+                      Batch name format: {evaluator-name}-batch-{sanitized-annotation-value}
+                    type: string
+                  groupByLabel:
+                    description: |-
+                      GroupByLabel groups queries by a label key's value
+                      Creates separate batch evaluations for each unique label value
+                      Batch name format: {evaluator-name}-batch-{sanitized-label-value}
+                    type: string
+                  name:
+                    description: |-
+                      Name for the batch evaluation (defaults to {evaluator-name}-batch)
+                      Ignored when GroupByLabel or GroupByAnnotation is set
+                    type: string
+                  updateMode:
+                    description: |-
+                      UpdateMode controls batch update behavior
+                      immutable: Create batch once with queries at that moment, never update
+                      dynamic: Continuously append new matching queries to batch
+                    enum:
+                    - immutable
+                    - dynamic
+                    type: string
+                required:
+                - updateMode
+                type: object
+              createdAfter:
+                description: |-
+                  CreatedAfter specifies the timestamp for queryAgeFilter=afterTimestamp
+                  Only queries created after this time will be evaluated
+                format: date-time
+                type: string
               description:
                 description: Description provides human-readable information about
                   this evaluator
+                type: string
+              evaluationMode:
+                default: individual
+                description: |-
+                  EvaluationMode controls whether to create individual evaluations per query
+                  or aggregate queries into batch evaluations
+                enum:
+                - individual
+                - batch
                 type: string
               parameters:
                 description: Parameters to pass to evaluation requests
@@ -246,6 +301,15 @@ spec:
                   - name
                   type: object
                 type: array
+              queryAgeFilter:
+                default: all
+                description: QueryAgeFilter controls which queries to evaluate based
+                  on creation time
+                enum:
+                - all
+                - afterEvaluator
+                - afterTimestamp
+                type: string
               selector:
                 description: Selector configuration for automatic query evaluation
                 properties:
@@ -373,4 +437,3 @@ spec:
     storage: true
     subresources:
       status: {}
-{{- end -}}

@@ -8,3 +8,4 @@ export { MetadataCardsComponent } from './metadata-cards-component';
 export { RawMetadataComponent } from './raw-metadata-component';
 export { ScoreChartComponent } from './score-chart-component';
 export { TimelineComponent } from './timeline-component';
+export { BatchEvaluationDisplay } from './batch-evaluation-display';
