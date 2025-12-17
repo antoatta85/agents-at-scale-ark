@@ -467,7 +467,10 @@ export default function FloatingChat({
                       ) : null}
                       {hasTaskId && metadata && (
                         <div className="mt-2">
-                          <A2ATaskLink taskId={metadata.taskId} />
+                          <A2ATaskLink
+                            taskId={metadata.taskId}
+                            renderMode={viewMode}
+                          />
                         </div>
                       )}
                     </div>
