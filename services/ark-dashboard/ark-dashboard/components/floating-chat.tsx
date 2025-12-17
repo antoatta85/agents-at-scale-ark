@@ -43,6 +43,51 @@ interface FloatingChatProps {
   onClose: () => void;
 }
 
+interface MessageMetadata {
+  taskId: string;
+}
+
+interface CompletedQueryStatus {
+  phase: string;
+  conditions: {
+    type: string;
+    status: string;
+    lastTransitionTime: string;
+    reason: string;
+    message: string;
+  }[];
+  responses: {
+    a2a: {
+      contextId: string;
+      taskId: string;
+    };
+    content: string;
+  }[];
+}
+
+interface ArkMetadata {
+  completedQuery: {
+    status: CompletedQueryStatus;
+  };
+}
+
+interface ArkChunk extends ChatCompletionChunk {
+  ark: ArkMetadata;
+}
+
+function getA2ATaskFromArkChunk(chunk: ArkChunk): string | undefined {
+  const arkMetadata = (chunk as unknown as ArkChunk).ark;
+  if (
+    !arkMetadata ||
+    !arkMetadata.completedQuery ||
+    !arkMetadata.completedQuery.status.responses[0].a2a
+  ) {
+    return undefined;
+  }
+
+  return arkMetadata.completedQuery.status.responses[0].a2a.taskId;
+}
+
 export default function FloatingChat({
   name,
   type,
@@ -52,6 +97,9 @@ export default function FloatingChat({
   const [chatMessages, setChatMessages] = useState<
     ChatCompletionMessageParam[]
   >([]);
+  const [messageMetadata, setMessageMetadata] = useState<
+    Map<number, MessageMetadata>
+  >(new Map());
   const [currentMessage, setCurrentMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +175,17 @@ export default function FloatingChat({
             role: 'assistant',
             content: accumulatedContent,
           };
+          return updated;
+        });
+      }
+
+      const a2aTaskId = getA2ATaskFromArkChunk(chunk as unknown as ArkChunk);
+      if (a2aTaskId) {
+        setMessageMetadata(prev => {
+          const updated = new Map(prev);
+          updated.set(assistantMessageIndex, {
+            taskId: a2aTaskId,
+          });
           return updated;
         });
       }
@@ -408,10 +467,7 @@ export default function FloatingChat({
                       ) : null}
                       {hasTaskId && metadata && (
                         <div className="mt-2">
-                          <A2ATaskLink
-                            taskId={metadata.taskId}
-                            artifactCount={metadata.artifactIds?.length}
-                          />
+                          <A2ATaskLink taskId={metadata.taskId} />
                         </div>
                       )}
                     </div>

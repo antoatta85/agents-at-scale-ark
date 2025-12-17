@@ -10,7 +10,7 @@ interface A2ATaskLinkProps {
   artifactCount?: number;
 }
 
-export function A2ATaskLink({ taskId, artifactCount }: A2ATaskLinkProps) {
+export function A2ATaskLink({ taskId }: A2ATaskLinkProps) {
   const { data: task, isLoading, error } = useA2ATask(`a2a-task-${taskId}`);
 
   if (isLoading) {
@@ -31,8 +31,7 @@ export function A2ATaskLink({ taskId, artifactCount }: A2ATaskLinkProps) {
     );
   }
 
-  const displayArtifactCount =
-    artifactCount ?? task.status?.artifacts?.length ?? 0;
+  const displayArtifactCount = task.status?.artifacts?.length ?? 0;
 
   return (
     <Link
