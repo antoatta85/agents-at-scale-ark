@@ -467,17 +467,17 @@ func (r *EvaluationReconciler) processDirectEvaluation(ctx context.Context, eval
 func (r *EvaluationReconciler) processBatchEvaluation(ctx context.Context, evaluation arkv1alpha1.Evaluation) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	// Validate batch evaluation requirements
-	if len(evaluation.Spec.Config.Evaluations) == 0 {
-		if err := r.updateStatus(ctx, evaluation, statusError, "Batch evaluation requires at least one evaluation in config.evaluations"); err != nil {
+	// Validate batch evaluation requirements - must have either Items or Evaluations
+	if len(evaluation.Spec.Config.Items) == 0 && len(evaluation.Spec.Config.Evaluations) == 0 {
+		if err := r.updateStatus(ctx, evaluation, statusError, "Batch evaluation requires at least one item in config.items or config.evaluations"); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 	}
 
-	// Validate input/output for batch evaluation
-	if evaluation.Spec.Config.Input == "" || evaluation.Spec.Config.Output == "" {
-		if err := r.updateStatus(ctx, evaluation, statusError, "Batch evaluation requires both input and output"); err != nil {
+	// Validate input/output for batch evaluation (only for Evaluations-based batches)
+	if len(evaluation.Spec.Config.Items) == 0 && (evaluation.Spec.Config.Input == "" || evaluation.Spec.Config.Output == "") {
+		if err := r.updateStatus(ctx, evaluation, statusError, "Batch evaluation with evaluations requires both input and output"); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -803,54 +803,106 @@ func (r *EvaluationReconciler) ensureChildEvaluations(ctx context.Context, paren
 	}
 
 	// Create missing child evaluations from batch config
-	for i, evaluationRef := range parentEvaluation.Spec.Config.Evaluations {
-		childName := fmt.Sprintf("%s-child-%d", parentEvaluation.Name, i)
+	// Handle Items (inline batch item definitions)
+	totalExpectedChildren := 0
+	if len(parentEvaluation.Spec.Config.Items) > 0 {
+		totalExpectedChildren = len(parentEvaluation.Spec.Config.Items)
+		for i, item := range parentEvaluation.Spec.Config.Items {
+			childName := item.Name
+			if childName == "" {
+				childName = fmt.Sprintf("%s-child-%d", parentEvaluation.Name, i)
+			}
 
-		if existingChildren[childName] {
-			continue // Child already exists
-		}
+			if existingChildren[childName] {
+				continue // Child already exists
+			}
 
-		// Note: This is a simplified implementation - in a full implementation,
-		// we would fetch the referenced evaluation and copy its spec
-		childEvaluation := &arkv1alpha1.Evaluation{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      childName,
-				Namespace: parentEvaluation.Namespace,
-				Labels: map[string]string{
-					"parent-evaluation": parentEvaluation.Name,
-					"child-index":       strconv.Itoa(i),
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: parentEvaluation.APIVersion,
-						Kind:       parentEvaluation.Kind,
-						Name:       parentEvaluation.Name,
-						UID:        parentEvaluation.UID,
-						Controller: &[]bool{true}[0],
+			childEvaluation := &arkv1alpha1.Evaluation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      childName,
+					Namespace: parentEvaluation.Namespace,
+					Labels: map[string]string{
+						"parent-evaluation": parentEvaluation.Name,
+						"child-index":       strconv.Itoa(i),
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: parentEvaluation.APIVersion,
+							Kind:       parentEvaluation.Kind,
+							Name:       parentEvaluation.Name,
+							UID:        parentEvaluation.UID,
+							Controller: &[]bool{true}[0],
+						},
 					},
 				},
-			},
-			Spec: arkv1alpha1.EvaluationSpec{
-				Type: "direct",
-				Config: arkv1alpha1.EvaluationConfig{
-					DirectEvaluationConfig: &arkv1alpha1.DirectEvaluationConfig{
-						Input:  "placeholder", // Would be populated from referenced evaluation
-						Output: "placeholder", // Would be populated from referenced evaluation
+				Spec: arkv1alpha1.EvaluationSpec{
+					Type:      item.Type,
+					Config:    item.Config,
+					Evaluator: item.Evaluator,
+					TTL:       item.TTL,
+					Timeout:   item.Timeout,
+				},
+			}
+
+			if err := r.Create(ctx, childEvaluation); err != nil {
+				log.Error(err, "Failed to create child evaluation", "childName", childName)
+				return false, fmt.Errorf("failed to create child evaluation %s: %w", childName, err)
+			}
+
+			log.Info("Created child evaluation from item", "childName", childName, "type", item.Type)
+		}
+	} else if len(parentEvaluation.Spec.Config.Evaluations) > 0 {
+		// Handle Evaluations (legacy evaluation references)
+		totalExpectedChildren = len(parentEvaluation.Spec.Config.Evaluations)
+		for i, evaluationRef := range parentEvaluation.Spec.Config.Evaluations {
+			childName := fmt.Sprintf("%s-child-%d", parentEvaluation.Name, i)
+
+			if existingChildren[childName] {
+				continue // Child already exists
+			}
+
+			// Note: This is a simplified implementation - in a full implementation,
+			// we would fetch the referenced evaluation and copy its spec
+			childEvaluation := &arkv1alpha1.Evaluation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      childName,
+					Namespace: parentEvaluation.Namespace,
+					Labels: map[string]string{
+						"parent-evaluation": parentEvaluation.Name,
+						"child-index":       strconv.Itoa(i),
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: parentEvaluation.APIVersion,
+							Kind:       parentEvaluation.Kind,
+							Name:       parentEvaluation.Name,
+							UID:        parentEvaluation.UID,
+							Controller: &[]bool{true}[0],
+						},
 					},
 				},
-				Evaluator: parentEvaluation.Spec.Evaluator, // Use parent's evaluator
-			},
-		}
+				Spec: arkv1alpha1.EvaluationSpec{
+					Type: "direct",
+					Config: arkv1alpha1.EvaluationConfig{
+						DirectEvaluationConfig: &arkv1alpha1.DirectEvaluationConfig{
+							Input:  "placeholder", // Would be populated from referenced evaluation
+							Output: "placeholder", // Would be populated from referenced evaluation
+						},
+					},
+					Evaluator: parentEvaluation.Spec.Evaluator, // Use parent's evaluator
+				},
+			}
 
-		if err := r.Create(ctx, childEvaluation); err != nil {
-			log.Error(err, "Failed to create child evaluation", "childName", childName)
-			return false, fmt.Errorf("failed to create child evaluation %s: %w", childName, err)
-		}
+			if err := r.Create(ctx, childEvaluation); err != nil {
+				log.Error(err, "Failed to create child evaluation", "childName", childName)
+				return false, fmt.Errorf("failed to create child evaluation %s: %w", childName, err)
+			}
 
-		log.Info("Created child evaluation", "childName", childName, "evaluationRef", evaluationRef.Name)
+			log.Info("Created child evaluation", "childName", childName, "evaluationRef", evaluationRef.Name)
+		}
 	}
 
-	return len(existingChildren) == len(parentEvaluation.Spec.Config.Evaluations), nil
+	return len(existingChildren) == totalExpectedChildren, nil
 }
 
 func (r *EvaluationReconciler) checkChildEvaluationStatus(ctx context.Context, parentEvaluation arkv1alpha1.Evaluation) (bool, error) {

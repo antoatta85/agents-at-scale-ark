@@ -86,6 +86,7 @@ type BatchEvaluationItem struct {
 	// +kubebuilder:validation:Required
 	// Configuration for this specific evaluation
 	// +kubebuilder:validation:Type=object
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Config EvaluationConfig `json:"config"`
 	// +kubebuilder:validation:Required
 	// Evaluator reference for this evaluation
@@ -112,6 +113,7 @@ type BatchEvaluationTemplate struct {
 	// +kubebuilder:validation:Required
 	// Default configuration for template-generated evaluations
 	// +kubebuilder:validation:Type=object
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Config EvaluationConfig `json:"config"`
 	// +kubebuilder:validation:Optional
 	// Default parameters for template-generated evaluations

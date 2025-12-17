@@ -56,6 +56,12 @@ func (v *EvaluatorValidator) ValidateCreate(ctx context.Context, obj runtime.Obj
 		return nil, fmt.Errorf("failed to resolve Address: %w", err)
 	}
 
+	// Validate evaluator-specific fields
+	if err := v.validateEvaluatorFields(evaluator); err != nil {
+		evaluatorLog.Error(err, "Invalid evaluator configuration", "evaluator", evaluator.GetName())
+		return nil, fmt.Errorf("invalid evaluator configuration: %w", err)
+	}
+
 	// Validate model reference from parameters - only if explicitly specified
 	var modelName, modelNamespace string
 	modelNamespace = evaluator.GetNamespace()
@@ -93,4 +99,32 @@ func (v *EvaluatorValidator) ValidateUpdate(ctx context.Context, oldObj, newObj 
 
 func (v *EvaluatorValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
+}
+
+// validateEvaluatorFields validates evaluator-specific configuration
+func (v *EvaluatorValidator) validateEvaluatorFields(evaluator *arkv1alpha1.Evaluator) error {
+	if evaluator.Spec.QueryAgeFilter == "afterTimestamp" && evaluator.Spec.CreatedAfter == nil {
+		return fmt.Errorf("createdAfter is required when queryAgeFilter=afterTimestamp")
+	}
+
+	if evaluator.Spec.EvaluationMode == "batch" {
+		if evaluator.Spec.BatchConfig == nil {
+			return fmt.Errorf("batchConfig is required when evaluationMode=batch")
+		}
+
+		batchConfig := evaluator.Spec.BatchConfig
+
+		if batchConfig.UpdateMode == "" {
+			return fmt.Errorf("batchConfig.updateMode is required")
+		}
+		if batchConfig.UpdateMode != "immutable" && batchConfig.UpdateMode != "dynamic" {
+			return fmt.Errorf("invalid updateMode: %s (must be 'immutable' or 'dynamic')", batchConfig.UpdateMode)
+		}
+
+		if batchConfig.GroupByLabel != "" && batchConfig.GroupByAnnotation != "" {
+			return fmt.Errorf("only one of groupByLabel or groupByAnnotation can be set, not both")
+		}
+	}
+
+	return nil
 }

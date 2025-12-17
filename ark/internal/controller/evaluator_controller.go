@@ -5,6 +5,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -308,26 +311,321 @@ func (r *EvaluatorReconciler) queryMatchesEvaluator(query *arkv1alpha1.Query, ev
 
 // processEvaluatorWithSelector handles selector-based evaluation logic
 func (r *EvaluatorReconciler) processEvaluatorWithSelector(ctx context.Context, evaluator *arkv1alpha1.Evaluator) error {
-	log := logf.FromContext(ctx)
-	log.Info("Processing evaluator with selector", "evaluator", evaluator.Name)
-
-	// Find matching queries
 	matchingQueries, err := r.findMatchingQueries(ctx, evaluator)
 	if err != nil {
 		return fmt.Errorf("failed to find matching queries: %w", err)
 	}
 
-	log.Info("Found matching queries", "evaluator", evaluator.Name, "count", len(matchingQueries))
-
-	// Process each matching query
+	var completedQueries []arkv1alpha1.Query
 	for _, query := range matchingQueries {
 		if query.Status.Phase == statusDone {
-			if err := r.createEvaluationForQuery(ctx, evaluator, &query); err != nil {
-				log.Error(err, "Failed to create evaluation", "evaluator", evaluator.Name, "query", query.Name)
-				continue
-			}
+			completedQueries = append(completedQueries, query)
 		}
 	}
+
+	if len(completedQueries) == 0 {
+		return nil
+	}
+
+	evaluationMode := evaluator.Spec.EvaluationMode
+	if evaluationMode == "" {
+		evaluationMode = "individual"
+	}
+
+	switch evaluationMode {
+	case "batch":
+		return r.processBatchEvaluationMode(ctx, evaluator, completedQueries)
+	default:
+		return r.processIndividualEvaluationMode(ctx, evaluator, completedQueries)
+	}
+}
+
+// processIndividualEvaluationMode creates one evaluation per query
+func (r *EvaluatorReconciler) processIndividualEvaluationMode(ctx context.Context, evaluator *arkv1alpha1.Evaluator, queries []arkv1alpha1.Query) error {
+	log := logf.FromContext(ctx)
+
+	for _, query := range queries {
+		if err := r.createEvaluationForQuery(ctx, evaluator, &query); err != nil {
+			log.Error(err, "Failed to create evaluation for query",
+				"evaluator", evaluator.Name,
+				"query", query.Name)
+			continue
+		}
+	}
+
+	return nil
+}
+
+// processBatchEvaluationMode creates or updates batch evaluation(s)
+func (r *EvaluatorReconciler) processBatchEvaluationMode(ctx context.Context, evaluator *arkv1alpha1.Evaluator, queries []arkv1alpha1.Query) error {
+	log := logf.FromContext(ctx)
+	batchConfig := evaluator.Spec.BatchConfig
+
+	if batchConfig == nil {
+		return fmt.Errorf("batchConfig is required when evaluationMode=batch")
+	}
+
+	queryGroups := r.groupQueries(queries, batchConfig)
+
+	for groupKey, groupQueries := range queryGroups {
+		batchName := r.determineBatchName(evaluator.Name, batchConfig, groupKey)
+
+		var existingBatch arkv1alpha1.Evaluation
+		err := r.Get(ctx, client.ObjectKey{
+			Name:      batchName,
+			Namespace: evaluator.Namespace,
+		}, &existingBatch)
+
+		if err != nil && !errors.IsNotFound(err) {
+			log.Error(err, "Failed to check existing batch", "batch", batchName)
+			continue
+		}
+
+		batchExists := err == nil
+
+		switch batchConfig.UpdateMode {
+		case "immutable":
+			if batchExists {
+				log.Info("Batch already exists (immutable mode)", "batch", batchName)
+				continue
+			}
+			if err := r.createBatchEvaluation(ctx, evaluator, groupQueries, batchName); err != nil {
+				log.Error(err, "Failed to create batch", "batch", batchName)
+			}
+
+		case "dynamic":
+			if !batchExists {
+				if err := r.createBatchEvaluation(ctx, evaluator, groupQueries, batchName); err != nil {
+					log.Error(err, "Failed to create batch", "batch", batchName)
+				}
+			} else {
+				if err := r.updateBatchEvaluation(ctx, groupQueries, &existingBatch); err != nil {
+					log.Error(err, "Failed to update batch", "batch", batchName)
+				}
+			}
+
+		default:
+			return fmt.Errorf("invalid updateMode: %s", batchConfig.UpdateMode)
+		}
+	}
+
+	return nil
+}
+
+// groupQueries groups queries by label or annotation if configured
+func (r *EvaluatorReconciler) groupQueries(queries []arkv1alpha1.Query, batchConfig *arkv1alpha1.EvaluatorBatchConfig) map[string][]arkv1alpha1.Query {
+	groups := make(map[string][]arkv1alpha1.Query)
+
+	var groupByType, groupByKey string
+	if batchConfig.GroupByLabel != "" {
+		groupByType = "label"
+		groupByKey = batchConfig.GroupByLabel
+	} else if batchConfig.GroupByAnnotation != "" {
+		groupByType = "annotation"
+		groupByKey = batchConfig.GroupByAnnotation
+	}
+
+	if groupByKey == "" {
+		groups[""] = queries
+		return groups
+	}
+
+	for _, query := range queries {
+		var groupValue string
+		if groupByType == "label" {
+			groupValue = query.Labels[groupByKey]
+		} else {
+			groupValue = query.Annotations[groupByKey]
+		}
+
+		if groupValue == "" {
+			continue
+		}
+
+		groups[groupValue] = append(groups[groupValue], query)
+	}
+
+	return groups
+}
+
+// determineBatchName generates batch evaluation name
+func (r *EvaluatorReconciler) determineBatchName(evaluatorName string, batchConfig *arkv1alpha1.EvaluatorBatchConfig, groupValue string) string {
+	if groupValue != "" {
+		sanitized := r.sanitizeName(groupValue)
+		return fmt.Sprintf("%s-batch-%s", evaluatorName, sanitized)
+	}
+
+	if batchConfig.Name != "" {
+		return batchConfig.Name
+	}
+
+	return fmt.Sprintf("%s-batch", evaluatorName)
+}
+
+// sanitizeName sanitizes a value for use in Kubernetes resource names
+func (r *EvaluatorReconciler) sanitizeName(value string) string {
+	sanitized := strings.ToLower(value)
+
+	reg := regexp.MustCompile(`[^a-z0-9.-]`)
+	sanitized = reg.ReplaceAllString(sanitized, "-")
+
+	sanitized = strings.Trim(sanitized, "-.")
+
+	if len(sanitized) > 63 {
+		sanitized = sanitized[:63]
+	}
+
+	return sanitized
+}
+
+// createBatchEvaluation creates a new batch evaluation
+func (r *EvaluatorReconciler) createBatchEvaluation(ctx context.Context, evaluator *arkv1alpha1.Evaluator, queries []arkv1alpha1.Query, batchName string) error {
+	log := logf.FromContext(ctx)
+	batchConfig := evaluator.Spec.BatchConfig
+
+	items := make([]arkv1alpha1.BatchEvaluationItem, 0, len(queries))
+	for _, query := range queries {
+		items = append(items, arkv1alpha1.BatchEvaluationItem{
+			Name: fmt.Sprintf("%s-%s", batchName, query.Name),
+			Type: "query",
+			Config: arkv1alpha1.EvaluationConfig{
+				QueryBasedEvaluationConfig: &arkv1alpha1.QueryBasedEvaluationConfig{
+					QueryRef: &arkv1alpha1.QueryRef{
+						Name:      query.Name,
+						Namespace: query.Namespace,
+					},
+				},
+			},
+			Evaluator: arkv1alpha1.EvaluationEvaluatorRef{
+				Name:      evaluator.Name,
+				Namespace: evaluator.Namespace,
+			},
+		})
+	}
+
+	concurrency := 10
+	if batchConfig.Concurrency > 0 {
+		concurrency = batchConfig.Concurrency
+	}
+
+	continueOnFailure := true
+	if !batchConfig.ContinueOnFailure {
+		continueOnFailure = batchConfig.ContinueOnFailure
+	}
+
+	batch := &arkv1alpha1.Evaluation{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      batchName,
+			Namespace: evaluator.Namespace,
+			Labels: map[string]string{
+				"ark.mckinsey.com/evaluator":   evaluator.Name,
+				"ark.mckinsey.com/batch-mode":  "selector",
+				"ark.mckinsey.com/update-mode": batchConfig.UpdateMode,
+			},
+			Annotations: map[string]string{
+				"ark.mckinsey.com/query-count": fmt.Sprintf("%d", len(queries)),
+				"ark.mckinsey.com/created-at":  time.Now().Format(time.RFC3339),
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: evaluator.APIVersion,
+					Kind:       evaluator.Kind,
+					Name:       evaluator.Name,
+					UID:        evaluator.UID,
+				},
+			},
+		},
+		Spec: arkv1alpha1.EvaluationSpec{
+			Type: "batch",
+			Config: arkv1alpha1.EvaluationConfig{
+				BatchEvaluationConfig: &arkv1alpha1.BatchEvaluationConfig{
+					Items:             items,
+					Concurrency:       int32(concurrency),
+					ContinueOnFailure: continueOnFailure,
+				},
+			},
+			Evaluator: arkv1alpha1.EvaluationEvaluatorRef{
+				Name:      evaluator.Name,
+				Namespace: evaluator.Namespace,
+			},
+		},
+	}
+
+	if err := r.Create(ctx, batch); err != nil {
+		return fmt.Errorf("failed to create batch evaluation: %w", err)
+	}
+
+	log.Info("Created batch evaluation",
+		"batch", batchName,
+		"evaluator", evaluator.Name,
+		"queryCount", len(queries))
+
+	return nil
+}
+
+// updateBatchEvaluation updates existing batch with new queries (dynamic mode)
+func (r *EvaluatorReconciler) updateBatchEvaluation(ctx context.Context, queries []arkv1alpha1.Query, existingBatch *arkv1alpha1.Evaluation) error {
+	log := logf.FromContext(ctx)
+
+	if existingBatch.Spec.Config.BatchEvaluationConfig == nil {
+		return fmt.Errorf("existing batch has no batch config")
+	}
+
+	existingQueryNames := make(map[string]bool)
+	for _, item := range existingBatch.Spec.Config.Items {
+		if item.Config.QueryBasedEvaluationConfig != nil {
+			queryName := item.Config.QueryRef.Name
+			existingQueryNames[queryName] = true
+		}
+	}
+
+	var newQueries []arkv1alpha1.Query
+	for _, query := range queries {
+		if !existingQueryNames[query.Name] {
+			newQueries = append(newQueries, query)
+		}
+	}
+
+	if len(newQueries) == 0 {
+		log.Info("No new queries to add to batch", "batch", existingBatch.Name)
+		return nil
+	}
+
+	for _, query := range newQueries {
+		newItem := arkv1alpha1.BatchEvaluationItem{
+			Name: fmt.Sprintf("%s-%s", existingBatch.Name, query.Name),
+			Type: "query",
+			Config: arkv1alpha1.EvaluationConfig{
+				QueryBasedEvaluationConfig: &arkv1alpha1.QueryBasedEvaluationConfig{
+					QueryRef: &arkv1alpha1.QueryRef{
+						Name:      query.Name,
+						Namespace: query.Namespace,
+					},
+				},
+			},
+			Evaluator: existingBatch.Spec.Evaluator,
+		}
+		existingBatch.Spec.Config.Items = append(
+			existingBatch.Spec.Config.Items,
+			newItem,
+		)
+	}
+
+	totalCount := len(existingBatch.Spec.Config.Items)
+	if existingBatch.Annotations == nil {
+		existingBatch.Annotations = make(map[string]string)
+	}
+	existingBatch.Annotations["ark.mckinsey.com/query-count"] = fmt.Sprintf("%d", totalCount)
+	existingBatch.Annotations["ark.mckinsey.com/updated-at"] = time.Now().Format(time.RFC3339)
+
+	if err := r.Update(ctx, existingBatch); err != nil {
+		return fmt.Errorf("failed to update batch evaluation: %w", err)
+	}
+
+	log.Info("Updated batch evaluation with new queries",
+		"batch", existingBatch.Name,
+		"newQueries", len(newQueries),
+		"totalQueries", totalCount)
 
 	return nil
 }
@@ -357,7 +655,38 @@ func (r *EvaluatorReconciler) findMatchingQueries(ctx context.Context, evaluator
 		return nil, err
 	}
 
-	return queries.Items, nil
+	filteredQueries := r.filterQueriesByAge(queries.Items, evaluator)
+	return filteredQueries, nil
+}
+
+// filterQueriesByAge filters queries based on evaluator's queryAgeFilter setting
+func (r *EvaluatorReconciler) filterQueriesByAge(queries []arkv1alpha1.Query, evaluator *arkv1alpha1.Evaluator) []arkv1alpha1.Query {
+	if evaluator.Spec.QueryAgeFilter == "" || evaluator.Spec.QueryAgeFilter == "all" {
+		return queries
+	}
+
+	var cutoffTime time.Time
+	switch evaluator.Spec.QueryAgeFilter {
+	case "afterEvaluator":
+		cutoffTime = evaluator.CreationTimestamp.Time
+	case "afterTimestamp":
+		if evaluator.Spec.CreatedAfter != nil {
+			cutoffTime = evaluator.Spec.CreatedAfter.Time
+		} else {
+			return queries
+		}
+	default:
+		return queries
+	}
+
+	filtered := make([]arkv1alpha1.Query, 0)
+	for _, query := range queries {
+		if query.CreationTimestamp.After(cutoffTime) {
+			filtered = append(filtered, query)
+		}
+	}
+
+	return filtered
 }
 
 // mergeEvaluationMetadata merges query metadata (labels and annotations) into evaluation metadata
@@ -381,7 +710,7 @@ func (r *EvaluatorReconciler) mergeEvaluationMetadata(query *arkv1alpha1.Query, 
 			annotationsMap[k] = v
 		}
 	}
-	
+
 	// Required annotations take precedence
 	annotationsMap[annotations.QueryGeneration] = fmt.Sprintf("%d", query.Generation)
 	annotationsMap[annotations.QueryPhase] = query.Status.Phase

@@ -63,6 +63,15 @@ interface Selector {
   };
 }
 
+interface BatchConfig {
+  name?: string;
+  updateMode: string;
+  groupByLabel?: string;
+  groupByAnnotation?: string;
+  concurrency?: number;
+  continueOnFailure?: boolean;
+}
+
 interface EvaluatorEditFormProps {
   evaluator: EvaluatorDetailResponse;
   namespace: string;
@@ -84,6 +93,10 @@ export function EvaluatorEditForm({
   const [modelRef, setModelRef] = useState('');
   const [parameters, setParameters] = useState<Parameter[]>([]);
   const [selector, setSelector] = useState<Selector | null>(null);
+  const [queryAgeFilter, setQueryAgeFilter] = useState<string>('all');
+  const [createdAfter, setCreatedAfter] = useState<string>('');
+  const [evaluationMode, setEvaluationMode] = useState<string>('individual');
+  const [batchConfig, setBatchConfig] = useState<BatchConfig | null>(null);
   const [models, setModels] = useState<Model[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -145,6 +158,13 @@ export function EvaluatorEditForm({
       } else {
         setSelector(null);
       }
+
+      setQueryAgeFilter((evaluator.spec?.queryAgeFilter as string) || 'all');
+      setCreatedAfter((evaluator.spec?.createdAfter as string) || '');
+      setEvaluationMode(
+        (evaluator.spec?.evaluationMode as string) || 'individual',
+      );
+      setBatchConfig((evaluator.spec?.batchConfig as BatchConfig) || null);
     }
   }, [evaluator]);
 
@@ -213,6 +233,12 @@ export function EvaluatorEditForm({
         Object.keys(selector.labelSelector.matchLabels || {}).some(
           k => k && selector.labelSelector?.matchLabels?.[k],
         ) && { selector }),
+      ...(queryAgeFilter && queryAgeFilter !== 'all' && { queryAgeFilter }),
+      ...(createdAfter && {
+        createdAfter: new Date(createdAfter).toISOString(),
+      }),
+      ...(evaluationMode && { evaluationMode }),
+      ...(batchConfig && { batchConfig }),
     };
 
     await onSave(evaluatorData);
@@ -318,6 +344,222 @@ export function EvaluatorEditForm({
             onSelectorChange={setSelector}
             error={errors.selector}
           />
+
+          <hr />
+
+          <div className="flex w-full flex-col gap-3">
+            <CardHeader className="w-full px-0">
+              <CardTitle className="text-lg">
+                Evaluation Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="w-full space-y-6 px-0">
+              <div className="flex flex-col gap-1 space-y-2">
+                <Label>Query Age Filter</Label>
+                <Select
+                  value={queryAgeFilter || 'all'}
+                  onValueChange={value => setQueryAgeFilter(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Queries</SelectItem>
+                    <SelectItem value="afterEvaluator">
+                      After Evaluator Creation
+                    </SelectItem>
+                    <SelectItem value="afterTimestamp">
+                      After Timestamp
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {queryAgeFilter === 'afterTimestamp' && (
+                <div className="flex flex-col gap-1 space-y-2">
+                  <Label>Created After</Label>
+                  <Input
+                    type="datetime-local"
+                    value={
+                      createdAfter
+                        ? new Date(createdAfter).toISOString().slice(0, 16)
+                        : ''
+                    }
+                    onChange={e =>
+                      setCreatedAfter(
+                        e.target.value
+                          ? new Date(e.target.value).toISOString()
+                          : '',
+                      )
+                    }
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1 space-y-2">
+                <Label>Evaluation Mode</Label>
+                <Select
+                  value={evaluationMode || 'individual'}
+                  onValueChange={value => {
+                    setEvaluationMode(value);
+                    if (value === 'batch' && !batchConfig) {
+                      setBatchConfig({
+                        updateMode: 'immutable',
+                        concurrency: 10,
+                        continueOnFailure: true,
+                      });
+                    }
+                  }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">
+                      Individual Evaluations
+                    </SelectItem>
+                    <SelectItem value="batch">Batch Evaluation</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-muted-foreground text-xs">
+                  {evaluationMode === 'batch'
+                    ? 'Creates batch evaluations for matched queries'
+                    : 'Creates one evaluation per matched query'}
+                </p>
+              </div>
+
+              {evaluationMode === 'batch' && (
+                <div className="space-y-4 rounded-md border p-4">
+                  <h4 className="text-sm font-semibold">Batch Configuration</h4>
+
+                  <div className="flex flex-col gap-1 space-y-2">
+                    <Label>Batch Name (optional)</Label>
+                    <Input
+                      placeholder="e.g., daily-batch (defaults to {evaluator-name}-batch)"
+                      value={batchConfig?.name || ''}
+                      onChange={e =>
+                        setBatchConfig({
+                          updateMode: batchConfig?.updateMode || 'immutable',
+                          ...batchConfig,
+                          name: e.target.value || undefined,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 space-y-2">
+                    <Label>Update Mode</Label>
+                    <Select
+                      value={batchConfig?.updateMode || 'immutable'}
+                      onValueChange={value =>
+                        setBatchConfig({
+                          updateMode: value,
+                          ...batchConfig,
+                        })
+                      }>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="immutable">
+                          Immutable - Create once, never update
+                        </SelectItem>
+                        <SelectItem value="dynamic">
+                          Dynamic - Append new queries
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-muted-foreground text-xs">
+                      {batchConfig?.updateMode === 'immutable'
+                        ? 'Batch is a snapshot and will not be modified'
+                        : 'New matching queries are automatically added to the batch'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-1 space-y-2">
+                    <Label>Group By Label (optional)</Label>
+                    <Input
+                      placeholder="e.g., run-id"
+                      value={batchConfig?.groupByLabel || ''}
+                      onChange={e =>
+                        setBatchConfig({
+                          updateMode: batchConfig?.updateMode || 'immutable',
+                          ...batchConfig,
+                          groupByLabel: e.target.value || undefined,
+                          groupByAnnotation: e.target.value
+                            ? undefined
+                            : batchConfig?.groupByAnnotation,
+                        })
+                      }
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      Create separate batches for each unique label value
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-1 space-y-2">
+                    <Label>Group By Annotation (optional)</Label>
+                    <Input
+                      placeholder="e.g., workflow-id"
+                      value={batchConfig?.groupByAnnotation || ''}
+                      onChange={e =>
+                        setBatchConfig({
+                          updateMode: batchConfig?.updateMode || 'immutable',
+                          ...batchConfig,
+                          groupByAnnotation: e.target.value || undefined,
+                          groupByLabel: e.target.value
+                            ? undefined
+                            : batchConfig?.groupByLabel,
+                        })
+                      }
+                      disabled={!!batchConfig?.groupByLabel}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      Create separate batches for each unique annotation value
+                      (disabled if groupByLabel is set)
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-1 space-y-2">
+                    <Label>Concurrency</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={batchConfig?.concurrency || 10}
+                      onChange={e =>
+                        setBatchConfig({
+                          updateMode: batchConfig?.updateMode || 'immutable',
+                          ...batchConfig,
+                          concurrency: parseInt(e.target.value) || 10,
+                        })
+                      }
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      Max concurrent child evaluations (1-100)
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="continueOnFailure"
+                      checked={batchConfig?.continueOnFailure ?? true}
+                      onChange={e =>
+                        setBatchConfig({
+                          updateMode: batchConfig?.updateMode || 'immutable',
+                          ...batchConfig,
+                          continueOnFailure: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="continueOnFailure" className="text-sm">
+                      Continue on failure
+                    </Label>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </div>
 
           <div className="flex items-center justify-end gap-2 border-t pt-6">
             <Button

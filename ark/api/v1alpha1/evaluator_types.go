@@ -29,6 +29,29 @@ type EvaluatorSpec struct {
 	// Parameters to pass to evaluation requests
 	// +kubebuilder:validation:Optional
 	Parameters []Parameter `json:"parameters,omitempty"`
+
+	// QueryAgeFilter controls which queries to evaluate based on creation time
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=all;afterEvaluator;afterTimestamp
+	// +kubebuilder:default=all
+	QueryAgeFilter string `json:"queryAgeFilter,omitempty"`
+
+	// CreatedAfter specifies the timestamp for queryAgeFilter=afterTimestamp
+	// Only queries created after this time will be evaluated
+	// +kubebuilder:validation:Optional
+	CreatedAfter *metav1.Time `json:"createdAfter,omitempty"`
+
+	// EvaluationMode controls whether to create individual evaluations per query
+	// or aggregate queries into batch evaluations
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=individual;batch
+	// +kubebuilder:default=individual
+	EvaluationMode string `json:"evaluationMode,omitempty"`
+
+	// BatchConfig contains configuration for batch evaluation mode
+	// Required when evaluationMode=batch
+	// +kubebuilder:validation:Optional
+	BatchConfig *EvaluatorBatchConfig `json:"batchConfig,omitempty"`
 }
 
 type EvaluatorStatus struct {
@@ -37,6 +60,45 @@ type EvaluatorStatus struct {
 	LastResolvedAddress string `json:"lastResolvedAddress,omitempty"`
 	Phase               string `json:"phase,omitempty"`
 	Message             string `json:"message,omitempty"`
+}
+
+// EvaluatorBatchConfig configures batch evaluation creation from evaluator selector
+type EvaluatorBatchConfig struct {
+	// Name for the batch evaluation (defaults to {evaluator-name}-batch)
+	// Ignored when GroupByLabel or GroupByAnnotation is set
+	// +kubebuilder:validation:Optional
+	Name string `json:"name,omitempty"`
+
+	// UpdateMode controls batch update behavior
+	// immutable: Create batch once with queries at that moment, never update
+	// dynamic: Continuously append new matching queries to batch
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=immutable;dynamic
+	UpdateMode string `json:"updateMode"`
+
+	// GroupByLabel groups queries by a label key's value
+	// Creates separate batch evaluations for each unique label value
+	// Batch name format: {evaluator-name}-batch-{sanitized-label-value}
+	// +kubebuilder:validation:Optional
+	GroupByLabel string `json:"groupByLabel,omitempty"`
+
+	// GroupByAnnotation groups queries by an annotation key's value
+	// Creates separate batch evaluations for each unique annotation value
+	// Batch name format: {evaluator-name}-batch-{sanitized-annotation-value}
+	// +kubebuilder:validation:Optional
+	GroupByAnnotation string `json:"groupByAnnotation,omitempty"`
+
+	// Concurrency controls max concurrent child evaluations in batch
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	// +kubebuilder:default=10
+	Concurrency int `json:"concurrency,omitempty"`
+
+	// ContinueOnFailure controls whether to continue if a child evaluation fails
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	ContinueOnFailure bool `json:"continueOnFailure,omitempty"`
 }
 
 // +kubebuilder:object:root=true

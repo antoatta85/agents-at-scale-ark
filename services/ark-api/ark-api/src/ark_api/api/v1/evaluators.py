@@ -126,7 +126,33 @@ async def create_evaluator(
                         })
                     selector_dict["matchExpressions"] = match_expressions
             spec.selector = EvaluatorV1alpha1SpecSelector.from_dict(selector_dict)
-        
+
+        if evaluator.query_age_filter:
+            spec.query_age_filter = evaluator.query_age_filter
+
+        if evaluator.created_after:
+            spec.created_after = evaluator.created_after.isoformat()
+
+        if evaluator.evaluation_mode:
+            spec.evaluation_mode = evaluator.evaluation_mode
+
+        if evaluator.batch_config:
+            batch_config_dict = {
+                "updateMode": evaluator.batch_config.update_mode,
+            }
+            if evaluator.batch_config.name:
+                batch_config_dict["name"] = evaluator.batch_config.name
+            if evaluator.batch_config.group_by_label:
+                batch_config_dict["groupByLabel"] = evaluator.batch_config.group_by_label
+            if evaluator.batch_config.group_by_annotation:
+                batch_config_dict["groupByAnnotation"] = evaluator.batch_config.group_by_annotation
+            if evaluator.batch_config.concurrency:
+                batch_config_dict["concurrency"] = evaluator.batch_config.concurrency
+            if evaluator.batch_config.continue_on_failure is not None:
+                batch_config_dict["continueOnFailure"] = evaluator.batch_config.continue_on_failure
+
+            spec.batch_config = batch_config_dict
+
         # Create evaluator object
         evaluator_obj = EvaluatorV1alpha1(
             api_version=f"{GROUP}/{VERSION}",
@@ -241,7 +267,39 @@ async def update_evaluator(
                 spec["selector"] = selector_dict
             else:
                 spec.pop("selector", None)
-        
+
+        if evaluator.query_age_filter is not None:
+            spec["queryAgeFilter"] = evaluator.query_age_filter
+
+        if evaluator.created_after is not None:
+            if evaluator.created_after:
+                spec["createdAfter"] = evaluator.created_after.isoformat()
+            else:
+                spec.pop("createdAfter", None)
+
+        if evaluator.evaluation_mode is not None:
+            spec["evaluationMode"] = evaluator.evaluation_mode
+
+        if evaluator.batch_config is not None:
+            if evaluator.batch_config:
+                batch_config_dict = {
+                    "updateMode": evaluator.batch_config.update_mode,
+                }
+                if evaluator.batch_config.name:
+                    batch_config_dict["name"] = evaluator.batch_config.name
+                if evaluator.batch_config.group_by_label:
+                    batch_config_dict["groupByLabel"] = evaluator.batch_config.group_by_label
+                if evaluator.batch_config.group_by_annotation:
+                    batch_config_dict["groupByAnnotation"] = evaluator.batch_config.group_by_annotation
+                if evaluator.batch_config.concurrency:
+                    batch_config_dict["concurrency"] = evaluator.batch_config.concurrency
+                if evaluator.batch_config.continue_on_failure is not None:
+                    batch_config_dict["continueOnFailure"] = evaluator.batch_config.continue_on_failure
+
+                spec["batchConfig"] = batch_config_dict
+            else:
+                spec.pop("batchConfig", None)
+
         # Update evaluator object
         existing_dict["spec"] = spec
         updated_evaluator = EvaluatorV1alpha1.from_dict(existing_dict)

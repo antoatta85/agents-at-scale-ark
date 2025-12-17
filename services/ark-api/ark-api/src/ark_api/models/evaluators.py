@@ -1,7 +1,8 @@
 """Pydantic models for Evaluator resources."""
 
+from datetime import datetime
 from typing import List, Dict, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ModelReference(BaseModel):
@@ -78,6 +79,29 @@ class EvaluatorListResponse(BaseModel):
     count: int
 
 
+class EvaluatorBatchConfig(BaseModel):
+    """Configuration for batch evaluation mode."""
+    name: Optional[str] = None
+    update_mode: str = Field(..., pattern="^(immutable|dynamic)$")
+    group_by_label: Optional[str] = None
+    group_by_annotation: Optional[str] = None
+    concurrency: Optional[int] = Field(10, ge=1, le=100)
+    continue_on_failure: Optional[bool] = True
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "name": "daily-batch",
+                "update_mode": "immutable",
+                "group_by_label": "run-id",
+                "concurrency": 10,
+                "continue_on_failure": True,
+            }
+        },
+    )
+
+
 class EvaluatorCreateRequest(BaseModel):
     """Request body for creating an evaluator."""
     name: str
@@ -85,6 +109,10 @@ class EvaluatorCreateRequest(BaseModel):
     description: Optional[str] = None
     selector: Optional[ResourceSelector] = None
     parameters: Optional[List[Parameter]] = None
+    query_age_filter: Optional[str] = Field("all", pattern="^(all|afterEvaluator|afterTimestamp)$")
+    created_after: Optional[datetime] = None
+    evaluation_mode: Optional[str] = Field("individual", pattern="^(individual|batch)$")
+    batch_config: Optional[EvaluatorBatchConfig] = None
 
 
 class EvaluatorUpdateRequest(BaseModel):
@@ -93,6 +121,10 @@ class EvaluatorUpdateRequest(BaseModel):
     description: Optional[str] = None
     selector: Optional[ResourceSelector] = None
     parameters: Optional[List[Parameter]] = None
+    query_age_filter: Optional[str] = None
+    created_after: Optional[datetime] = None
+    evaluation_mode: Optional[str] = None
+    batch_config: Optional[EvaluatorBatchConfig] = None
 
 
 class EvaluatorDetailResponse(BaseModel):

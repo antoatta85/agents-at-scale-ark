@@ -94,6 +94,7 @@ spec:
                         config:
                           description: Configuration for this specific evaluation
                           type: object
+                          x-kubernetes-preserve-unknown-fields: true
                         evaluator:
                           description: Evaluator reference for this evaluation
                           properties:
@@ -322,6 +323,7 @@ spec:
                         description: Default configuration for template-generated
                           evaluations
                         type: object
+                        x-kubernetes-preserve-unknown-fields: true
                       evaluator:
                         description: Default evaluator reference for template-generated
                           evaluations
