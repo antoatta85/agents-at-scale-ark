@@ -595,8 +595,10 @@ export const EvaluationsSection = forwardRef<
         ? bStatus.localeCompare(aStatus)
         : aStatus.localeCompare(bStatus);
     } else if (sortField === 'age') {
-      const aAge = a.metadata?.creationTimestamp || null;
-      const bAge = b.metadata?.creationTimestamp || null;
+      const aAge =
+        (a as EvaluationDetailResponse).metadata?.creationTimestamp || null;
+      const bAge =
+        (b as EvaluationDetailResponse).metadata?.creationTimestamp || null;
 
       if (typeof aAge === 'string' && typeof bAge === 'string') {
         return sortDirection === 'desc'

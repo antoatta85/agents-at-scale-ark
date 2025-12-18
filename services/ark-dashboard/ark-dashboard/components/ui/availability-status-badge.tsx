@@ -1,10 +1,9 @@
 import Link from 'next/link';
 import type { ComponentProps } from 'react';
 
-import type { components } from '@/lib/api/generated/types';
 import { cn } from '@/lib/utils';
 
-export type AvailabilityStatus = components['schemas']['AvailabilityStatus'];
+export type AvailabilityStatus = 'True' | 'False' | 'Unknown';
 
 interface AvailabilityStatusBadgeProps {
   readonly status?: AvailabilityStatus | null;

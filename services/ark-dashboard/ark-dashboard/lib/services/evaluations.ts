@@ -209,7 +209,7 @@ export const evaluationsService = {
   },
 
   /**
-   * Delete an evaluation
+   * Bulk delete evaluations
    */
   async bulkDeleteEvaluations(
     evaluationNames: string[],

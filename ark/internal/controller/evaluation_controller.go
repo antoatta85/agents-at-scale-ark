@@ -805,6 +805,7 @@ func (r *EvaluationReconciler) ensureChildEvaluations(ctx context.Context, paren
 	// Create missing child evaluations from batch config
 	// Handle Items (inline batch item definitions)
 	totalExpectedChildren := 0
+	created := 0
 	if len(parentEvaluation.Spec.Config.Items) > 0 {
 		totalExpectedChildren = len(parentEvaluation.Spec.Config.Items)
 		for i, item := range parentEvaluation.Spec.Config.Items {
@@ -848,6 +849,7 @@ func (r *EvaluationReconciler) ensureChildEvaluations(ctx context.Context, paren
 				log.Error(err, "Failed to create child evaluation", "childName", childName)
 				return false, fmt.Errorf("failed to create child evaluation %s: %w", childName, err)
 			}
+			created++
 
 			log.Info("Created child evaluation from item", "childName", childName, "type", item.Type)
 		}
@@ -897,12 +899,14 @@ func (r *EvaluationReconciler) ensureChildEvaluations(ctx context.Context, paren
 				log.Error(err, "Failed to create child evaluation", "childName", childName)
 				return false, fmt.Errorf("failed to create child evaluation %s: %w", childName, err)
 			}
+			created++
 
 			log.Info("Created child evaluation", "childName", childName, "evaluationRef", evaluationRef.Name)
 		}
 	}
 
-	return len(existingChildren) == totalExpectedChildren, nil
+	// Return true if we now have all expected children (existing + newly created)
+	return len(existingChildren)+created >= totalExpectedChildren, nil
 }
 
 // updateBatchProgress updates the BatchProgress field in the parent evaluation status

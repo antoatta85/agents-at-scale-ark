@@ -343,3 +343,15 @@ def enhanced_evaluation_to_detail_response(evaluation: dict) -> EnhancedEvaluati
         childEvaluationStatus=child_status,
         enhanced_metadata=enhanced_metadata
     )
+
+
+class EvaluationBulkDeleteRequest(BaseModel):
+    """Request body for bulk deleting evaluations."""
+    names: List[str]
+
+
+class EvaluationBulkDeleteResponse(BaseModel):
+    """Response for bulk delete operation."""
+    deleted: int
+    failed: int
+    message: Optional[str] = None

@@ -304,5 +304,48 @@ async def cancel_evaluation(name: str, namespace: Optional[str] = Query(None, de
         # Update evaluation
         updated_evaluation = EvaluationV1alpha1.from_dict(existing_dict)
         result = await ark_client.evaluations.a_update(updated_evaluation)
-        
+
         return evaluation_to_detail_response(result.to_dict())
+
+
+@router.delete("", response_model=EvaluationBulkDeleteResponse)
+@handle_k8s_errors(operation="bulk_delete", resource_type="evaluation")
+async def bulk_delete_evaluations(
+    request: EvaluationBulkDeleteRequest,
+    namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")
+) -> EvaluationBulkDeleteResponse:
+    """Bulk delete evaluations."""
+    async with with_ark_client(namespace, VERSION) as ark_client:
+        deleted = 0
+        failed = 0
+
+        # Delete evaluations in parallel
+        async def delete_one(name: str) -> bool:
+            try:
+                await ark_client.evaluations.a_delete(name)
+                return True
+            except Exception:
+                return False
+
+        results = await asyncio.gather(
+            *[delete_one(name) for name in request.names],
+            return_exceptions=True
+        )
+
+        for result in results:
+            if isinstance(result, bool) and result:
+                deleted += 1
+            else:
+                failed += 1
+
+        message = None
+        if failed > 0:
+            message = f"Deleted {deleted} evaluations, {failed} failed"
+        else:
+            message = f"Successfully deleted {deleted} evaluations"
+
+        return EvaluationBulkDeleteResponse(
+            deleted=deleted,
+            failed=failed,
+            message=message
+        )
