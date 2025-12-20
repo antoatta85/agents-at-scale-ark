@@ -1,6 +1,8 @@
 import { apiClient } from '@/lib/api/client';
 import type { components } from '@/lib/api/generated/types';
 
+import type { EvaluationFilters } from '../../components/filtering';
+
 // Helper type for API errors
 interface APIError extends Error {
   status?: number;
@@ -107,8 +109,7 @@ export interface EnhancedEvaluationResponse extends EvaluationResponse {
   enhanced_metadata?: EnhancedEvaluationMetadata;
 }
 
-export interface EnhancedEvaluationDetailResponse
-  extends EvaluationDetailResponse {
+export interface EnhancedEvaluationDetailResponse extends EvaluationDetailResponse {
   enhanced_metadata?: EnhancedEvaluationMetadata;
 }
 
@@ -143,14 +144,30 @@ export const evaluationsService = {
   /**
    * Get all evaluations in a namespace with optional filtering
    */
-  async getAll(enhanced: boolean = false): Promise<EvaluationResponse[]> {
+  async getAll(
+    enhanced: boolean = false,
+    page: number,
+    limit: number,
+    sortField?: string,
+    sortDirection?: string,
+    filters?: EvaluationFilters,
+  ): Promise<EvaluationListResponse> {
     const response = await apiClient.get<EvaluationListResponse>(
-      `/api/v1/evaluations?enhanced=${enhanced}`,
+      `/api/v1/evaluations`,
+      {
+        params: {
+          enhanced: enhanced,
+          page: page.toString(),
+          limit: limit.toString(),
+          ...(filters?.search &&
+            filters.search.trim() !== '' && { query_ref: filters.search }),
+          ...(sortField && { sort_key: sortField }),
+          ...(sortDirection && { sort_direction: sortDirection }),
+        },
+      },
     );
 
-    // For now, just use the response items directly
-    // TODO: Implement proper filtering once we have real spec data
-    return response.items || [];
+    return response;
   },
 
   /**

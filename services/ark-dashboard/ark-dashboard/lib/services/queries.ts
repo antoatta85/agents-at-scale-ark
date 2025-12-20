@@ -17,8 +17,8 @@ export const queriesService = {
       params: {
         page,
         limit,
-        sortField,
-        sortDirection,
+        sort_key: sortField,
+        sort_direction: sortDirection,
       },
     });
     return response;

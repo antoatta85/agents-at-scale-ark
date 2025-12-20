@@ -1,7 +1,6 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { useRef } from 'react';
 
 import type { BreadcrumbElement } from '@/components/common/page-header';
@@ -14,8 +13,7 @@ const breadcrumbs: BreadcrumbElement[] = [
 ];
 
 export default function EvaluationsPage() {
-  const searchParams = useSearchParams();
-  const queryFilter = searchParams.get('query');
+  // Hooks
   const evaluationsSectionRef = useRef<{ openAddEditor: () => void }>(null);
 
   return (
@@ -32,10 +30,7 @@ export default function EvaluationsPage() {
         }
       />
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <EvaluationsSection
-          ref={evaluationsSectionRef}
-          initialQueryFilter={queryFilter}
-        />
+        <EvaluationsSection ref={evaluationsSectionRef} />
       </div>
     </>
   );

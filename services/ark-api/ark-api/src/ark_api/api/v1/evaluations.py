@@ -37,34 +37,53 @@ VERSION = "v1alpha1"
 @handle_k8s_errors(operation="list", resource_type="evaluation")
 async def list_evaluations(
     enhanced: bool = Query(False, description="Include enhanced metadata from annotations"),
+    page: int = Query(1, description="Page number for pagination (1-based)"),
+    limit: int = Query(10, description="Maximum number of evaluations to return"),
     query_ref: str = Query(None, description="Filter evaluations by query reference name"),
+    sort_key: Optional[str] = Query(None, description="Key to sort by"),
+    sort_direction: Optional[str] = Query(None, description="Sort direction (asc or desc)"),
     namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")
 ) -> Union[EvaluationListResponse, EnhancedEvaluationListResponse]:
     """List all evaluations in a namespace."""
+
     async with with_ark_client(namespace, VERSION) as ark_client:
-        result = await ark_client.evaluations.a_list()
+        # Sort key function to sort evaluations
+        if sort_key == "name":
+            sort_key = lambda x: x.to_dict()['metadata']['name']
+        elif sort_key == "score":
+            def score_sort_key_function(x: dict) -> float:
+                status = x.to_dict()['status']
+                if 'score' in status:
+                    return float(status['score'])
+                return 0
+            sort_key = score_sort_key_function
+        elif sort_key == "status":
+            sort_key = lambda x: x.to_dict()['status']['phase']
+        elif sort_key == "age":
+            sort_key = lambda x: x.to_dict()['metadata']['creationTimestamp']
+        else:
+            sort_key = None
         
-        # Filter by query_ref if provided
-        if query_ref:
-            filtered_result = []
-            for item in result:
-                item_dict = item.to_dict()
-                # Check if this evaluation has a queryRef that matches
-                if (item_dict.get('spec', {}).get('config', {}).get('queryRef', {}).get('name') == query_ref):
-                    filtered_result.append(item)
-            result = filtered_result
+        # Filter function to filter evaluations
+        def filter_func(x: dict) -> bool:
+            data = x.to_dict()
+            if query_ref:
+                return query_ref.lower().strip() in data['metadata']['name'].lower()
+            return True
+            
+        result, total_count = await ark_client.evaluations.a_list_paginated(page=page, limit=limit, sort_key=sort_key, sort_reverse=sort_direction == "desc", filter_func=filter_func)
         
         if enhanced:
             evaluations = [enhanced_evaluation_to_response(item.to_dict()) for item in result]
             return EnhancedEvaluationListResponse(
                 items=evaluations,
-                count=len(evaluations)
+                count=total_count
             )
         else:
             evaluations = [evaluation_to_response(item.to_dict()) for item in result]
             return EvaluationListResponse(
                 items=evaluations,
-                count=len(evaluations)
+                count=total_count
             )
 
 

@@ -95,9 +95,11 @@ async def list_queries(
     """List all queries in a namespace."""
     async with with_ark_client(namespace, VERSION) as ark_client:
         if sort_key == "creationTimestamp":
-            sort_key = lambda x: x.metadata.creation_timestamp
+            sort_key = lambda x: x.to_dict()['metadata']['creationTimestamp']
         else:
             sort_key = None
+    
+        print(f"sort_key: {sort_key}")
 
         (result, total_count) = await ark_client.queries.a_list_paginated(limit=limit, page=page, sort_key=sort_key, sort_reverse=sort_direction == "desc")
         queries = [query_to_response(item.to_dict()) for item in result]

@@ -238,8 +238,6 @@ def evaluation_to_response(evaluation: dict) -> EvaluationResponse:
     spec = evaluation.get("spec", {})
     status = evaluation.get("status", {})
     metadata = evaluation.get("metadata", {})
-
-    print(f"evaluation: {evaluation}")
     
     return EvaluationResponse(
         name=evaluation["metadata"]["name"],

@@ -48,7 +48,7 @@ type SortDirection = 'asc' | 'desc';
 // NEW: view mode for the Output column
 type OutputViewMode = 'content' | 'raw';
 
-// Default values
+// Default values for pagination
 const defaultPage = '1';
 const defaultLimit = '10';
 
@@ -194,19 +194,6 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
         setSortDirection('desc');
       }
     };
-
-    const sortedQueries = [...queries].sort((a, b) => {
-      if (sortField === 'createdAt') {
-        const aTime = a.creationTimestamp
-          ? new Date(a.creationTimestamp).getTime()
-          : 0;
-        const bTime = b.creationTimestamp
-          ? new Date(b.creationTimestamp).getTime()
-          : 0;
-        return sortDirection === 'desc' ? bTime - aTime : aTime - bTime;
-      }
-      return 0;
-    });
 
     // Extract first response content (text) if available
     const getFirstResponseText = (query: QueryResponse) => {
@@ -369,9 +356,7 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
                   <table className="w-full min-w-[800px]">
                     <thead>
                       <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50">
-                        <th
-                          className="cursor-pointer px-3 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
-                          onClick={() => handleSort('createdAt')}>
+                        <th className="cursor-pointer px-3 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800">
                           <div className="flex items-center">Name</div>
                         </th>
                         <th
@@ -430,7 +415,7 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedQueries.length === 0 ? (
+                      {queries.length === 0 ? (
                         <tr>
                           <td
                             colSpan={11}
@@ -471,7 +456,7 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
                           </td>
                         </tr>
                       ) : (
-                        sortedQueries.map(query => {
+                        queries.map(query => {
                           const target = getTargetDisplay(query);
                           const output = getOutput(query);
                           const inputDisplayText = getInputDisplayText(
