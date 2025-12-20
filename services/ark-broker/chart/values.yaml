@@ -65,6 +65,8 @@ persistence:
   memoryFileName: memory.json
   # Filename for the stream data
   streamFileName: stream.json
+  # Filename for the trace data
+  traceFileName: traces.json
   # Use existing PVC instead of creating a new one
   existingClaim: ""
 
