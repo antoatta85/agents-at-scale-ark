@@ -1518,7 +1518,7 @@ class TestQueriesEndpoint(unittest.TestCase):
         }
         
         # Mock the API response
-        mock_client.queries.a_list = AsyncMock(return_value=[mock_query1, mock_query2])
+        mock_client.queries.a_list_paginated = AsyncMock(return_value=([mock_query1, mock_query2], 2))
         
         # Make the request
         response = self.client.get("/v1/queries?namespace=default")
@@ -1559,7 +1559,7 @@ class TestQueriesEndpoint(unittest.TestCase):
         mock_ark_client.return_value.__aenter__.return_value = mock_client
         
         # Mock empty response
-        mock_client.queries.a_list = AsyncMock(return_value=[])
+        mock_client.queries.a_list_paginated = AsyncMock(return_value=([], 0))
         
         # Make the request
         response = self.client.get("/v1/queries?namespace=test-namespace")

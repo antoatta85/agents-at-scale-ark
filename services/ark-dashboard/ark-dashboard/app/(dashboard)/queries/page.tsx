@@ -13,7 +13,9 @@ const breadcrumbs: BreadcrumbElement[] = [
 ];
 
 export default function QueriesPage() {
+  // Hooks
   const queriesSectionRef = useRef<{ openAddEditor: () => void }>(null);
+
   return (
     <>
       <PageHeader

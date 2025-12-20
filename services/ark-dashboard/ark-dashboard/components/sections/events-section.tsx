@@ -24,6 +24,7 @@ import {
 import { DASHBOARD_SECTIONS } from '@/lib/constants';
 import { type Event, eventsService } from '@/lib/services/events';
 
+import { createQueryString } from '../../lib/utils/query-string';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '../ui/empty';
 
 interface EventsSectionProps {
@@ -41,6 +42,7 @@ export function EventsSection({
   kind,
   name,
 }: EventsSectionProps) {
+  // Hooks
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -131,24 +133,6 @@ export function EventsSection({
     }
   }, [loadEvents, page, limit, type, kind, name]);
 
-  // Create query string helper
-  const createQueryString = useCallback(
-    (updates: Record<string, string | undefined>) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value === undefined || value === null || value === '') {
-          params.delete(key);
-        } else {
-          params.set(key, value);
-        }
-      });
-
-      return params.toString();
-    },
-    [searchParams],
-  );
-
   // User interaction handlers
   const handleFilterChange = (key: string, value: string | undefined) => {
     const effectiveValue = value === 'all' ? undefined : value;
@@ -164,7 +148,7 @@ export function EventsSection({
       params.name = undefined; // Explicitly clear name when kind changes
     }
 
-    const queryString = createQueryString(params);
+    const queryString = createQueryString(params, searchParams);
     router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, {
       scroll: false,
     });
@@ -172,7 +156,10 @@ export function EventsSection({
 
   const handlePageChange = (newPage: number) => {
     // Only update the page parameter, leave everything else as-is
-    const queryString = createQueryString({ page: newPage.toString() });
+    const queryString = createQueryString(
+      { page: newPage.toString() },
+      searchParams,
+    );
     router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, {
       scroll: false,
     });
@@ -180,23 +167,29 @@ export function EventsSection({
 
   const handleItemsPerPageChange = (newLimit: number) => {
     // Only update limit and reset page, leave filters as-is
-    const queryString = createQueryString({
-      limit: newLimit.toString(),
-      page: '1', // Reset to first page on limit change
-    });
+    const queryString = createQueryString(
+      {
+        limit: newLimit.toString(),
+        page: '1', // Reset to first page on limit change
+      },
+      searchParams,
+    );
     router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, {
       scroll: false,
     });
   };
 
   const clearFilters = () => {
-    const queryString = createQueryString({
-      type: undefined,
-      kind: undefined,
-      name: undefined,
-      page: '1',
-      limit: limit.toString(),
-    });
+    const queryString = createQueryString(
+      {
+        type: undefined,
+        kind: undefined,
+        name: undefined,
+        page: '1',
+        limit: limit.toString(),
+      },
+      searchParams,
+    );
     router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, {
       scroll: false,
     });

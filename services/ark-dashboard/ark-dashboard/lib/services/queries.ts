@@ -7,8 +7,20 @@ type QueryCreateRequest = components['schemas']['QueryCreateRequest'];
 type QueryUpdateRequest = components['schemas']['QueryUpdateRequest'];
 
 export const queriesService = {
-  async list(): Promise<QueryListResponse> {
-    const response = await apiClient.get<QueryListResponse>(`/api/v1/queries`);
+  async list(
+    page: number,
+    limit: number,
+    sortField: string,
+    sortDirection: string,
+  ): Promise<QueryListResponse> {
+    const response = await apiClient.get<QueryListResponse>(`/api/v1/queries`, {
+      params: {
+        page,
+        limit,
+        sortField,
+        sortDirection,
+      },
+    });
     return response;
   },
 

@@ -1,11 +1,12 @@
 """API routes for Query resources."""
+import logging
 
 from datetime import datetime
 from fastapi import APIRouter, Query
 from typing import Optional
+
 from ark_sdk.models.query_v1alpha1 import QueryV1alpha1
 from ark_sdk.models.query_v1alpha1_spec import QueryV1alpha1Spec
-
 from ark_sdk.client import with_ark_client
 
 from ...models.queries import (
@@ -16,6 +17,8 @@ from ...models.queries import (
     QueryDetailResponse
 )
 from .exceptions import handle_k8s_errors
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/queries",
@@ -82,16 +85,26 @@ def query_to_detail_response(query: dict) -> QueryDetailResponse:
 
 @router.get("", response_model=QueryListResponse)
 @handle_k8s_errors(operation="list", resource_type="query")
-async def list_queries(namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")) -> QueryListResponse:
+async def list_queries(
+    namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)"),  
+    limit: Optional[int] = Query(500, description="Maximum number of queries to return"),
+    page: Optional[int] = Query(1, description="Page number for pagination (1-based)"),
+    sort_key: Optional[str] = Query(None, description="Key to sort by"),
+    sort_direction: Optional[str] = Query(None, description="Sort direction (asc or desc)")
+) -> QueryListResponse:
     """List all queries in a namespace."""
     async with with_ark_client(namespace, VERSION) as ark_client:
-        result = await ark_client.queries.a_list()
-        
+        if sort_key == "creationTimestamp":
+            sort_key = lambda x: x.metadata.creation_timestamp
+        else:
+            sort_key = None
+
+        (result, total_count) = await ark_client.queries.a_list_paginated(limit=limit, page=page, sort_key=sort_key, sort_reverse=sort_direction == "desc")
         queries = [query_to_response(item.to_dict()) for item in result]
         
         return QueryListResponse(
             items=queries,
-            count=len(queries)
+            count=total_count
         )
 
 

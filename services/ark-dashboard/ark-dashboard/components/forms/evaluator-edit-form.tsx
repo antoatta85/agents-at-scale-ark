@@ -442,8 +442,8 @@ export function EvaluatorEditForm({
                       value={batchConfig?.name || ''}
                       onChange={e =>
                         setBatchConfig({
-                          updateMode: batchConfig?.updateMode || 'immutable',
                           ...batchConfig,
+                          updateMode: batchConfig?.updateMode || 'immutable',
                           name: e.target.value || undefined,
                         })
                       }
@@ -456,8 +456,8 @@ export function EvaluatorEditForm({
                       value={batchConfig?.updateMode || 'immutable'}
                       onValueChange={value =>
                         setBatchConfig({
-                          updateMode: value,
                           ...batchConfig,
+                          updateMode: value,
                         })
                       }>
                       <SelectTrigger>
@@ -486,8 +486,8 @@ export function EvaluatorEditForm({
                       value={batchConfig?.groupByLabel || ''}
                       onChange={e =>
                         setBatchConfig({
-                          updateMode: batchConfig?.updateMode || 'immutable',
                           ...batchConfig,
+                          updateMode: batchConfig?.updateMode || 'immutable',
                           groupByLabel: e.target.value || undefined,
                           groupByAnnotation: e.target.value
                             ? undefined

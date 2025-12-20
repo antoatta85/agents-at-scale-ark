@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -37,6 +37,9 @@ import { useListQueries } from '@/lib/services/queries-hooks';
 import { getResourceEventsUrl } from '@/lib/utils/events';
 import { formatAge } from '@/lib/utils/time';
 
+import { createQueryString } from '../../lib/utils/query-string';
+import { Pagination } from '../ui/pagination';
+
 type QueryResponse = components['schemas']['QueryResponse'];
 
 type SortField = 'createdAt' | 'none';
@@ -45,14 +48,28 @@ type SortDirection = 'asc' | 'desc';
 // NEW: view mode for the Output column
 type OutputViewMode = 'content' | 'raw';
 
+// Default values
+const defaultPage = '1';
+const defaultLimit = '10';
+
 export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
   function QueriesSection(_, ref) {
+    // Hooks
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // Search params
+    const page = parseInt(searchParams.get('page') ?? defaultPage);
+    const limit = parseInt(searchParams.get('limit') ?? defaultLimit);
+
+    // Hooks
     const [queries, setQueries] = useState<QueryResponse[]>([]);
     const [sortField, setSortField] = useState<SortField>('createdAt');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [outputViewMode, setOutputViewMode] =
-      useState<OutputViewMode>('content'); // NEW
-    const router = useRouter();
+      useState<OutputViewMode>('content');
+    const [totalQueries, setTotalQueries] = useState(0);
 
     useImperativeHandle(ref, () => ({
       openAddEditor: () => {
@@ -71,11 +88,12 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
       isError: listQueriesError,
       error: listQueriesErrorObject,
       refetch: loadQueries,
-    } = useListQueries();
+    } = useListQueries(page, limit, 'creationTimestamp', sortDirection);
 
     useEffect(() => {
       if (listQueriesData && !listQueriesError) {
         setQueries(listQueriesData.items);
+        setTotalQueries(listQueriesData.count);
       }
 
       if (listQueriesError) {
@@ -87,6 +105,31 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
         });
       }
     }, [listQueriesError, listQueriesData, listQueriesErrorObject]);
+
+    const handlePageChange = (newPage: number) => {
+      // Only update the page parameter, leave everything else as-is
+      const queryString = createQueryString(
+        { page: newPage.toString() },
+        searchParams,
+      );
+      router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, {
+        scroll: false,
+      });
+    };
+
+    const handleItemsPerPageChange = (newLimit: number) => {
+      // Only update limit and reset page, leave filters as-is
+      const queryString = createQueryString(
+        {
+          limit: newLimit.toString(),
+          page: '1', // Reset to first page on limit change
+        },
+        searchParams,
+      );
+      router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, {
+        scroll: false,
+      });
+    };
 
     const truncate = (text: string, maxLen = 120) =>
       text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
@@ -262,8 +305,7 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
         toast.success('Query Deleted', {
           description: 'Successfully deleted query',
         });
-        const data = await queriesService.list();
-        setQueries(data.items);
+        await loadQueries();
       } catch (error) {
         console.error('Failed to delete query:', error);
         toast.error('Failed to Delete Query', {
@@ -281,8 +323,7 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
         toast.success('Query Canceled', {
           description: 'Successfully canceled query',
         });
-        const data = await queriesService.list();
-        setQueries(data.items);
+        await loadQueries();
       } catch (error) {
         console.error('Failed to cancel query:', error);
         toast.error('Failed to Cancel Query', {
@@ -302,6 +343,8 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
       );
     }
 
+    const totalPages = Math.max(1, Math.ceil(totalQueries / limit));
+
     return (
       <div className="flex h-full flex-col">
         {listQueriesFetching ? (
@@ -310,8 +353,8 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
           </div>
         ) : (
           <div className="flex h-full flex-col">
-            <main className="flex-1 space-y-4 overflow-auto p-4">
-              <div className="ml-auto">
+            <main className="mb-5 flex flex-1 flex-col space-y-4 overflow-auto p-4">
+              <div className="ml-auto flex justify-end">
                 <Button
                   onClick={() => loadQueries()}
                   disabled={listQueriesFetching}>
@@ -321,8 +364,8 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
                   Refresh
                 </Button>
               </div>
-              <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                <div className="overflow-x-auto">
+              <div className="flex-1 overflow-hidden">
+                <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
                   <table className="w-full min-w-[800px]">
                     <thead>
                       <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50">
@@ -533,6 +576,17 @@ export const QueriesSection = forwardRef<{ openAddEditor: () => void }>(
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              {/* Pagination */}
+              <div className="mt-2 border-t">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  itemsPerPage={limit}
+                  onPageChange={handlePageChange}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                />
               </div>
             </main>
           </div>

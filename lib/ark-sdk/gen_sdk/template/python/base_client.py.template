@@ -10,7 +10,7 @@ import os
 import functools
 import logging
 import asyncio
-from typing import List, Optional, Dict, Any, TypeVar, Generic, Type
+from typing import List, Optional, Dict, Any, TypeVar, Generic, Type, Union, Tuple, Callable
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from ark_sdk.k8s import get_context
@@ -115,14 +115,36 @@ class ARKResourceClient(Generic[T]):
                 raise Exception(f"{self.kind} '{name}' not found in namespace '{ns}'")
             raise Exception(f"Failed to get {self.kind}: {e}")
     
-    def list(self, namespace: Optional[str] = None, label_selector: Optional[str] = None) -> List[T]:
-        """List all resources"""
+    def list(
+        self, 
+        namespace: Optional[str] = None, 
+        label_selector: Optional[str] = None,
+        limit: Optional[int] = None,
+        continue_token: Optional[str] = None
+    ) -> List[T]:
+        """List all resources
+        
+        Args:
+            namespace: The namespace to list resources from
+            label_selector: Optional label selector for filtering
+            limit: Maximum number of items to return per page (enables pagination)
+            continue_token: Token from previous response to get next page
+            
+        Returns:
+            List of resource models. If limit is provided, returns a tuple:
+            (List[T], Optional[str], Optional[Dict]) where the second element is the 
+            continue token and the third is metadata with 'remainingItemCount'.
+        """
         ns = namespace or self.namespace
         
         try:
             kwargs = {}
             if label_selector:
                 kwargs['label_selector'] = label_selector
+            if limit is not None:
+                kwargs['limit'] = limit
+            if continue_token:
+                kwargs['_continue'] = continue_token
             
             result = self.custom_api.list_namespaced_custom_object(
                 group=self.group,
@@ -133,9 +155,113 @@ class ARKResourceClient(Generic[T]):
             )
             
             items = result.get('items', [])
-            return [self._dict_to_model(item) for item in items]
+            models = [self._dict_to_model(item) for item in items]
+            
+            # If limit was provided, return pagination info
+            if limit is not None:
+                metadata = result.get('metadata', {})
+                continue_token = metadata.get('continue')
+                remaining_count = metadata.get('remainingItemCount')
+                pagination_metadata = {}
+                if continue_token:
+                    pagination_metadata['continue'] = continue_token
+                if remaining_count is not None:
+                    pagination_metadata['remainingItemCount'] = remaining_count
+                return (models, continue_token, pagination_metadata if pagination_metadata else None)
+            
+            return models
         except ApiException as e:
             raise Exception(f"Failed to list {self.kind}s: {e}")
+    
+    def list_paginated(
+        self,
+        namespace: Optional[str] = None,
+        label_selector: Optional[str] = None,
+        page: int = 1,
+        limit: int = 100,
+        filter_func: Optional[Callable[[T], bool]] = None,
+        sort_key: Optional[Callable[[T], Any]] = None,
+        sort_reverse: bool = False
+    ) -> Tuple[List[T], int]:
+        """List resources with page-based pagination, filtering, and sorting.
+        
+        This method fetches ALL resources from Kubernetes (in efficient chunks),
+        applies optional filtering and sorting client-side, then returns the 
+        requested page with total count.
+    
+        Args:
+            namespace: The namespace to list resources from
+            label_selector: Optional label selector for Kubernetes-level filtering
+            page: Page number (1-based, default: 1)
+            limit: Number of items per page (default: 100)
+            filter_func: Optional function to filter items. Should accept a model and return bool.
+            sort_key: Optional function to extract sort key from model (used as key in sorted())
+            sort_reverse: If True, sort in descending order (default: False)
+            
+        Returns:
+            Tuple of (List[T], int): (paginated items, total count after filtering)
+        """
+        ns = namespace or self.namespace
+        
+        # IMPORTANT: We must fetch ALL items before sorting/filtering to ensure correct results.
+        # Kubernetes doesn't support server-side sorting, so we fetch everything in chunks,
+        # then apply client-side filtering, sorting, and pagination.
+        all_items = []
+        continue_token = None
+        fetch_limit = 1000  # Chunk size per API call (not a total limit)
+        
+        try:
+            # Fetch all items using Kubernetes pagination (continue until no more pages)
+            while True:
+                if continue_token:
+                    items, next_token, _ = self.list(
+                        namespace=ns,
+                        label_selector=label_selector,
+                        limit=fetch_limit,
+                        continue_token=continue_token
+                    )
+                else:
+                    result = self.list(
+                        namespace=ns,
+                        label_selector=label_selector,
+                        limit=fetch_limit
+                    )
+                    if isinstance(result, tuple):
+                        items, next_token, _ = result
+                    else:
+                        items = result
+                        next_token = None
+                
+                all_items.extend(items)
+                
+                # Stop when there are no more pages
+                if not next_token:
+                    break
+                continue_token = next_token
+            
+            # Now that we have ALL items, apply filtering
+            if filter_func:
+                all_items = [item for item in all_items if filter_func(item)]
+            
+            # Apply sorting to the complete filtered dataset
+            if sort_key:
+                all_items = sorted(all_items, key=sort_key, reverse=sort_reverse)
+            
+            # Apply page-based pagination
+            total_count = len(all_items)
+            
+            # If limit is -1 or None, return all items (no pagination)
+            if limit == -1 or limit is None:
+                paginated_items = all_items
+            else:
+                start_index = (page - 1) * limit
+                end_index = start_index + limit
+                paginated_items = all_items[start_index:end_index]
+            
+            return paginated_items, total_count
+            
+        except Exception as e:
+            raise Exception(f"Failed to list paginated {self.kind}s: {e}")
     
     def update(self, resource: T, namespace: Optional[str] = None) -> T:
         """Update an existing resource"""
@@ -227,9 +353,36 @@ class ARKResourceClient(Generic[T]):
         return await asyncio.to_thread(self.get, name, namespace)
     
     @async_compat
-    async def a_list(self, namespace: Optional[str] = None, label_selector: Optional[str] = None) -> List[T]:
+    async def a_list(
+        self, 
+        namespace: Optional[str] = None, 
+        label_selector: Optional[str] = None
+    ) -> Union[List[T], Tuple[List[T], Optional[str], Optional[Dict[str, Any]]]]:
         """Async version of list - works in both sync and async contexts"""
         return await asyncio.to_thread(self.list, namespace, label_selector)
+    
+    @async_compat
+    async def a_list_paginated(
+        self,
+        namespace: Optional[str] = None,
+        label_selector: Optional[str] = None,
+        page: int = 1,
+        limit: int = 100,
+        filter_func: Optional[Callable[[T], bool]] = None,
+        sort_key: Optional[Callable[[T], Any]] = None,
+        sort_reverse: bool = False
+    ) -> Tuple[List[T], int]:
+        """Async version of list_paginated - works in both sync and async contexts"""
+        return await asyncio.to_thread(
+            self.list_paginated,
+            namespace,
+            label_selector,
+            page,
+            limit,
+            filter_func,
+            sort_key,
+            sort_reverse
+        )
     
     @async_compat
     async def a_update(self, resource: T, namespace: Optional[str] = None) -> T:

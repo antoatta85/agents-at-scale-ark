@@ -877,12 +877,12 @@ export const EvaluationsSection = forwardRef<
                     onClick={() => {
                       router.push(`/evaluation/${evaluation.name}`);
                     }}>
-                    <td className="text-center text-sm text-gray-900 dark:text-gray-100">
+                    <td className="w-[40px] text-center text-sm text-gray-900 dark:text-gray-100">
                       <div className="flex items-center justify-center">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-5 p-0"
+                          className="h-8 p-0"
                           onClick={e => {
                             e.stopPropagation();
                             handleSelectBulkDelete(evaluation.name);
