@@ -43,9 +43,11 @@ import {
 } from '@/components/ui/tooltip';
 import type { components } from '@/lib/api/generated/types';
 import { DASHBOARD_SECTIONS } from '@/lib/constants';
-import type {
-  EvaluationDetailResponse,
-  EvaluationResponse,
+import {
+  type EvaluationDetailResponse,
+  type EvaluationResponse,
+  type Evaluator,
+  evaluatorsService,
 } from '@/lib/services';
 import { evaluationsService } from '@/lib/services/evaluations';
 import { useGetAllEvaluationsWithDetails } from '@/lib/services/evaluations-hooks';
@@ -127,6 +129,8 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
     >([]);
     const [sortField, setSortField] = useState<SortField>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+    const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
+    const [evaluatorsLoading, setEvaluatorsLoading] = useState(false);
     const [editorOpen, setEditorOpen] = useState(false);
     const [editingEvaluation, setEditingEvaluation] =
       useState<EvaluationResponse | null>(null);
@@ -176,6 +180,27 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
       sortDirection: sortDirection,
       filters: filters,
     });
+
+    useEffect(() => {
+      const loadData = async () => {
+        setEvaluatorsLoading(true);
+        try {
+          const evaluatorsData = await evaluatorsService.getAll();
+          setEvaluators(evaluatorsData);
+        } catch (error) {
+          toast.error('Failed to Load Evaluators', {
+            description:
+              error instanceof Error
+                ? error.message
+                : 'An unexpected error occurred',
+          });
+        } finally {
+          setEvaluatorsLoading(false);
+        }
+      };
+
+      loadData();
+    }, []);
 
     useEffect(() => {
       if (listEvaluationsData && !listEvaluationsError) {
@@ -409,14 +434,7 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
 
     // Extract unique values for filter options based on current tab
     const getAvailableEvaluators = () => {
-      const evaluators = new Set<string>();
-      currentEvaluations.forEach(evaluation => {
-        const evaluatorName = getEvaluatorDisplay(evaluation);
-        if (evaluatorName !== '-') {
-          evaluators.add(evaluatorName);
-        }
-      });
-      return Array.from(evaluators).sort();
+      return evaluators.map(evaluator => evaluator.name).sort();
     };
 
     // Separate evaluations by type
@@ -433,17 +451,6 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
     // Get current evaluations based on active tab
     const currentEvaluations =
       activeTab === 'dataset' ? datasetEvaluations : standardEvaluations;
-
-    // Filter evaluations based on current filters
-    const filteredEvaluations = currentEvaluations.filter(evaluation => {
-      // Evaluator filter
-      if (filters.evaluator.length > 0) {
-        const evaluator = getEvaluatorDisplay(evaluation);
-        if (!filters.evaluator.includes(evaluator)) return false;
-      }
-
-      return true;
-    });
 
     const handleSort = (field: SortField) => {
       if (sortField === field) {
@@ -669,7 +676,7 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
               </tr>
             </thead>
             <tbody>
-              {filteredEvaluations.length === 0 ? (
+              {currentEvaluations.length === 0 ? (
                 <tr>
                   <td
                     colSpan={activeTab === 'dataset' ? 8 : 9}
@@ -706,7 +713,7 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
                   </td>
                 </tr>
               ) : (
-                filteredEvaluations.map(evaluation => {
+                currentEvaluations.map(evaluation => {
                   const status = getStatus(evaluation);
                   return (
                     <tr
@@ -851,13 +858,25 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
               onValueChange={setActiveTab}
               className="w-full">
               <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-                <TabsTrigger value="standard" className="text-sm">
+                <TabsTrigger
+                  value="standard"
+                  className="text-sm"
+                  disabled={listEvaluationsLoading || evaluatorsLoading}>
                   Standard (
-                  {listEvaluationsLoading ? '-' : standardEvaluations.length})
+                  {listEvaluationsLoading || evaluatorsLoading
+                    ? '-'
+                    : standardEvaluations.length}
+                  )
                 </TabsTrigger>
-                <TabsTrigger value="dataset" className="text-sm">
+                <TabsTrigger
+                  value="dataset"
+                  className="text-sm"
+                  disabled={listEvaluationsLoading || evaluatorsLoading}>
                   Baseline (
-                  {listEvaluationsLoading ? '-' : datasetEvaluations.length})
+                  {listEvaluationsLoading || evaluatorsLoading
+                    ? '-'
+                    : datasetEvaluations.length}
+                  )
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -866,6 +885,7 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
               <div className="flex-1">
                 <EvaluationFilter
                   filters={filters}
+                  disabled={listEvaluationsLoading || evaluatorsLoading}
                   onFiltersChange={newFilters => {
                     setFilters(newFilters);
                   }}
@@ -879,7 +899,8 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
                   className="bg-destructive hover:bg-destructive/10 hover:text-destructive text-white"
                   disabled={
                     selectedBulkDeleteEvaluations.size === 0 ||
-                    listEvaluationsLoading
+                    listEvaluationsLoading ||
+                    evaluatorsLoading
                   }
                   onClick={() => handleBulkDelete()}>
                   <Trash2 className={`h-4 w-4`} />
@@ -889,7 +910,11 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
                 </Button>
                 <Button
                   onClick={() => loadEvaluations()}
-                  disabled={listEvaluationsFetching || listEvaluationsLoading}>
+                  disabled={
+                    listEvaluationsFetching ||
+                    listEvaluationsLoading ||
+                    evaluatorsLoading
+                  }>
                   <RefreshCw
                     className={`h-4 w-4 ${listEvaluationsFetching ? 'animate-spin' : ''}`}
                   />
@@ -900,7 +925,7 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
           </div>
 
           <main className="flex-1 overflow-auto">
-            {listEvaluationsFetching ? (
+            {listEvaluationsFetching || evaluatorsLoading ? (
               <div className="flex h-full items-center justify-center">
                 <div className="text-muted-foreground">Refetching...</div>
               </div>

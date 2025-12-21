@@ -51,6 +51,7 @@ export interface EvaluationFilters {
 
 interface EvaluationFilterProps {
   filters: EvaluationFilters;
+  disabled: boolean;
   onFiltersChange: (filters: EvaluationFilters) => void;
   availableEvaluators: string[];
 }
@@ -92,6 +93,7 @@ const PASSED_OPTIONS = [
 
 export function EvaluationFilter({
   filters,
+  disabled,
   onFiltersChange,
   availableEvaluators,
 }: EvaluationFilterProps) {
@@ -171,13 +173,14 @@ export function EvaluationFilter({
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value.trim())}
             className="pl-8"
+            disabled={disabled}
           />
         </div>
 
         {/* Filter Popover */}
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" disabled={disabled}>
               <Filter className="h-4 w-4" />
               Filters
               {activeFilterCount > 0 && (
