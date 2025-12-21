@@ -163,6 +163,21 @@ export const evaluationsService = {
             filters.search.trim() !== '' && { query_ref: filters.search }),
           ...(sortField && { sort_key: sortField }),
           ...(sortDirection && { sort_direction: sortDirection }),
+          ...(filters?.status &&
+            filters.status.length > 0 && { status: filters.status }),
+          ...(filters?.mode &&
+            filters.mode.length > 0 && { mode: filters.mode }),
+          ...(filters?.passed && { passed: filters.passed }),
+          ...(filters?.scoreMin && { score_min: filters.scoreMin }),
+          ...(filters?.scoreMax && { score_max: filters.scoreMax }),
+          ...(filters?.evaluator &&
+            filters.evaluator.length > 0 && { evaluator: filters.evaluator }),
+          ...(filters?.labelFilters &&
+            filters.labelFilters.length > 0 && {
+              label_filters: filters.labelFilters.map(
+                filter => `${filter.key},${filter.value}`,
+              ),
+            }),
         },
       },
     );

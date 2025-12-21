@@ -6512,10 +6512,32 @@ export interface operations {
             query?: {
                 /** @description Include enhanced metadata from annotations */
                 enhanced?: boolean;
+                /** @description Page number for pagination (1-based) */
+                page?: number;
+                /** @description Maximum number of evaluations to return */
+                limit?: number;
                 /** @description Filter evaluations by query reference name */
                 query_ref?: string;
+                /** @description Key to sort by */
+                sort_key?: string | null;
+                /** @description Sort direction (asc or desc) */
+                sort_direction?: string | null;
                 /** @description Namespace for this request (defaults to current context) */
                 namespace?: string | null;
+                /** @description Filter evaluations by status */
+                status?: string[] | null;
+                /** @description Filter evaluations by passed status */
+                passed?: string | null;
+                /** @description Filter evaluations by mode */
+                mode?: string[] | null;
+                /** @description Filter evaluations by score minimum */
+                score_min?: number | null;
+                /** @description Filter evaluations by score maximum */
+                score_max?: number | null;
+                /** @description Filter evaluations by label filters */
+                label_filters?: string[] | null;
+                /** @description Filter evaluations by evaluator */
+                evaluator?: string[] | null;
             };
             header?: never;
             path?: never;

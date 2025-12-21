@@ -65,6 +65,8 @@ interface EvaluationEditorProps {
 }
 
 const VALID_FORM_MODES = ['direct', 'query', 'batch'] as const;
+export const VALID_EVALUATION_TYPES = ['direct', 'query'] as const;
+
 type FormMode = (typeof VALID_FORM_MODES)[number];
 
 const isValidFormMode = (mode: unknown): mode is FormMode =>
@@ -373,8 +375,11 @@ export function EvaluationEditor({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="direct">Direct</SelectItem>
-                        <SelectItem value="query">Query</SelectItem>
+                        {VALID_EVALUATION_TYPES.map(type => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

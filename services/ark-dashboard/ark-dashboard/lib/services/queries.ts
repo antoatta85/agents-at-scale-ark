@@ -8,17 +8,17 @@ type QueryUpdateRequest = components['schemas']['QueryUpdateRequest'];
 
 export const queriesService = {
   async list(
-    page: number,
-    limit: number,
-    sortField: string,
-    sortDirection: string,
+    page?: number,
+    limit?: number,
+    sortField?: string,
+    sortDirection?: string,
   ): Promise<QueryListResponse> {
     const response = await apiClient.get<QueryListResponse>(`/api/v1/queries`, {
       params: {
-        page,
-        limit,
-        sort_key: sortField,
-        sort_direction: sortDirection,
+        ...(page && { page: page.toString() }),
+        ...(limit && { limit: limit.toString() }),
+        ...(sortField && { sort_key: sortField }),
+        ...(sortDirection && { sort_direction: sortDirection }),
       },
     });
     return response;

@@ -1,11 +1,12 @@
 """API routes for Evaluation resources."""
 
 import asyncio
+from re import M
 from fastapi import APIRouter, Query
 from ark_sdk.models.evaluation_v1alpha1 import EvaluationV1alpha1
 from ...core.constants import GROUP
 from ark_sdk.client import with_ark_client
-from typing import Union, Optional
+from typing import List, Union, Optional
 
 from ...models.evaluations import (
     EvaluationBulkDeleteRequest,
@@ -42,9 +43,25 @@ async def list_evaluations(
     query_ref: str = Query(None, description="Filter evaluations by query reference name"),
     sort_key: Optional[str] = Query(None, description="Key to sort by"),
     sort_direction: Optional[str] = Query(None, description="Sort direction (asc or desc)"),
-    namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)")
+    namespace: Optional[str] = Query(None, description="Namespace for this request (defaults to current context)"),
+    status: Optional[List[str]] = Query(None, description="Filter evaluations by status"),
+    passed: Optional[str] = Query(None, description="Filter evaluations by passed status"),
+    mode: Optional[List[str]] = Query(None, description="Filter evaluations by mode"),
+    score_min: Optional[float] = Query(None, description="Filter evaluations by score minimum"),
+    score_max: Optional[float] = Query(None, description="Filter evaluations by score maximum"),
+    label_filters: Optional[List[str]] = Query(None, description="Filter evaluations by label filters"),
+    evaluator: Optional[List[str]] = Query(None, description="Filter evaluations by evaluator"),
 ) -> Union[EvaluationListResponse, EnhancedEvaluationListResponse]:
     """List all evaluations in a namespace."""
+
+    labels = None
+    if label_filters:
+        tmp_labels = {}
+        for label_filter in label_filters:
+            key, value = label_filter.split(',')
+            if key and value:
+                tmp_labels[key] = value
+        labels = tmp_labels
 
     async with with_ark_client(namespace, VERSION) as ark_client:
         # Sort key function to sort evaluations
@@ -67,9 +84,60 @@ async def list_evaluations(
         # Filter function to filter evaluations
         def filter_func(x: dict) -> bool:
             data = x.to_dict()
+            matches = True
+
+            # Search param
             if query_ref:
-                return query_ref.lower().strip() in data['metadata']['name'].lower()
-            return True
+                matches = matches and query_ref.lower().strip() in data['metadata']['name'].lower()
+
+            # Status param
+            if status:
+                matches = matches and data['status']['phase'] in status
+            
+            # Mode param
+            if mode:
+                matches = matches and data['spec']['type'] in mode
+
+            # Passed param
+            if passed:
+                if passed == 'all':
+                    matches = matches and True
+                elif passed == 'passed':
+                    matches = matches and data['status']['passed'] == True
+                elif passed == 'failed':
+                    matches = matches and data['status']['passed'] == False
+                else:
+                    matches = matches and data['status']['passed'] == None
+            
+            # Evaluator param
+            if evaluator:
+                matches = matches and data['spec']['evaluator']['name'] in evaluator
+            
+            # Label filters
+            if labels:
+                matched = False
+                if 'labels' in data['metadata']:
+                    for key, value in labels.items():
+                        if key in data['metadata']['labels']:
+                            if data['metadata']['labels'][key] == value:
+                                matched = True
+                                break
+                matches = matches and matched
+            
+            # Score param
+            if score_min:
+                if data['status'] and 'score' in data['status']:
+                    matches = matches and float(data['status']['score']) >= score_min
+                else:
+                    matches = matches and False
+            
+            if score_max:
+                if data['status'] and 'score' in data['status']:
+                    matches = matches and float(data['status']['score']) <= score_max
+                else:
+                    matches = matches and False
+
+            return matches
             
         result, total_count = await ark_client.evaluations.a_list_paginated(page=page, limit=limit, sort_key=sort_key, sort_reverse=sort_direction == "desc", filter_func=filter_func)
         

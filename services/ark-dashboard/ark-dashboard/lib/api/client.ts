@@ -12,7 +12,7 @@ export class APIError extends Error {
 }
 
 interface RequestOptions extends RequestInit {
-  params?: Record<string, string | number | boolean>;
+  params?: Record<string, string | number | boolean | string[]>;
 }
 
 class APIClient {
@@ -39,7 +39,11 @@ class APIClient {
     if (params) {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
-        searchParams.append(key, String(value));
+        if (Array.isArray(value)) {
+          value.forEach(item => searchParams.append(key, String(item)));
+        } else {
+          searchParams.append(key, String(value));
+        }
       });
       url += `?${searchParams.toString()}`;
     }

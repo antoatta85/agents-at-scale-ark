@@ -113,6 +113,9 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    useImperativeHandle(ref, () => ({
+      openAddEditor: handleOpenAddEditor,
+    }));
 
     // Search params
     const page = parseInt(searchParams.get('page') ?? defaultPage);
@@ -136,7 +139,6 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
       passed: 'all',
       scoreMin: '',
       scoreMax: '',
-      evaluationType: [],
       labelFilters: [],
     });
     const [selectedBulkDeleteEvaluations, setSelectedBulkDeleteEvaluations] =
@@ -160,10 +162,6 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
       });
     }, []);
 
-    useImperativeHandle(ref, () => ({
-      openAddEditor: handleOpenAddEditor,
-    }));
-
     const {
       data: listEvaluationsData,
       isLoading: listEvaluationsLoading,
@@ -180,7 +178,6 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
     });
 
     useEffect(() => {
-      console.log('listEvaluationsData', listEvaluationsData);
       if (listEvaluationsData && !listEvaluationsError) {
         setEvaluations(listEvaluationsData.items);
         setSelectedBulkDeleteEvaluations(new Set());
@@ -198,10 +195,11 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
     }, [listEvaluationsError, listEvaluationsData, listEvaluationsErrorObject]);
 
     useEffect(() => {
-      const savedFilters = localStorage.getItem('evaluationFilters');
-      if (savedFilters) {
-        setFilters(JSON.parse(savedFilters));
-      }
+      // TODO: FIX THIS
+      // const savedFilters = localStorage.getItem('evaluationFilters');
+      // if (savedFilters) {
+      //   setFilters(JSON.parse(savedFilters));
+      // }
     }, []);
 
     const handlePageChange = (newPage: number) => {
@@ -421,17 +419,6 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
       return Array.from(evaluators).sort();
     };
 
-    const getAvailableTypes = () => {
-      const modes = new Set<string>();
-      currentEvaluations.forEach(evaluation => {
-        const mode = getTypeDisplay(evaluation);
-        if (mode !== 'unknown') {
-          modes.add(mode);
-        }
-      });
-      return Array.from(modes).sort();
-    };
-
     // Separate evaluations by type
     const standardEvaluations = evaluations.filter(evaluation => {
       const mode = getTypeDisplay(evaluation);
@@ -449,101 +436,10 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
 
     // Filter evaluations based on current filters
     const filteredEvaluations = currentEvaluations.filter(evaluation => {
-      // Status filter
-      if (filters.status.length > 0) {
-        const status = getStatus(evaluation);
-        if (!filters.status.includes(status)) return false;
-      }
-
       // Evaluator filter
       if (filters.evaluator.length > 0) {
         const evaluator = getEvaluatorDisplay(evaluation);
         if (!filters.evaluator.includes(evaluator)) return false;
-      }
-
-      // Mode filter
-      if (filters.mode.length > 0) {
-        const mode = getTypeDisplay(evaluation);
-        if (!filters.mode.includes(mode)) return false;
-      }
-
-      // Pass/Fail filter
-      if (filters.passed !== 'all') {
-        // Try to get passed from basic evaluation first
-        let passed = (evaluation as EvaluationResponse).passed;
-
-        // If not found, try to get from detailed response status
-        if (passed === null || passed === undefined) {
-          const detailedStatus = (evaluation as EvaluationDetailResponse)
-            ?.status as Record<string, unknown>;
-          passed = detailedStatus?.passed as boolean;
-        }
-
-        if (filters.passed === 'passed' && passed !== true) return false;
-        if (filters.passed === 'failed' && passed !== false) return false;
-        if (
-          filters.passed === 'unknown' &&
-          passed !== null &&
-          passed !== undefined
-        )
-          return false;
-      }
-
-      // Score range filter
-      if (filters.scoreMin || filters.scoreMax) {
-        // Try to get score from basic evaluation first
-        let score: string | number | null | undefined = (
-          evaluation as EvaluationResponse
-        ).score;
-
-        // If not found, try to get from detailed response status
-        if (score === null || score === undefined) {
-          const detailedStatus = (evaluation as EvaluationDetailResponse)
-            ?.status as Record<string, unknown>;
-          score = detailedStatus?.score as string | number;
-        }
-
-        if (typeof score === 'number') {
-          const min = filters.scoreMin ? parseFloat(filters.scoreMin) : 0;
-          const max = filters.scoreMax ? parseFloat(filters.scoreMax) : 1;
-          if (score < min || score > max) return false;
-        } else if (filters.scoreMin || filters.scoreMax) {
-          // If score is not a number but we have score filters, exclude it
-          return false;
-        }
-      }
-
-      // Label filters
-      if (filters.labelFilters.length > 0) {
-        // Try to get metadata from detailed response first
-        const detailedEvaluation = evaluation as EvaluationDetailResponse;
-        const evaluationMetadata =
-          (detailedEvaluation?.metadata as Record<string, unknown>) ||
-          ((evaluation as Record<string, unknown>).metadata as
-            | Record<string, unknown>
-            | undefined);
-        const labels =
-          (evaluationMetadata?.labels as Record<string, string>) || {};
-
-        for (const labelFilter of filters.labelFilters) {
-          if (!labelFilter.key || !labelFilter.value) continue;
-
-          const labelValue = labels[labelFilter.key];
-          const filterValue = labelFilter.value.trim();
-
-          // If label doesn't exist, exclude this evaluation
-          if (labelValue === undefined || labelValue === null) {
-            return false;
-          }
-
-          // Compare label value with filter value (case-insensitive)
-          const labelValueStr = String(labelValue).toLowerCase();
-          const filterValueStr = filterValue.toLowerCase();
-
-          if (!labelValueStr.includes(filterValueStr)) {
-            return false;
-          }
-        }
       }
 
       return true;
@@ -974,7 +870,6 @@ export const EvaluationsSection = forwardRef<{ openAddEditor: () => void }>(
                     setFilters(newFilters);
                   }}
                   availableEvaluators={getAvailableEvaluators()}
-                  availableTypes={getAvailableTypes()}
                 />
               </div>
 
