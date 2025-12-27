@@ -4,10 +4,6 @@ metadata:
   name: query-multiple-targets
 spec:
   input: What is 2+2?
-  targets:
-    - type: agent
-      name: agent-noop
-    - type: team
-      name: team-seq
-    - type: team
-      name: team-weather
+  target:
+    type: agent
+    name: agent-noop

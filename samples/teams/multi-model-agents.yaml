@@ -20,8 +20,8 @@ metadata:
   name: query-sample
 spec:
   input: Calculate 2+2.
-  targets:
-    - type: agent
-      name: azure
-    - type: agent
-      name: gemini
+  target:
+    type: agent
+    name: azure
+type: agent
+    name: gemini
