@@ -135,9 +135,11 @@ interface QueryStatus {
   };
 }
 
-interface TypedQueryDetailResponse extends Omit<QueryDetailResponse, 'status'> {
+interface TypedQueryDetailResponse
+  extends Omit<QueryDetailResponse, 'status' | 'targets'> {
   status?: QueryStatus | null;
   metadata?: Record<string, string>;
+  target?: { name: string; type: string };
 }
 
 // Reusable styles for table field headings
@@ -548,9 +550,7 @@ function QueryDetailContent() {
               t => t.type === 'tool' && t.name === targetTool,
             );
             if (foundTool) {
-              setQuery(prev =>
-                prev ? { ...prev, target: foundTool } : null,
-              );
+              setQuery(prev => (prev ? { ...prev, target: foundTool } : null));
             }
           }
         } catch (error) {
@@ -733,7 +733,9 @@ function QueryDetailContent() {
                     mode={mode}
                     value={query.target ? [query.target] : []}
                     onChange={targets =>
-                      setQuery(prev => (prev ? { ...prev, target: targets[0] } : null))
+                      setQuery(prev =>
+                        prev ? { ...prev, target: targets[0] } : null,
+                      )
                     }
                     label="Target"
                     availableTargets={availableTargets}
@@ -918,16 +920,14 @@ function QueryDetailContent() {
                 {mode === 'new' ? (
                   <div
                     className={
-                      toolSchema &&
-                      query.target?.type === 'tool'
+                      toolSchema && query.target?.type === 'tool'
                         ? 'grid grid-cols-2 gap-0'
                         : 'p-3'
                     }>
                     {/* Input Section */}
                     <div
                       className={
-                        toolSchema &&
-                        query.target?.type === 'tool'
+                        toolSchema && query.target?.type === 'tool'
                           ? 'border-r border-gray-200 p-3 dark:border-gray-700'
                           : ''
                       }>
@@ -948,22 +948,20 @@ function QueryDetailContent() {
                     </div>
 
                     {/* Tool Schema Example - only show for tool target */}
-                    {toolSchema &&
-                      query.target?.type === 'tool' && (
-                        <div className="p-3">
-                          <Textarea
-                            value={
-                              toolSchema.spec?.inputSchema
-                                ? getSchemaExample(
-                                    toolSchema.spec.inputSchema,
-                                  ) || '{}'
-                                : '{}'
-                            }
-                            readOnly
-                            className="min-h-[200px] resize-none border-0 bg-transparent font-mono text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
-                          />
-                        </div>
-                      )}
+                    {toolSchema && query.target?.type === 'tool' && (
+                      <div className="p-3">
+                        <Textarea
+                          value={
+                            toolSchema.spec?.inputSchema
+                              ? getSchemaExample(toolSchema.spec.inputSchema) ||
+                                '{}'
+                              : '{}'
+                          }
+                          readOnly
+                          className="min-h-[200px] resize-none border-0 bg-transparent font-mono text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <pre className="bg-gray-50 p-3 font-mono text-sm whitespace-pre-wrap text-gray-700 dark:bg-gray-900/50 dark:text-gray-300">

@@ -14,8 +14,18 @@ interface AxiosError extends Error {
 export type QueryResponse = components['schemas']['QueryResponse'];
 export type QueryDetailResponse = components['schemas']['QueryDetailResponse'];
 export type QueryListResponse = components['schemas']['QueryListResponse'];
-export type QueryCreateRequest = components['schemas']['QueryCreateRequest'];
-export type QueryUpdateRequest = components['schemas']['QueryUpdateRequest'];
+export type QueryCreateRequest = Omit<
+  components['schemas']['QueryCreateRequest'],
+  'targets'
+> & {
+  target?: { name: string; type: string };
+};
+export type QueryUpdateRequest = Omit<
+  components['schemas']['QueryUpdateRequest'],
+  'targets'
+> & {
+  target?: { name: string; type: string };
+};
 
 // Define terminal status phases
 type TerminalQueryStatusPhase = 'done' | 'error' | 'canceled' | 'unknown';
@@ -84,10 +94,12 @@ export const chatService = {
     // Normalize target type to lowercase
     const normalizedQuery = {
       ...query,
-      target: query.target ? {
-        ...query.target,
-        type: query.target.type?.toLowerCase(),
-      } : undefined,
+      target: query.target
+        ? {
+            ...query.target,
+            type: query.target.type?.toLowerCase(),
+          }
+        : undefined,
     };
 
     const response = await apiClient.post<QueryDetailResponse>(
