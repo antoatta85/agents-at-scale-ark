@@ -141,9 +141,9 @@ kind: Query
 metadata:
   generateName: query
 spec:
-  targets:
-    - type: ${target_type}
-      name: \"${target_name}\"
+  target:
+    type: ${target_type}
+    name: \"${target_name}\"
   input: \"${query_text}\""
 # Add session if provided
 if [[ -n "$session" ]]; then
@@ -185,7 +185,7 @@ while true; do
     
     if [[ "$status" == "done" ]]; then
         echo ""
-        response_content=$(kubectl get query "$query_name" -o jsonpath='{range .status.responses[*]}{.content}{"\n"}{end}' 2>/dev/null || echo "no responses found")
+        response_content=$(kubectl get query "$query_name" -o jsonpath='{.status.response.content}' 2>/dev/null || echo "no response found")
         echo -e "${green}${target_name}${nc}: ${blue}${response_content}${nc}"
         exit 0
     elif [[ "$status" == "error" ]]; then
