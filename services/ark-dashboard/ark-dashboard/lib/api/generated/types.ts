@@ -1482,7 +1482,7 @@ export interface components {
             taskId: string;
             a2aServerRef: components["schemas"]["A2AServerRef"];
             agentRef: components["schemas"]["AgentRef"];
-            queryRef: components["schemas"]["ark_api__models__a2a_tasks__QueryRef"];
+            queryRef: components["schemas"]["QueryRef-Output"];
             /** Contextid */
             contextId?: string | null;
             /** Input */
@@ -1571,7 +1571,7 @@ export interface components {
             /** Phase */
             phase?: string | null;
             agentRef?: components["schemas"]["AgentRef"] | null;
-            queryRef?: components["schemas"]["ark_api__models__a2a_tasks__QueryRef"] | null;
+            queryRef?: components["schemas"]["QueryRef-Output"] | null;
             /** Creationtimestamp */
             creationTimestamp?: string | null;
         };
@@ -1747,7 +1747,7 @@ export interface components {
             executionEngine?: components["schemas"]["ExecutionEngineRef"] | null;
             modelRef?: components["schemas"]["ModelRef"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["ark_api__models__agents__Parameter-Input"][] | null;
+            parameters?: components["schemas"]["Parameter"][] | null;
             /** Prompt */
             prompt?: string | null;
             /** Tools */
@@ -1769,7 +1769,7 @@ export interface components {
             executionEngine?: components["schemas"]["ExecutionEngineRef"] | null;
             modelRef?: components["schemas"]["ModelRef"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["ark_api__models__agents__Parameter-Output"][] | null;
+            parameters?: components["schemas"]["Parameter"][] | null;
             /** Prompt */
             prompt?: string | null;
             /** Tools */
@@ -1844,7 +1844,7 @@ export interface components {
             executionEngine?: components["schemas"]["ExecutionEngineRef"] | null;
             modelRef?: components["schemas"]["ModelRef"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["ark_api__models__agents__Parameter-Input"][] | null;
+            parameters?: components["schemas"]["Parameter"][] | null;
             /** Prompt */
             prompt?: string | null;
             /** Tools */
@@ -1952,11 +1952,11 @@ export interface components {
          */
         AzureConfig: {
             /** Apikey */
-            apiKey: string | components["schemas"]["ark_api__models__models__ValueSource"];
+            apiKey: string | components["schemas"]["ValueSource"];
             /** Baseurl */
-            baseUrl: string | components["schemas"]["ark_api__models__models__ValueSource"];
+            baseUrl: string | components["schemas"]["ValueSource"];
             /** Apiversion */
-            apiVersion?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
+            apiVersion?: string | components["schemas"]["ValueSource"] | null;
             /** Headers */
             headers?: components["schemas"]["ark_api__models__agents__Header-Input"][] | null;
         };
@@ -2032,15 +2032,15 @@ export interface components {
          */
         BedrockConfig: {
             /** Region */
-            region?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
+            region?: string | components["schemas"]["ValueSource"] | null;
             /** Accesskeyid */
-            accessKeyId?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
+            accessKeyId?: string | components["schemas"]["ValueSource"] | null;
             /** Secretaccesskey */
-            secretAccessKey?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
+            secretAccessKey?: string | components["schemas"]["ValueSource"] | null;
             /** Sessiontoken */
-            sessionToken?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
+            sessionToken?: string | components["schemas"]["ValueSource"] | null;
             /** Modelarn */
-            modelArn?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
+            modelArn?: string | components["schemas"]["ValueSource"] | null;
             /** Maxtokens */
             maxTokens?: number | null;
             /** Temperature */
@@ -2504,6 +2504,18 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * ConfigMapKeyRef
+         * @description Reference to a key in a ConfigMap.
+         */
+        ConfigMapKeyRef: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Optional */
+            optional?: boolean | null;
+        };
+        /**
          * ContextResponse
          * @description Response model for current Kubernetes context.
          */
@@ -2624,7 +2636,7 @@ export interface components {
             input?: string | null;
             /** Output */
             output?: string | null;
-            queryRef?: components["schemas"]["ark_api__models__evaluations__QueryRef"] | null;
+            queryRef?: components["schemas"]["QueryRef-Input"] | null;
             /** Evaluations */
             evaluations?: components["schemas"]["EvaluationRef"][] | null;
             /** Rules */
@@ -3031,6 +3043,12 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** Header */
+        Header: {
+            /** Name */
+            name: string;
+            value: components["schemas"]["ValueSource-Output"];
+        };
         /**
          * HeaderValue
          * @description Value configuration for a header.
@@ -3038,7 +3056,7 @@ export interface components {
         "HeaderValue-Input": {
             /** Value */
             value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
+            valueFrom?: components["schemas"]["ValueFrom"] | null;
         };
         /**
          * HeaderValue
@@ -3047,7 +3065,7 @@ export interface components {
         "HeaderValue-Output": {
             /** Value */
             value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
+            valueFrom?: components["schemas"]["ValueFrom"] | null;
         };
         /**
          * HealthResponse
@@ -3093,6 +3111,30 @@ export interface components {
          * @enum {string}
          */
         InputType: "user" | "messages";
+        /**
+         * LabelSelector
+         * @description Label selector for resources.
+         */
+        LabelSelector: {
+            /** Matchexpressions */
+            matchExpressions?: components["schemas"]["LabelSelectorRequirement"][] | null;
+            /** Matchlabels */
+            matchLabels?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * LabelSelectorRequirement
+         * @description A label selector requirement.
+         */
+        LabelSelectorRequirement: {
+            /** Key */
+            key: string;
+            /** Operator */
+            operator: string;
+            /** Values */
+            values?: string[] | null;
+        };
         /** MCPServerCreateRequest */
         MCPServerCreateRequest: {
             /** Name */
@@ -3131,7 +3173,7 @@ export interface components {
             /** Transport */
             transport?: string | null;
             /** Headers */
-            headers: components["schemas"]["ark_api__models__mcp_servers__Header-Output"][] | null;
+            headers: components["schemas"]["Header"][] | null;
             /** Tool Count */
             tool_count?: number | null;
         };
@@ -3172,7 +3214,7 @@ export interface components {
             tools?: string[] | null;
             address: components["schemas"]["ark_api__models__mcp_servers__ValueSource-Input"];
             /** Headers */
-            headers?: components["schemas"]["ark_api__models__mcp_servers__Header-Input"][] | null;
+            headers?: components["schemas"]["Header"][] | null;
         };
         /**
          * Memory
@@ -3422,9 +3464,9 @@ export interface components {
          */
         OpenAIConfig: {
             /** Apikey */
-            apiKey: string | components["schemas"]["ark_api__models__models__ValueSource"];
+            apiKey: string | components["schemas"]["ValueSource"];
             /** Baseurl */
-            baseUrl: string | components["schemas"]["ark_api__models__models__ValueSource"];
+            baseUrl: string | components["schemas"]["ValueSource"];
             /** Headers */
             headers?: components["schemas"]["ark_api__models__agents__Header-Input"][] | null;
         };
@@ -3449,6 +3491,17 @@ export interface components {
             /** Resourcetype */
             resourceType: string;
             labelSelector?: components["schemas"]["ark_api__models__agents__LabelSelector"] | null;
+        };
+        /**
+         * Parameter
+         * @description Parameter for template processing in prompts and inputs.
+         */
+        Parameter: {
+            /** Name */
+            name: string;
+            /** Value */
+            value?: string | null;
+            valueFrom?: components["schemas"]["ValueFrom"] | null;
         };
         /**
          * PromptTokensDetails
@@ -3476,13 +3529,12 @@ export interface components {
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ark_api__models__queries__Parameter-Input"][] | null;
-            selector?: components["schemas"]["ark_api__models__queries__LabelSelector"] | null;
+            selector?: components["schemas"]["LabelSelector"] | null;
             /** Serviceaccount */
             serviceAccount?: string | null;
             /** Sessionid */
             sessionId?: string | null;
-            /** Targets */
-            targets?: components["schemas"]["Target"][] | null;
+            target?: components["schemas"]["Target"] | null;
             /** Timeout */
             timeout?: string | null;
             /** Ttl */
@@ -3493,7 +3545,7 @@ export interface components {
             overrides?: components["schemas"]["Override-Input"][] | null;
             /** Evaluators */
             evaluators?: components["schemas"]["Memory"][] | null;
-            evaluatorSelector?: components["schemas"]["ark_api__models__queries__LabelSelector"] | null;
+            evaluatorSelector?: components["schemas"]["LabelSelector"] | null;
             /** Metadata */
             metadata?: {
                 [key: string]: unknown;
@@ -3515,13 +3567,12 @@ export interface components {
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ark_api__models__queries__Parameter-Output"][] | null;
-            selector?: components["schemas"]["ark_api__models__queries__LabelSelector"] | null;
+            selector?: components["schemas"]["LabelSelector"] | null;
             /** Serviceaccount */
             serviceAccount?: string | null;
             /** Sessionid */
             sessionId?: string | null;
-            /** Targets */
-            targets?: components["schemas"]["Target"][] | null;
+            target?: components["schemas"]["Target"] | null;
             /** Timeout */
             timeout?: string | null;
             /** Ttl */
@@ -3569,6 +3620,35 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** QueryParameterRef */
+        QueryParameterRef: {
+            /** Name */
+            name: string;
+        };
+        /**
+         * QueryRef
+         * @description Reference to a query for evaluation.
+         */
+        "QueryRef-Input": {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace?: string | null;
+            /** Responsetarget */
+            responseTarget?: string | null;
+        };
+        /**
+         * QueryRef
+         * @description Reference to a Query.
+         */
+        "QueryRef-Output": {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace?: string | null;
+            /** Responsetarget */
+            responseTarget?: string | null;
+        };
         /**
          * QueryResponse
          * @description Basic query response for list operations.
@@ -3603,13 +3683,12 @@ export interface components {
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
             parameters?: components["schemas"]["ark_api__models__queries__Parameter-Input"][] | null;
-            selector?: components["schemas"]["ark_api__models__queries__LabelSelector"] | null;
+            selector?: components["schemas"]["LabelSelector"] | null;
             /** Serviceaccount */
             serviceAccount?: string | null;
             /** Sessionid */
             sessionId?: string | null;
-            /** Targets */
-            targets?: components["schemas"]["Target"][] | null;
+            target?: components["schemas"]["Target"] | null;
             /** Timeout */
             timeout?: string | null;
             /** Ttl */
@@ -3687,6 +3766,15 @@ export interface components {
                 [key: string]: string;
             } | null;
         };
+        /** SecretKeyRef */
+        SecretKeyRef: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Optional */
+            optional?: boolean | null;
+        };
         /**
          * SecretListResponse
          * @description List of secrets response model.
@@ -3730,6 +3818,20 @@ export interface components {
             agent?: string | null;
             /** Selectorprompt */
             selectorPrompt?: string | null;
+        };
+        /**
+         * ServiceRef
+         * @description Reference to a service.
+         */
+        ServiceRef: {
+            /** Name */
+            name: string;
+            /** Namespace */
+            namespace?: string | null;
+            /** Port */
+            port?: string | null;
+            /** Path */
+            path?: string | null;
         };
         /**
          * SessionListResponse
@@ -4010,28 +4112,37 @@ export interface components {
             type: string;
         };
         /**
-         * QueryRef
-         * @description Reference to a Query.
+         * ValueFrom
+         * @description Reference to external sources for parameter values.
          */
-        ark_api__models__a2a_tasks__QueryRef: {
-            /** Name */
-            name: string;
-            /** Namespace */
-            namespace?: string | null;
-            /** Responsetarget */
-            responseTarget?: string | null;
+        ValueFrom: {
+            configMapKeyRef?: components["schemas"]["ConfigMapKeyRef"] | null;
+            secretKeyRef?: components["schemas"]["ark_api__models__agents__SecretKeyRef"] | null;
+            serviceRef?: components["schemas"]["ServiceRef"] | null;
+            queryParameterRef?: components["schemas"]["ark_api__models__agents__QueryParameterRef"] | null;
         };
         /**
-         * ConfigMapKeyRef
-         * @description Reference to a key in a ConfigMap.
+         * ValueSource
+         * @description ValueSource for model configuration (supports direct value or valueFrom).
          */
-        ark_api__models__agents__ConfigMapKeyRef: {
-            /** Key */
-            key: string;
-            /** Name */
-            name: string;
-            /** Optional */
-            optional?: boolean | null;
+        ValueSource: {
+            /** Value */
+            value?: string | null;
+            /** Valuefrom */
+            valueFrom?: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            } | null;
+        };
+        /**
+         * ValueSource
+         * @description ValueSource for configuration (supports direct value or valueFrom).
+         */
+        "ValueSource-Output": {
+            /** Value */
+            value?: string | null;
+            valueFrom?: components["schemas"]["ark_api__models__mcp_servers__ValueFrom"] | null;
         };
         /**
          * Header
@@ -4076,28 +4187,6 @@ export interface components {
             values?: string[] | null;
         };
         /**
-         * Parameter
-         * @description Parameter for template processing in prompts and inputs.
-         */
-        "ark_api__models__agents__Parameter-Input": {
-            /** Name */
-            name: string;
-            /** Value */
-            value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
-        };
-        /**
-         * Parameter
-         * @description Parameter for template processing in prompts and inputs.
-         */
-        "ark_api__models__agents__Parameter-Output": {
-            /** Name */
-            name: string;
-            /** Value */
-            value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
-        };
-        /**
          * QueryParameterRef
          * @description Reference to a parameter in a query.
          */
@@ -4116,42 +4205,6 @@ export interface components {
             name: string;
             /** Optional */
             optional?: boolean | null;
-        };
-        /**
-         * ServiceRef
-         * @description Reference to a service.
-         */
-        ark_api__models__agents__ServiceRef: {
-            /** Name */
-            name: string;
-            /** Namespace */
-            namespace?: string | null;
-            /** Port */
-            port?: string | null;
-            /** Path */
-            path?: string | null;
-        };
-        /**
-         * ValueFrom
-         * @description Reference to external sources for parameter values.
-         */
-        ark_api__models__agents__ValueFrom: {
-            configMapKeyRef?: components["schemas"]["ark_api__models__agents__ConfigMapKeyRef"] | null;
-            secretKeyRef?: components["schemas"]["ark_api__models__agents__SecretKeyRef"] | null;
-            serviceRef?: components["schemas"]["ark_api__models__agents__ServiceRef"] | null;
-            queryParameterRef?: components["schemas"]["ark_api__models__agents__QueryParameterRef"] | null;
-        };
-        /**
-         * QueryRef
-         * @description Reference to a query for evaluation.
-         */
-        ark_api__models__evaluations__QueryRef: {
-            /** Name */
-            name: string;
-            /** Namespace */
-            namespace?: string | null;
-            /** Responsetarget */
-            responseTarget?: string | null;
         };
         /**
          * ConfigMapKeyRef
@@ -4244,32 +4297,6 @@ export interface components {
             /** Optional */
             optional?: boolean | null;
         };
-        /** Header */
-        "ark_api__models__mcp_servers__Header-Input": {
-            /** Name */
-            name: string;
-            value: components["schemas"]["ark_api__models__mcp_servers__ValueSource-Input"];
-        };
-        /** Header */
-        "ark_api__models__mcp_servers__Header-Output": {
-            /** Name */
-            name: string;
-            value: components["schemas"]["ark_api__models__mcp_servers__ValueSource"];
-        };
-        /** QueryParameterRef */
-        ark_api__models__mcp_servers__QueryParameterRef: {
-            /** Name */
-            name: string;
-        };
-        /** SecretKeyRef */
-        ark_api__models__mcp_servers__SecretKeyRef: {
-            /** Key */
-            key: string;
-            /** Name */
-            name: string;
-            /** Optional */
-            optional?: boolean | null;
-        };
         /** ServiceRef */
         ark_api__models__mcp_servers__ServiceRef: {
             /** Name */
@@ -4284,18 +4311,9 @@ export interface components {
         /** ValueFrom */
         ark_api__models__mcp_servers__ValueFrom: {
             configMapKeyRef?: components["schemas"]["ark_api__models__mcp_servers__ConfigMapKeyRef"] | null;
-            secretKeyRef?: components["schemas"]["ark_api__models__mcp_servers__SecretKeyRef"] | null;
+            secretKeyRef?: components["schemas"]["SecretKeyRef"] | null;
             serviceRef?: components["schemas"]["ark_api__models__mcp_servers__ServiceRef"] | null;
-            queryParameterRef?: components["schemas"]["ark_api__models__mcp_servers__QueryParameterRef"] | null;
-        };
-        /**
-         * ValueSource
-         * @description ValueSource for configuration (supports direct value or valueFrom).
-         */
-        ark_api__models__mcp_servers__ValueSource: {
-            /** Value */
-            value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__mcp_servers__ValueFrom"] | null;
+            queryParameterRef?: components["schemas"]["QueryParameterRef"] | null;
         };
         /**
          * ValueSource
@@ -4305,20 +4323,6 @@ export interface components {
             /** Value */
             value?: string | null;
             valueFrom?: components["schemas"]["ark_api__models__mcp_servers__ValueFrom"] | null;
-        };
-        /**
-         * ValueSource
-         * @description ValueSource for model configuration (supports direct value or valueFrom).
-         */
-        ark_api__models__models__ValueSource: {
-            /** Value */
-            value?: string | null;
-            /** Valuefrom */
-            valueFrom?: {
-                [key: string]: {
-                    [key: string]: string;
-                };
-            } | null;
         };
         /**
          * ConfigMapKeyRef
@@ -4334,30 +4338,6 @@ export interface components {
             name: string;
             /** Optional */
             optional?: boolean | null;
-        };
-        /**
-         * LabelSelector
-         * @description Label selector for resources.
-         */
-        ark_api__models__queries__LabelSelector: {
-            /** Matchexpressions */
-            matchExpressions?: components["schemas"]["ark_api__models__queries__LabelSelectorRequirement"][] | null;
-            /** Matchlabels */
-            matchLabels?: {
-                [key: string]: string;
-            } | null;
-        };
-        /**
-         * LabelSelectorRequirement
-         * @description A label selector requirement.
-         */
-        ark_api__models__queries__LabelSelectorRequirement: {
-            /** Key */
-            key: string;
-            /** Operator */
-            operator: string;
-            /** Values */
-            values?: string[] | null;
         };
         /**
          * Parameter
