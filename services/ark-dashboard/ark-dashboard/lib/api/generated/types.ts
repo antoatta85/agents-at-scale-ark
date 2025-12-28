@@ -1747,7 +1747,7 @@ export interface components {
             executionEngine?: components["schemas"]["ExecutionEngineRef"] | null;
             modelRef?: components["schemas"]["ModelRef"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["Parameter"][] | null;
+            parameters?: components["schemas"]["ark_api__models__agents__Parameter-Input"][] | null;
             /** Prompt */
             prompt?: string | null;
             /** Tools */
@@ -1769,7 +1769,7 @@ export interface components {
             executionEngine?: components["schemas"]["ExecutionEngineRef"] | null;
             modelRef?: components["schemas"]["ModelRef"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["Parameter"][] | null;
+            parameters?: components["schemas"]["ark_api__models__agents__Parameter-Output"][] | null;
             /** Prompt */
             prompt?: string | null;
             /** Tools */
@@ -1844,7 +1844,7 @@ export interface components {
             executionEngine?: components["schemas"]["ExecutionEngineRef"] | null;
             modelRef?: components["schemas"]["ModelRef"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["Parameter"][] | null;
+            parameters?: components["schemas"]["ark_api__models__agents__Parameter-Input"][] | null;
             /** Prompt */
             prompt?: string | null;
             /** Tools */
@@ -1952,13 +1952,13 @@ export interface components {
          */
         AzureConfig: {
             /** Apikey */
-            apiKey: string | components["schemas"]["ValueSource"];
+            apiKey: string | components["schemas"]["ark_api__models__models__ValueSource"];
             /** Baseurl */
-            baseUrl: string | components["schemas"]["ValueSource"];
+            baseUrl: string | components["schemas"]["ark_api__models__models__ValueSource"];
             /** Apiversion */
-            apiVersion?: string | components["schemas"]["ValueSource"] | null;
+            apiVersion?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
             /** Headers */
-            headers?: components["schemas"]["ark_api__models__agents__Header-Input"][] | null;
+            headers?: components["schemas"]["Header"][] | null;
         };
         /**
          * BaselineEvaluationMetadata
@@ -2032,15 +2032,15 @@ export interface components {
          */
         BedrockConfig: {
             /** Region */
-            region?: string | components["schemas"]["ValueSource"] | null;
+            region?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
             /** Accesskeyid */
-            accessKeyId?: string | components["schemas"]["ValueSource"] | null;
+            accessKeyId?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
             /** Secretaccesskey */
-            secretAccessKey?: string | components["schemas"]["ValueSource"] | null;
+            secretAccessKey?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
             /** Sessiontoken */
-            sessionToken?: string | components["schemas"]["ValueSource"] | null;
+            sessionToken?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
             /** Modelarn */
-            modelArn?: string | components["schemas"]["ValueSource"] | null;
+            modelArn?: string | components["schemas"]["ark_api__models__models__ValueSource"] | null;
             /** Maxtokens */
             maxTokens?: number | null;
             /** Temperature */
@@ -2510,7 +2510,10 @@ export interface components {
         ConfigMapKeyRef: {
             /** Key */
             key: string;
-            /** Name */
+            /**
+             * Name
+             * @default
+             */
             name: string;
             /** Optional */
             optional?: boolean | null;
@@ -3043,11 +3046,14 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** Header */
+        /**
+         * Header
+         * @description HTTP header configuration.
+         */
         Header: {
             /** Name */
             name: string;
-            value: components["schemas"]["ValueSource-Output"];
+            value: components["schemas"]["HeaderValue-Output"];
         };
         /**
          * HeaderValue
@@ -3056,7 +3062,7 @@ export interface components {
         "HeaderValue-Input": {
             /** Value */
             value?: string | null;
-            valueFrom?: components["schemas"]["ValueFrom"] | null;
+            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
         };
         /**
          * HeaderValue
@@ -3065,7 +3071,7 @@ export interface components {
         "HeaderValue-Output": {
             /** Value */
             value?: string | null;
-            valueFrom?: components["schemas"]["ValueFrom"] | null;
+            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
         };
         /**
          * HealthResponse
@@ -3173,7 +3179,7 @@ export interface components {
             /** Transport */
             transport?: string | null;
             /** Headers */
-            headers: components["schemas"]["Header"][] | null;
+            headers: components["schemas"]["ark_api__models__mcp_servers__Header-Output"][] | null;
             /** Tool Count */
             tool_count?: number | null;
         };
@@ -3212,9 +3218,9 @@ export interface components {
             description?: string | null;
             /** Tools */
             tools?: string[] | null;
-            address: components["schemas"]["ark_api__models__mcp_servers__ValueSource-Input"];
+            address: components["schemas"]["ValueSource"];
             /** Headers */
-            headers?: components["schemas"]["Header"][] | null;
+            headers?: components["schemas"]["ark_api__models__mcp_servers__Header-Input"][] | null;
         };
         /**
          * Memory
@@ -3464,11 +3470,11 @@ export interface components {
          */
         OpenAIConfig: {
             /** Apikey */
-            apiKey: string | components["schemas"]["ValueSource"];
+            apiKey: string | components["schemas"]["ark_api__models__models__ValueSource"];
             /** Baseurl */
-            baseUrl: string | components["schemas"]["ValueSource"];
+            baseUrl: string | components["schemas"]["ark_api__models__models__ValueSource"];
             /** Headers */
-            headers?: components["schemas"]["ark_api__models__agents__Header-Input"][] | null;
+            headers?: components["schemas"]["Header"][] | null;
         };
         /**
          * Override
@@ -3476,7 +3482,7 @@ export interface components {
          */
         "Override-Input": {
             /** Headers */
-            headers: components["schemas"]["ark_api__models__agents__Header-Input"][];
+            headers: components["schemas"]["Header"][];
             /** Resourcetype */
             resourceType: string;
             labelSelector?: components["schemas"]["ark_api__models__agents__LabelSelector"] | null;
@@ -3487,7 +3493,7 @@ export interface components {
          */
         "Override-Output": {
             /** Headers */
-            headers: components["schemas"]["ark_api__models__agents__Header-Output"][];
+            headers: components["schemas"]["Header"][];
             /** Resourcetype */
             resourceType: string;
             labelSelector?: components["schemas"]["ark_api__models__agents__LabelSelector"] | null;
@@ -3501,7 +3507,7 @@ export interface components {
             name: string;
             /** Value */
             value?: string | null;
-            valueFrom?: components["schemas"]["ValueFrom"] | null;
+            valueFrom?: components["schemas"]["ark_api__models__queries__ValueFrom"] | null;
         };
         /**
          * PromptTokensDetails
@@ -3528,7 +3534,7 @@ export interface components {
             input: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Input"] | components["schemas"]["ChatCompletionAssistantMessageParam-Input"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[];
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["ark_api__models__queries__Parameter-Input"][] | null;
+            parameters?: components["schemas"]["Parameter"][] | null;
             selector?: components["schemas"]["LabelSelector"] | null;
             /** Serviceaccount */
             serviceAccount?: string | null;
@@ -3566,7 +3572,7 @@ export interface components {
             input: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Output"] | components["schemas"]["ChatCompletionAssistantMessageParam-Output"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[];
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["ark_api__models__queries__Parameter-Output"][] | null;
+            parameters?: components["schemas"]["Parameter"][] | null;
             selector?: components["schemas"]["LabelSelector"] | null;
             /** Serviceaccount */
             serviceAccount?: string | null;
@@ -3682,7 +3688,7 @@ export interface components {
             input?: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Input"] | components["schemas"]["ChatCompletionAssistantMessageParam-Input"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[] | null;
             memory?: components["schemas"]["Memory"] | null;
             /** Parameters */
-            parameters?: components["schemas"]["ark_api__models__queries__Parameter-Input"][] | null;
+            parameters?: components["schemas"]["Parameter"][] | null;
             selector?: components["schemas"]["LabelSelector"] | null;
             /** Serviceaccount */
             serviceAccount?: string | null;
@@ -3766,11 +3772,17 @@ export interface components {
                 [key: string]: string;
             } | null;
         };
-        /** SecretKeyRef */
+        /**
+         * SecretKeyRef
+         * @description Reference to a key in a Secret.
+         */
         SecretKeyRef: {
             /** Key */
             key: string;
-            /** Name */
+            /**
+             * Name
+             * @default
+             */
             name: string;
             /** Optional */
             optional?: boolean | null;
@@ -4116,24 +4128,17 @@ export interface components {
          * @description Reference to external sources for parameter values.
          */
         ValueFrom: {
-            configMapKeyRef?: components["schemas"]["ConfigMapKeyRef"] | null;
-            secretKeyRef?: components["schemas"]["ark_api__models__agents__SecretKeyRef"] | null;
-            serviceRef?: components["schemas"]["ServiceRef"] | null;
-            queryParameterRef?: components["schemas"]["ark_api__models__agents__QueryParameterRef"] | null;
+            configMapKeyRef?: components["schemas"]["ark_api__models__evaluators__ConfigMapKeyRef"] | null;
+            secretKeyRef?: components["schemas"]["ark_api__models__evaluators__SecretKeyRef"] | null;
         };
         /**
          * ValueSource
-         * @description ValueSource for model configuration (supports direct value or valueFrom).
+         * @description ValueSource for configuration (supports direct value or valueFrom).
          */
         ValueSource: {
             /** Value */
             value?: string | null;
-            /** Valuefrom */
-            valueFrom?: {
-                [key: string]: {
-                    [key: string]: string;
-                };
-            } | null;
+            valueFrom?: components["schemas"]["ark_api__models__mcp_servers__ValueFrom"] | null;
         };
         /**
          * ValueSource
@@ -4145,22 +4150,16 @@ export interface components {
             valueFrom?: components["schemas"]["ark_api__models__mcp_servers__ValueFrom"] | null;
         };
         /**
-         * Header
-         * @description HTTP header configuration.
+         * ConfigMapKeyRef
+         * @description Reference to a key in a ConfigMap.
          */
-        "ark_api__models__agents__Header-Input": {
+        ark_api__models__agents__ConfigMapKeyRef: {
+            /** Key */
+            key: string;
             /** Name */
             name: string;
-            value: components["schemas"]["HeaderValue-Input"];
-        };
-        /**
-         * Header
-         * @description HTTP header configuration.
-         */
-        "ark_api__models__agents__Header-Output": {
-            /** Name */
-            name: string;
-            value: components["schemas"]["HeaderValue-Output"];
+            /** Optional */
+            optional?: boolean | null;
         };
         /**
          * LabelSelector
@@ -4187,6 +4186,28 @@ export interface components {
             values?: string[] | null;
         };
         /**
+         * Parameter
+         * @description Parameter for template processing in prompts and inputs.
+         */
+        "ark_api__models__agents__Parameter-Input": {
+            /** Name */
+            name: string;
+            /** Value */
+            value?: string | null;
+            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
+        };
+        /**
+         * Parameter
+         * @description Parameter for template processing in prompts and inputs.
+         */
+        "ark_api__models__agents__Parameter-Output": {
+            /** Name */
+            name: string;
+            /** Value */
+            value?: string | null;
+            valueFrom?: components["schemas"]["ark_api__models__agents__ValueFrom"] | null;
+        };
+        /**
          * QueryParameterRef
          * @description Reference to a parameter in a query.
          */
@@ -4205,6 +4226,16 @@ export interface components {
             name: string;
             /** Optional */
             optional?: boolean | null;
+        };
+        /**
+         * ValueFrom
+         * @description Reference to external sources for parameter values.
+         */
+        ark_api__models__agents__ValueFrom: {
+            configMapKeyRef?: components["schemas"]["ark_api__models__agents__ConfigMapKeyRef"] | null;
+            secretKeyRef?: components["schemas"]["ark_api__models__agents__SecretKeyRef"] | null;
+            serviceRef?: components["schemas"]["ServiceRef"] | null;
+            queryParameterRef?: components["schemas"]["ark_api__models__agents__QueryParameterRef"] | null;
         };
         /**
          * ConfigMapKeyRef
@@ -4254,7 +4285,7 @@ export interface components {
             name: string;
             /** Value */
             value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__evaluators__ValueFrom"] | null;
+            valueFrom?: components["schemas"]["ValueFrom"] | null;
         };
         /**
          * SecretKeyRef
@@ -4272,24 +4303,37 @@ export interface components {
             optional?: boolean | null;
         };
         /**
-         * ValueFrom
-         * @description Reference to external sources for parameter values.
-         */
-        ark_api__models__evaluators__ValueFrom: {
-            configMapKeyRef?: components["schemas"]["ark_api__models__evaluators__ConfigMapKeyRef"] | null;
-            secretKeyRef?: components["schemas"]["ark_api__models__evaluators__SecretKeyRef"] | null;
-        };
-        /**
          * ValueSource
          * @description Source for a value - either direct or from external reference.
          */
         ark_api__models__evaluators__ValueSource: {
             /** Value */
             value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__evaluators__ValueFrom"] | null;
+            valueFrom?: components["schemas"]["ValueFrom"] | null;
         };
         /** ConfigMapKeyRef */
         ark_api__models__mcp_servers__ConfigMapKeyRef: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Optional */
+            optional?: boolean | null;
+        };
+        /** Header */
+        "ark_api__models__mcp_servers__Header-Input": {
+            /** Name */
+            name: string;
+            value: components["schemas"]["ValueSource"];
+        };
+        /** Header */
+        "ark_api__models__mcp_servers__Header-Output": {
+            /** Name */
+            name: string;
+            value: components["schemas"]["ValueSource-Output"];
+        };
+        /** SecretKeyRef */
+        ark_api__models__mcp_servers__SecretKeyRef: {
             /** Key */
             key: string;
             /** Name */
@@ -4311,78 +4355,31 @@ export interface components {
         /** ValueFrom */
         ark_api__models__mcp_servers__ValueFrom: {
             configMapKeyRef?: components["schemas"]["ark_api__models__mcp_servers__ConfigMapKeyRef"] | null;
-            secretKeyRef?: components["schemas"]["SecretKeyRef"] | null;
+            secretKeyRef?: components["schemas"]["ark_api__models__mcp_servers__SecretKeyRef"] | null;
             serviceRef?: components["schemas"]["ark_api__models__mcp_servers__ServiceRef"] | null;
             queryParameterRef?: components["schemas"]["QueryParameterRef"] | null;
         };
         /**
          * ValueSource
-         * @description ValueSource for configuration (supports direct value or valueFrom).
+         * @description ValueSource for model configuration (supports direct value or valueFrom).
          */
-        "ark_api__models__mcp_servers__ValueSource-Input": {
+        ark_api__models__models__ValueSource: {
             /** Value */
             value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__mcp_servers__ValueFrom"] | null;
-        };
-        /**
-         * ConfigMapKeyRef
-         * @description Reference to a key in a ConfigMap.
-         */
-        ark_api__models__queries__ConfigMapKeyRef: {
-            /** Key */
-            key: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /** Optional */
-            optional?: boolean | null;
-        };
-        /**
-         * Parameter
-         * @description Parameter for template processing in prompts and inputs.
-         */
-        "ark_api__models__queries__Parameter-Input": {
-            /** Name */
-            name: string;
-            /** Value */
-            value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__queries__ValueFrom"] | null;
-        };
-        /**
-         * Parameter
-         * @description Parameter for template processing in prompts and inputs.
-         */
-        "ark_api__models__queries__Parameter-Output": {
-            /** Name */
-            name: string;
-            /** Value */
-            value?: string | null;
-            valueFrom?: components["schemas"]["ark_api__models__queries__ValueFrom"] | null;
-        };
-        /**
-         * SecretKeyRef
-         * @description Reference to a key in a Secret.
-         */
-        ark_api__models__queries__SecretKeyRef: {
-            /** Key */
-            key: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /** Optional */
-            optional?: boolean | null;
+            /** Valuefrom */
+            valueFrom?: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            } | null;
         };
         /**
          * ValueFrom
          * @description Reference to external sources for parameter values.
          */
         ark_api__models__queries__ValueFrom: {
-            configMapKeyRef?: components["schemas"]["ark_api__models__queries__ConfigMapKeyRef"] | null;
-            secretKeyRef?: components["schemas"]["ark_api__models__queries__SecretKeyRef"] | null;
+            configMapKeyRef?: components["schemas"]["ConfigMapKeyRef"] | null;
+            secretKeyRef?: components["schemas"]["SecretKeyRef"] | null;
         };
         /**
          * FunctionCall
