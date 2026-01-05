@@ -1,9 +1,0 @@
-apiVersion: ark.mckinsey.com/v1alpha1
-kind: Query
-metadata:
-  name: query-multiple-targets
-spec:
-  input: What is 2+2?
-  target:
-    type: agent
-    name: agent-noop

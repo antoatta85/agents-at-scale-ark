@@ -3814,8 +3814,7 @@ export interface components {
             serviceAccount?: string | null;
             /** Sessionid */
             sessionId?: string | null;
-            /** Targets */
-            targets?: components["schemas"]["Target"][] | null;
+            target?: components["schemas"]["Target"] | null;
             /** Timeout */
             timeout?: string | null;
             /** Ttl */
@@ -3854,8 +3853,7 @@ export interface components {
             status?: {
                 [key: string]: unknown;
             } | null;
-            /** Targets */
-            targets?: components["schemas"]["Target"][] | null;
+            target?: components["schemas"]["Target"] | null;
             /** Timeout */
             timeout?: string | null;
             /** Ttl */
@@ -4020,8 +4018,7 @@ export interface components {
             serviceAccount?: string | null;
             /** Sessionid */
             sessionId?: string | null;
-            /** Targets */
-            targets?: components["schemas"]["Target"][] | null;
+            target?: components["schemas"]["Target"] | null;
             /** Timeout */
             timeout?: string | null;
             /** Ttl */
