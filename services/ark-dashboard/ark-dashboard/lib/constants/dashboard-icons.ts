@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart,
   Bot,
   Calendar,
@@ -16,7 +17,10 @@ import {
   Zap,
 } from 'lucide-react';
 
-import { A2A_TASKS_FEATURE_KEY } from '@/atoms/experimental-features';
+import {
+  A2A_TASKS_FEATURE_KEY,
+  BROKER_FEATURE_KEY,
+} from '@/atoms/experimental-features';
 
 export interface DashboardSection {
   key: string;
@@ -89,6 +93,13 @@ export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
     title: 'A2A Tasks',
     icon: ClipboardList,
     group: 'operations',
+  },
+  broker: {
+    key: 'broker',
+    title: 'Broker',
+    icon: Activity,
+    group: 'operations',
+    enablerFeature: BROKER_FEATURE_KEY,
   },
 
   // Runtime
