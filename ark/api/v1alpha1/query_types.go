@@ -26,6 +26,41 @@ const (
 	QueryTypeMessages = "messages"
 )
 
+type BackoffPolicy string
+
+const (
+	BackoffPolicyExponential BackoffPolicy = "exponential"
+	BackoffPolicyLinear      BackoffPolicy = "linear"
+	BackoffPolicyFixed       BackoffPolicy = "fixed"
+)
+
+type RetryPolicy struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=0
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=10
+	MaxRetries int32 `json:"maxRetries,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=exponential;linear;fixed
+	// +kubebuilder:default=exponential
+	BackoffPolicy BackoffPolicy `json:"backoffPolicy,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="1s"
+	InitialDelay *metav1.Duration `json:"initialDelay,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="30s"
+	MaxDelay *metav1.Duration `json:"maxDelay,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	// Maximum total tokens across all retry attempts. If exceeded, query stops retrying.
+	// If not specified, only maxRetries is used.
+	MaxTokens *int64 `json:"maxTokens,omitempty"`
+}
+
 type QueryTarget struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=agent;team;model;tool
@@ -53,6 +88,8 @@ type QuerySpec struct {
 	// +kubebuilder:validation:Schemaless
 	// Input can be a string (type=user) or []openai.ChatCompletionMessageParamUnion (type=messages)
 	Input runtime.RawExtension `json:"input"`
+	// +kubebuilder:validation:Optional
+	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Parameters for template processing in the input field
 	Parameters []Parameter `json:"parameters,omitempty"`
@@ -110,6 +147,7 @@ type Response struct {
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Duration",type=string,JSONPath=`.status.duration`
+// +kubebuilder:printcolumn:name="Retries",type=integer,JSONPath=`.status.retryCount`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 type Query struct {
@@ -140,6 +178,8 @@ type QueryStatus struct {
 	ConversationId string `json:"conversationId,omitempty"`
 	// +kubebuilder:validation:Optional
 	Duration *metav1.Duration `json:"duration,omitempty"`
+	// +kubebuilder:validation:Optional
+	RetryCount int32 `json:"retryCount,omitempty"`
 }
 
 // +kubebuilder:object:root=true

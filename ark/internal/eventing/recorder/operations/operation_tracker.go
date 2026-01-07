@@ -111,6 +111,9 @@ func (ot *OperationTracker) buildOperationData(ctx context.Context, additionalDa
 	if qd.ConversationID != "" {
 		result["conversationId"] = qd.ConversationID
 	}
+	if qd.Query.Status.RetryCount > 0 {
+		result["retryCount"] = fmt.Sprintf("%d", qd.Query.Status.RetryCount)
+	}
 
 	opDetails := ot.getOperationDetails(ctx)
 	for k, v := range opDetails {

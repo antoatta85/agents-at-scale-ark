@@ -4,6 +4,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -238,6 +239,156 @@ var _ = Describe("Query Controller Message Serialization", func() {
 			_, err := serializeMessages(messages)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("unknown message type encountered during serialization"))
+		})
+	})
+
+	_ = Describe("Query Controller Retry Logic", func() {
+		Context("When testing shouldRetry", func() {
+			var r *QueryReconciler
+
+			BeforeEach(func() {
+				r = &QueryReconciler{
+					Client: k8sClient,
+					Scheme: k8sClient.Scheme(),
+				}
+			})
+
+			It("should return false when RetryPolicy is nil", func() {
+				query := &arkv1alpha1.Query{
+					Spec: arkv1alpha1.QuerySpec{
+						RetryPolicy: nil,
+					},
+				}
+				Expect(r.shouldRetry(query)).To(BeFalse())
+			})
+
+			It("should return false when maxRetries is reached", func() {
+				query := &arkv1alpha1.Query{
+					Spec: arkv1alpha1.QuerySpec{
+						RetryPolicy: &arkv1alpha1.RetryPolicy{
+							MaxRetries: 3,
+						},
+					},
+					Status: arkv1alpha1.QueryStatus{
+						RetryCount: 3,
+					},
+				}
+				Expect(r.shouldRetry(query)).To(BeFalse())
+			})
+
+			It("should return true when retries available", func() {
+				query := &arkv1alpha1.Query{
+					Spec: arkv1alpha1.QuerySpec{
+						RetryPolicy: &arkv1alpha1.RetryPolicy{
+							MaxRetries: 3,
+						},
+					},
+					Status: arkv1alpha1.QueryStatus{
+						RetryCount: 1,
+					},
+				}
+				Expect(r.shouldRetry(query)).To(BeTrue())
+			})
+
+			It("should return false when maxTokens exceeded", func() {
+				maxTokens := int64(1000)
+				query := &arkv1alpha1.Query{
+					Spec: arkv1alpha1.QuerySpec{
+						RetryPolicy: &arkv1alpha1.RetryPolicy{
+							MaxRetries: 3,
+							MaxTokens:  &maxTokens,
+						},
+					},
+					Status: arkv1alpha1.QueryStatus{
+						RetryCount: 1,
+						TokenUsage: arkv1alpha1.TokenUsage{
+							TotalTokens: 1500,
+						},
+					},
+				}
+				Expect(r.shouldRetry(query)).To(BeFalse())
+			})
+
+			It("should return true when maxTokens not exceeded", func() {
+				maxTokens := int64(2000)
+				query := &arkv1alpha1.Query{
+					Spec: arkv1alpha1.QuerySpec{
+						RetryPolicy: &arkv1alpha1.RetryPolicy{
+							MaxRetries: 3,
+							MaxTokens:  &maxTokens,
+						},
+					},
+					Status: arkv1alpha1.QueryStatus{
+						RetryCount: 1,
+						TokenUsage: arkv1alpha1.TokenUsage{
+							TotalTokens: 500,
+						},
+					},
+				}
+				Expect(r.shouldRetry(query)).To(BeTrue())
+			})
+		})
+
+		Context("When testing calculateBackoffDelay", func() {
+			var r *QueryReconciler
+
+			BeforeEach(func() {
+				r = &QueryReconciler{}
+			})
+
+			It("should calculate exponential backoff correctly", func() {
+				policy := &arkv1alpha1.RetryPolicy{
+					BackoffPolicy: arkv1alpha1.BackoffPolicyExponential,
+					InitialDelay:  &metav1.Duration{Duration: time.Second},
+					MaxDelay:      &metav1.Duration{Duration: 30 * time.Second},
+				}
+				Expect(r.calculateBackoffDelay(policy, 0)).To(Equal(time.Second))
+				Expect(r.calculateBackoffDelay(policy, 1)).To(Equal(2 * time.Second))
+				Expect(r.calculateBackoffDelay(policy, 2)).To(Equal(4 * time.Second))
+				Expect(r.calculateBackoffDelay(policy, 3)).To(Equal(8 * time.Second))
+			})
+
+			It("should cap delay at maxDelay", func() {
+				policy := &arkv1alpha1.RetryPolicy{
+					BackoffPolicy: arkv1alpha1.BackoffPolicyExponential,
+					InitialDelay:  &metav1.Duration{Duration: time.Second},
+					MaxDelay:      &metav1.Duration{Duration: 5 * time.Second},
+				}
+				Expect(r.calculateBackoffDelay(policy, 10)).To(Equal(5 * time.Second))
+			})
+
+			It("should use linear backoff correctly", func() {
+				policy := &arkv1alpha1.RetryPolicy{
+					BackoffPolicy: arkv1alpha1.BackoffPolicyLinear,
+					InitialDelay:  &metav1.Duration{Duration: time.Second},
+					MaxDelay:      &metav1.Duration{Duration: 30 * time.Second},
+				}
+				Expect(r.calculateBackoffDelay(policy, 0)).To(Equal(time.Second))
+				Expect(r.calculateBackoffDelay(policy, 1)).To(Equal(2 * time.Second))
+				Expect(r.calculateBackoffDelay(policy, 2)).To(Equal(3 * time.Second))
+			})
+
+			It("should use fixed backoff correctly", func() {
+				policy := &arkv1alpha1.RetryPolicy{
+					BackoffPolicy: arkv1alpha1.BackoffPolicyFixed,
+					InitialDelay:  &metav1.Duration{Duration: 2 * time.Second},
+					MaxDelay:      &metav1.Duration{Duration: 30 * time.Second},
+				}
+				Expect(r.calculateBackoffDelay(policy, 0)).To(Equal(2 * time.Second))
+				Expect(r.calculateBackoffDelay(policy, 5)).To(Equal(2 * time.Second))
+				Expect(r.calculateBackoffDelay(policy, 10)).To(Equal(2 * time.Second))
+			})
+
+			It("should use defaults when policy fields are nil", func() {
+				policy := &arkv1alpha1.RetryPolicy{
+					BackoffPolicy: arkv1alpha1.BackoffPolicyExponential,
+				}
+				Expect(r.calculateBackoffDelay(policy, 0)).To(Equal(time.Second))
+			})
+
+			It("should return 1 second for nil policy", func() {
+				Expect(r.calculateBackoffDelay(nil, 0)).To(Equal(time.Second))
+			})
 		})
 	})
 })

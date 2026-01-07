@@ -135,7 +135,21 @@ func (r *QueryReconciler) handleQueryExecution(ctx context.Context, req ctrl.Req
 	}
 
 	switch obj.Status.Phase {
-	case statusDone, statusError, statusCanceled:
+	case statusDone, statusCanceled:
+		return ctrl.Result{
+			RequeueAfter: time.Until(expiry),
+		}, nil
+	case statusError:
+		if r.shouldRetry(&obj) {
+			log := logf.FromContext(ctx)
+			obj.Status.RetryCount++
+			backoff := r.calculateBackoffDelay(obj.Spec.RetryPolicy, obj.Status.RetryCount)
+			log.Info("Scheduling query retry", "query", obj.Name, "attempt", obj.Status.RetryCount, "backoff", backoff)
+			if err := r.updateStatus(ctx, &obj, statusRunning); err != nil {
+				return ctrl.Result{RequeueAfter: backoff}, err
+			}
+			return ctrl.Result{RequeueAfter: backoff}, nil
+		}
 		return ctrl.Result{
 			RequeueAfter: time.Until(expiry),
 		}, nil
@@ -595,6 +609,58 @@ func (r *QueryReconciler) determineQueryStatus(responses []arkv1alpha1.Response)
 		}
 	}
 	return statusDone
+}
+
+func (r *QueryReconciler) shouldRetry(query *arkv1alpha1.Query) bool {
+	if query.Spec.RetryPolicy == nil {
+		return false
+	}
+
+	if query.Status.RetryCount >= query.Spec.RetryPolicy.MaxRetries {
+		return false
+	}
+
+	if query.Spec.RetryPolicy.MaxTokens != nil && *query.Spec.RetryPolicy.MaxTokens > 0 {
+		if query.Status.TokenUsage.TotalTokens >= *query.Spec.RetryPolicy.MaxTokens {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (r *QueryReconciler) calculateBackoffDelay(policy *arkv1alpha1.RetryPolicy, attempt int32) time.Duration {
+	if policy == nil {
+		return time.Second
+	}
+
+	initialDelay := time.Second
+	if policy.InitialDelay != nil {
+		initialDelay = policy.InitialDelay.Duration
+	}
+
+	maxDelay := 30 * time.Second
+	if policy.MaxDelay != nil {
+		maxDelay = policy.MaxDelay.Duration
+	}
+
+	var delay time.Duration
+	switch policy.BackoffPolicy {
+	case arkv1alpha1.BackoffPolicyExponential:
+		delay = initialDelay * time.Duration(1<<uint(attempt))
+	case arkv1alpha1.BackoffPolicyLinear:
+		delay = initialDelay * time.Duration(attempt+1)
+	case arkv1alpha1.BackoffPolicyFixed:
+		delay = initialDelay
+	default:
+		delay = initialDelay * time.Duration(1<<uint(attempt))
+	}
+
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+
+	return delay
 }
 
 // createErrorResponse creates a standardized error response for a failed target
