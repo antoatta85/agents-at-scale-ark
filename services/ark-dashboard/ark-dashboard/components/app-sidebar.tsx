@@ -142,7 +142,11 @@ export function AppSidebar() {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <DropdownMenu>
+              <DropdownMenu
+                // Dialog & DropdownMenu adds pointer-events: none
+                // Discussion here: https://github.com/shadcn-ui/ui/discussions/6908
+                modal={false}
+              >
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton
                     size="lg"
