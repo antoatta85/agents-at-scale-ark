@@ -4,6 +4,7 @@ go 1.24.11
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/spf13/pflag v1.0.6
 	k8s.io/apimachinery v0.34.0

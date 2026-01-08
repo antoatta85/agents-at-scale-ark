@@ -248,3 +248,189 @@ func TestNamespaceIsolation(t *testing.T) {
 		t.Errorf("expected 1 object in ns2, got %d", len(objects2))
 	}
 }
+
+func TestAgentCRUD(t *testing.T) {
+	backend, cleanup := setupTestBackend(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	agent := &arkv1alpha1.Agent{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "ark.mckinsey.com/v1alpha1",
+			Kind:       "Agent",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-agent",
+			Namespace: "default",
+			UID:       "agent-uid-123",
+		},
+		Spec: arkv1alpha1.AgentSpec{
+			Prompt:      "You are a helpful assistant.",
+			Description: "Test agent",
+			ModelRef: &arkv1alpha1.AgentModelRef{
+				Name: "gpt-4",
+			},
+		},
+	}
+
+	if err := backend.Create(ctx, "Agent", "default", "test-agent", agent); err != nil {
+		t.Fatalf("Create Agent failed: %v", err)
+	}
+
+	obj, err := backend.Get(ctx, "Agent", "default", "test-agent")
+	if err != nil {
+		t.Fatalf("Get Agent failed: %v", err)
+	}
+
+	got, ok := obj.(*arkv1alpha1.Agent)
+	if !ok {
+		t.Fatalf("expected *Agent, got %T", obj)
+	}
+
+	if got.Name != "test-agent" {
+		t.Errorf("expected name test-agent, got %s", got.Name)
+	}
+	if got.Spec.Prompt != "You are a helpful assistant." {
+		t.Errorf("unexpected prompt: %s", got.Spec.Prompt)
+	}
+	if got.Spec.ModelRef == nil || got.Spec.ModelRef.Name != "gpt-4" {
+		t.Errorf("unexpected modelRef")
+	}
+
+	if err := backend.Delete(ctx, "Agent", "default", "test-agent"); err != nil {
+		t.Fatalf("Delete Agent failed: %v", err)
+	}
+
+	_, err = backend.Get(ctx, "Agent", "default", "test-agent")
+	if err == nil {
+		t.Error("expected error after delete, got nil")
+	}
+}
+
+func TestModelCRUD(t *testing.T) {
+	backend, cleanup := setupTestBackend(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	model := &arkv1alpha1.Model{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "ark.mckinsey.com/v1alpha1",
+			Kind:       "Model",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-model",
+			Namespace: "default",
+			UID:       "model-uid-123",
+		},
+		Spec: arkv1alpha1.ModelSpec{
+			Model:    arkv1alpha1.ValueSource{Value: "gpt-4-turbo"},
+			Provider: "openai",
+			Config: arkv1alpha1.ModelConfig{
+				OpenAI: &arkv1alpha1.OpenAIModelConfig{
+					BaseURL: arkv1alpha1.ValueSource{Value: "https://api.openai.com/v1"},
+					APIKey:  arkv1alpha1.ValueSource{Value: "sk-test"},
+				},
+			},
+		},
+	}
+
+	if err := backend.Create(ctx, "Model", "default", "test-model", model); err != nil {
+		t.Fatalf("Create Model failed: %v", err)
+	}
+
+	obj, err := backend.Get(ctx, "Model", "default", "test-model")
+	if err != nil {
+		t.Fatalf("Get Model failed: %v", err)
+	}
+
+	got, ok := obj.(*arkv1alpha1.Model)
+	if !ok {
+		t.Fatalf("expected *Model, got %T", obj)
+	}
+
+	if got.Name != "test-model" {
+		t.Errorf("expected name test-model, got %s", got.Name)
+	}
+	if got.Spec.Provider != "openai" {
+		t.Errorf("expected provider openai, got %s", got.Spec.Provider)
+	}
+	if got.Spec.Model.Value != "gpt-4-turbo" {
+		t.Errorf("expected model gpt-4-turbo, got %s", got.Spec.Model.Value)
+	}
+
+	objects, _, err := backend.List(ctx, "Model", "default", storage.ListOptions{})
+	if err != nil {
+		t.Fatalf("List Model failed: %v", err)
+	}
+	if len(objects) != 1 {
+		t.Errorf("expected 1 model, got %d", len(objects))
+	}
+}
+
+func TestMultipleResourceTypes(t *testing.T) {
+	backend, cleanup := setupTestBackend(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	query := &arkv1alpha1.Query{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "ark.mckinsey.com/v1alpha1",
+			Kind:       "Query",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+			UID:       "query-uid",
+		},
+	}
+	agent := &arkv1alpha1.Agent{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "ark.mckinsey.com/v1alpha1",
+			Kind:       "Agent",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+			UID:       "agent-uid",
+		},
+	}
+	model := &arkv1alpha1.Model{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "ark.mckinsey.com/v1alpha1",
+			Kind:       "Model",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+			UID:       "model-uid",
+		},
+		Spec: arkv1alpha1.ModelSpec{
+			Provider: "openai",
+		},
+	}
+
+	if err := backend.Create(ctx, "Query", "default", "test", query); err != nil {
+		t.Fatalf("Create Query failed: %v", err)
+	}
+	if err := backend.Create(ctx, "Agent", "default", "test", agent); err != nil {
+		t.Fatalf("Create Agent failed: %v", err)
+	}
+	if err := backend.Create(ctx, "Model", "default", "test", model); err != nil {
+		t.Fatalf("Create Model failed: %v", err)
+	}
+
+	queries, _, _ := backend.List(ctx, "Query", "default", storage.ListOptions{})
+	agents, _, _ := backend.List(ctx, "Agent", "default", storage.ListOptions{})
+	models, _, _ := backend.List(ctx, "Model", "default", storage.ListOptions{})
+
+	if len(queries) != 1 {
+		t.Errorf("expected 1 query, got %d", len(queries))
+	}
+	if len(agents) != 1 {
+		t.Errorf("expected 1 agent, got %d", len(agents))
+	}
+	if len(models) != 1 {
+		t.Errorf("expected 1 model, got %d", len(models))
+	}
+}

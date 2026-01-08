@@ -46,6 +46,7 @@ spec:
             - --postgres-port={{ .Values.storage.postgresql.port }}
             - --postgres-db={{ .Values.storage.postgresql.database }}
             - --postgres-user={{ .Values.storage.postgresql.username }}
+            - --postgres-password=$(POSTGRES_PASSWORD)
             {{- end }}
           ports:
             - name: https

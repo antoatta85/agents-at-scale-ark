@@ -7,10 +7,46 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Query":       schemaQuery(ref),
-		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.QueryList":   schemaQueryList(ref),
-		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.QuerySpec":   schemaQuerySpec(ref),
-		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.QueryStatus": schemaQueryStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Query":          schemaQuery(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.QueryList":      schemaQueryList(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.QuerySpec":      schemaQuerySpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.QueryStatus":    schemaQueryStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Agent":          schemaGenericResource("Agent", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.AgentList":      schemaGenericResourceList("Agent", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.AgentSpec":      schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.AgentStatus":    schemaGenericStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Model":          schemaGenericResource("Model", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.ModelList":      schemaGenericResourceList("Model", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.ModelSpec":      schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.ModelStatus":    schemaGenericStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Team":           schemaGenericResource("Team", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.TeamList":       schemaGenericResourceList("Team", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.TeamSpec":       schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.TeamStatus":     schemaGenericStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Tool":           schemaGenericResource("Tool", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.ToolList":       schemaGenericResourceList("Tool", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.ToolSpec":       schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.ToolStatus":     schemaGenericStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Memory":         schemaGenericResource("Memory", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.MemoryList":     schemaGenericResourceList("Memory", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.MemorySpec":     schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.MemoryStatus":   schemaGenericStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.MCPServer":      schemaGenericResource("MCPServer", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.MCPServerList":  schemaGenericResourceList("MCPServer", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.MCPServerSpec":  schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.MCPServerStatus": schemaGenericStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Evaluation":      schemaGenericResource("Evaluation", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.EvaluationList":  schemaGenericResourceList("Evaluation", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.EvaluationSpec":  schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.EvaluationStatus": schemaGenericStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.Evaluator":       schemaGenericResource("Evaluator", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.EvaluatorList":   schemaGenericResourceList("Evaluator", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.EvaluatorSpec":   schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.EvaluatorStatus": schemaGenericStatus(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.A2ATask":         schemaGenericResource("A2ATask", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.A2ATaskList":     schemaGenericResourceList("A2ATask", ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.A2ATaskSpec":     schemaGenericSpec(ref),
+		"mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1.A2ATaskStatus":   schemaGenericStatus(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta":              schemaObjectMeta(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta":                schemaListMeta(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta":                schemaTypeMeta(ref),
@@ -630,6 +666,105 @@ func schemaPartialObjectMetadataList(ref common.ReferenceCallback) common.OpenAP
 					"metadata":   {SchemaProps: spec.SchemaProps{Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta")}},
 					"items":      {SchemaProps: spec.SchemaProps{Type: []string{"array"}, Items: &spec.SchemaOrArray{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.PartialObjectMetadata")}}}}},
 				},
+			},
+		},
+	}
+}
+
+func schemaGenericResource(kind string, ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: kind + " resource",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"apiVersion": {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+					"kind":       {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							Properties: map[string]spec.Schema{
+								"name":              {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+								"namespace":         {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+								"uid":               {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+								"resourceVersion":   {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+								"generation":        {SchemaProps: spec.SchemaProps{Type: []string{"integer"}}},
+								"creationTimestamp": {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+								"deletionTimestamp": {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+								"labels":            {SchemaProps: spec.SchemaProps{Type: []string{"object"}, AdditionalProperties: &spec.SchemaOrBool{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Type: []string{"string"}}}}}},
+								"annotations":       {SchemaProps: spec.SchemaProps{Type: []string{"object"}, AdditionalProperties: &spec.SchemaOrBool{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Type: []string{"string"}}}}}},
+								"finalizers":        {SchemaProps: spec.SchemaProps{Type: []string{"array"}, Items: &spec.SchemaOrArray{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Type: []string{"string"}}}}}},
+								"managedFields":     {SchemaProps: spec.SchemaProps{Type: []string{"array"}, Items: &spec.SchemaOrArray{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Type: []string{"object"}}}}}},
+							},
+						},
+					},
+					"spec":   {SchemaProps: spec.SchemaProps{Type: []string{"object"}}},
+					"status": {SchemaProps: spec.SchemaProps{Type: []string{"object"}}},
+				},
+			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-group-version-kind": []interface{}{
+						map[string]interface{}{
+							"group":   "ark.mckinsey.com",
+							"version": "v1alpha1",
+							"kind":    kind,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schemaGenericResourceList(kind string, ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: kind + "List is a list of " + kind + " resources",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"apiVersion": {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+					"kind":       {SchemaProps: spec.SchemaProps{Type: []string{"string"}}},
+					"metadata":   {SchemaProps: spec.SchemaProps{Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta")}},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type:  []string{"array"},
+							Items: &spec.SchemaOrArray{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Type: []string{"object"}}}},
+						},
+					},
+				},
+			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-group-version-kind": []interface{}{
+						map[string]interface{}{
+							"group":   "ark.mckinsey.com",
+							"version": "v1alpha1",
+							"kind":    kind + "List",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schemaGenericSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+			},
+		},
+	}
+}
+
+func schemaGenericStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
 			},
 		},
 	}

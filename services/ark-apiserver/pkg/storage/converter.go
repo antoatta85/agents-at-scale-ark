@@ -19,6 +19,24 @@ func (c *ArkTypeConverter) NewObject(kind string) runtime.Object {
 	switch kind {
 	case "Query":
 		return &arkv1alpha1.Query{}
+	case "Agent":
+		return &arkv1alpha1.Agent{}
+	case "Model":
+		return &arkv1alpha1.Model{}
+	case "Team":
+		return &arkv1alpha1.Team{}
+	case "Tool":
+		return &arkv1alpha1.Tool{}
+	case "Memory":
+		return &arkv1alpha1.Memory{}
+	case "MCPServer":
+		return &arkv1alpha1.MCPServer{}
+	case "Evaluation":
+		return &arkv1alpha1.Evaluation{}
+	case "Evaluator":
+		return &arkv1alpha1.Evaluator{}
+	case "A2ATask":
+		return &arkv1alpha1.A2ATask{}
 	default:
 		return nil
 	}
@@ -28,6 +46,24 @@ func (c *ArkTypeConverter) NewListObject(kind string) runtime.Object {
 	switch kind {
 	case "Query":
 		return &arkv1alpha1.QueryList{}
+	case "Agent":
+		return &arkv1alpha1.AgentList{}
+	case "Model":
+		return &arkv1alpha1.ModelList{}
+	case "Team":
+		return &arkv1alpha1.TeamList{}
+	case "Tool":
+		return &arkv1alpha1.ToolList{}
+	case "Memory":
+		return &arkv1alpha1.MemoryList{}
+	case "MCPServer":
+		return &arkv1alpha1.MCPServerList{}
+	case "Evaluation":
+		return &arkv1alpha1.EvaluationList{}
+	case "Evaluator":
+		return &arkv1alpha1.EvaluatorList{}
+	case "A2ATask":
+		return &arkv1alpha1.A2ATaskList{}
 	default:
 		return nil
 	}

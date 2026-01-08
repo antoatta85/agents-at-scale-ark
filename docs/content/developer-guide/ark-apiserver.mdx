@@ -4,7 +4,24 @@ Aggregated API Server for Ark resources with pluggable storage backends.
 
 ## Overview
 
-The Ark API Server is a Kubernetes [aggregated API server](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/) that stores Ark resources (Queries, Agents, Models, etc.) outside of etcd. This addresses scalability limitations when running high-volume AI workloads.
+The Ark API Server is a Kubernetes [aggregated API server](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/) that stores Ark resources outside of etcd. This addresses scalability limitations when running high-volume AI workloads.
+
+### Supported Resources
+
+All 10 Ark resource types are supported:
+
+| Resource | Description |
+|----------|-------------|
+| Query | AI query requests and responses |
+| Agent | AI agent definitions with prompts and tools |
+| Model | AI model configurations (OpenAI, Azure, Bedrock) |
+| Team | Multi-agent team orchestration |
+| Tool | Tool definitions (HTTP, MCP, builtin) |
+| Memory | Conversation memory persistence |
+| MCPServer | MCP server connections |
+| Evaluation | AI output evaluation jobs |
+| Evaluator | Evaluation service configuration |
+| A2ATask | Agent-to-agent task coordination |
 
 ## Why Not etcd?
 
@@ -56,13 +73,16 @@ Zero-configuration storage for development and small deployments.
 - Single file database with WAL mode
 - No external dependencies
 - Suitable for development and single-node deployments
+- Automatic schema initialization
 
 ### PostgreSQL
 
 Production-ready storage with connection pooling.
 
-- LISTEN/NOTIFY for efficient WATCH implementation
-- Connection pooling for high concurrency
+- LISTEN/NOTIFY for efficient real-time WATCH events
+- Connection pooling (25 max open, 5 idle)
+- GIN indexes for label selector queries
+- Automatic trigger-based change notifications
 - Horizontal scaling support
 
 ## Configuration
@@ -101,9 +121,12 @@ make dev           # Run in development mode
 
 ## Current Status
 
-**Phase 1 (Current):** Query resource with SQLite backend
+**Phase 2 (Current):**
+- All 10 resource types implemented
+- SQLite and PostgreSQL backends
+- Full CRUD and WATCH support
 
-**Phase 2 (Planned):**
-- Add remaining 9 resource types
-- PostgreSQL backend implementation
-- Production hardening
+**Phase 3 (Planned):**
+- High availability configuration
+- Prometheus metrics
+- Performance tuning documentation
