@@ -81,14 +81,17 @@ Extract query resolution logic into a distinct `QueryReconciler` component withi
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                      MODULARISED (IN-CONTROLLER)                              │
+│                          PRODUCERS (Unchanged)                                │
+│         kubectl, ark cli, fark, ark dashboard, custom apps, etc...           │
 └──────────────────────────────────────────────────────────────────────────────┘
-
-                    ┌─────────────────┐
-                    │   Query CRD     │
-                    └────────┬────────┘
                              │
                              ▼
+  ┌─────────────────┐                              ┌─────────────────┐
+  │   Query CRD     │◄─────────────────────────────│    ARK API      │
+  │                 │         POST /v1/queries     │                 │
+  └────────┬────────┘                              └─────────────────┘
+           │
+           ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                           ARK CONTROLLER                                      │
 │                                                                               │
@@ -96,17 +99,31 @@ Extract query resolution logic into a distinct `QueryReconciler` component withi
 │    │                      QUERY RECONCILER                              │    │
 │    │                                                                    │    │
 │    │    - Agent loop (tool calls, inference)                           │    │
-│    │    - Memory integration                                            │    │
+│    │    - Memory ──────────────────────────────────────► Ark Broker    │    │
+│    │    - LLM chunks ──────────────────────────────────► Ark Broker    │    │
+│    │    - Query events ────────────► OTEL / K8s Events / Ark Broker    │    │
 │    │                                                                    │    │
 │    └────────────────────────────────────────────────────────────────────┘    │
 │                                                                               │
-└───────────────┬───────────────────────────────────┬───────────────────────────┘
-                │                                   │
-                ▼                                   ▼
-┌───────────────────────────┐       ┌───────────────────────────┐
-│        ARK BROKER         │       │          OTEL             │
-│  - Completion chunks      │       │  - Trace spans            │
-└───────────────────────────┘       └───────────────────────────┘
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              ARK BROKER                                       │
+│                                                                               │
+│    - LLM completion chunks                                                    │
+│    - Query events                                                             │
+│    - OTEL traces                                                              │
+│    - Memory / messages                                                        │
+│    - Session events                                                           │
+│                                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          CONSUMERS (Unchanged)                                │
+│         ark cli, fark, ark api, ark dashboard, custom apps, etc...           │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Step 2: Extract QueryReconciler to Service (broker mode)
