@@ -31,11 +31,11 @@ We want to modularise query resolution to:
 │                              PRODUCERS                                        │
 │         kubectl, ark cli, fark, ark dashboard, custom apps, etc...           │
 └──────────────────────────────────────────────────────────────────────────────┘
-                             │
-                             ▼
+           │                                                │
+           ▼                                                ▼
   ┌─────────────────┐                              ┌─────────────────┐
   │   Query CRD     │◄─────────────────────────────│    ARK API      │
-  │                 │         POST /v1/queries     │                 │
+  │                 │                              │   /v1/queries   │
   └────────┬────────┘                              └─────────────────┘
            │
            ▼
@@ -84,11 +84,11 @@ Extract query resolution logic into a distinct `QueryReconciler` component withi
 │                          PRODUCERS (Unchanged)                                │
 │         kubectl, ark cli, fark, ark dashboard, custom apps, etc...           │
 └──────────────────────────────────────────────────────────────────────────────┘
-                             │
-                             ▼
+           │                                                │
+           ▼                                                ▼
   ┌─────────────────┐                              ┌─────────────────┐
   │   Query CRD     │◄─────────────────────────────│    ARK API      │
-  │                 │         POST /v1/queries     │                 │
+  │                 │                              │   /v1/queries   │
   └────────┬────────┘                              └─────────────────┘
            │
            ▼
