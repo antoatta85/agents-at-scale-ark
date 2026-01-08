@@ -52,6 +52,7 @@ type ArkServerOptions struct {
 	PostgresDB       string
 	PostgresUser     string
 	PostgresPassword string
+	PostgresSSLMode  string
 	MetricsPort      int
 	EnableMetrics    bool
 }
@@ -76,6 +77,7 @@ func (o *ArkServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.PostgresDB, "postgres-db", "ark", "PostgreSQL database name")
 	fs.StringVar(&o.PostgresUser, "postgres-user", "ark", "PostgreSQL user")
 	fs.StringVar(&o.PostgresPassword, "postgres-password", "", "PostgreSQL password")
+	fs.StringVar(&o.PostgresSSLMode, "postgres-sslmode", "disable", "PostgreSQL SSL mode (disable, require, verify-ca, verify-full)")
 	fs.IntVar(&o.MetricsPort, "metrics-port", o.MetricsPort, "Port for metrics endpoint")
 	fs.BoolVar(&o.EnableMetrics, "enable-metrics", o.EnableMetrics, "Enable Prometheus metrics endpoint")
 }
@@ -138,6 +140,7 @@ func (o *ArkServerOptions) RunArkServer(stopCh <-chan struct{}) error {
 			Database: o.PostgresDB,
 			User:     o.PostgresUser,
 			Password: o.PostgresPassword,
+			SSLMode:  o.PostgresSSLMode,
 		}
 		backend, err = postgresql.New(cfg, converter)
 		if err != nil {

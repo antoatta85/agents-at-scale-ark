@@ -53,6 +53,7 @@ spec:
             - --postgres-db={{ .Values.storage.postgresql.database }}
             - --postgres-user={{ .Values.storage.postgresql.username }}
             - --postgres-password=$(POSTGRES_PASSWORD)
+            - --postgres-sslmode={{ .Values.storage.postgresql.sslMode }}
             {{- end }}
           ports:
             - name: https

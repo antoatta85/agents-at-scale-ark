@@ -13,4 +13,8 @@ spec:
     port: {{ .Values.service.port }}
   groupPriorityMinimum: 1000
   versionPriority: 15
-  insecureSkipTLSVerify: true
+  {{- if .Values.apiService.caBundle }}
+  caBundle: {{ .Values.apiService.caBundle }}
+  {{- else }}
+  insecureSkipTLSVerify: {{ .Values.apiService.insecureSkipTLSVerify }}
+  {{- end }}

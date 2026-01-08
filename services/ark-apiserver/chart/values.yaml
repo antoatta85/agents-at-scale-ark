@@ -26,6 +26,7 @@ storage:
     username: ark
     existingSecret: ""
     secretPasswordKey: password
+    sslMode: disable  # disable, require, verify-ca, verify-full
 
 serviceAccount:
   create: true
@@ -46,6 +47,10 @@ securityContext:
 service:
   type: ClusterIP
   port: 443
+
+apiService:
+  insecureSkipTLSVerify: true  # Set to false and provide caBundle for production
+  caBundle: ""  # Base64-encoded CA certificate for verifying the API server
 
 metrics:
   enabled: true
