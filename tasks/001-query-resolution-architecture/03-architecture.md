@@ -5,28 +5,7 @@
 ## High-Level Design
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         QUERY ENTRY POINTS                          │
-├─────────────────────────────────┬───────────────────────────────────┤
-│         Query CRD               │          POST /queries            │
-│     (kubectl apply)             │          (broker API)             │
-└────────────────┬────────────────┴──────────────────┬────────────────┘
-                 │                                    │
-                 ▼                                    ▼
-┌────────────────────────────────┐  ┌────────────────────────────────┐
-│      QUERY CONTROLLER          │  │         ARK BROKER             │
-│  - Watches Query CRDs          │  │  - REST API                    │
-│  - Routes based on config      │  │  - Session management          │
-│  - Runs QueryReconciler OR     │  │  - Streaming (SSE)             │
-│    forwards to broker          │  │  - Runs QueryReconciler        │
-└───────────────┬────────────────┘  └───────────────┬────────────────┘
-                │                                    │
-                │    ┌───────────────────────┐       │
-                └───▶│   QUERY RECONCILER    │◀──────┘
-                     │  - Resolution logic   │
-                     │  - Agent loop         │
-                     │  - Tool execution     │
-                     └───────────────────────┘
+{To be designed after objectives and acceptance criteria are approved}
 ```
 
 ## Topics to Address

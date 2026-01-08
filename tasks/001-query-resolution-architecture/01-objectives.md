@@ -3,12 +3,12 @@
 Initial request: "Design a modular query resolution system for Ark that supports direct mode (Query CRD -> Controller -> QueryReconciler in-proc) and broker mode (POST /queries -> Broker -> QueryReconciler as service)"
 
 ## Status
-Phase: Objectives (awaiting review)
+Phase: Objectives (complete, awaiting review)
 
 ## Plan
-- [x] 01-objectives - Define why and goals
-- [ ] 02-acceptance-criteria - Define "done" + verification methods
-- [ ] 03-architecture - Design solution
+- [x] 01-objectives - Define why and goals (complete, ready for review)
+- [ ] 02-acceptance-criteria - Define "done" + verification methods (to be discussed)
+- [ ] 03-architecture - Design solution (to be discussed)
 - [ ] 04-verifiable-prototype - Build with checkpoints
 - [ ] 05-verification - Prove each criterion with evidence
 - [ ] 06-outcome - Document learnings
@@ -285,51 +285,28 @@ Producers publish query objects directly to the broker or via Ark API with `reco
 
 > **Note:** In broker mode, producers bypass etcd entirely for maximum scale. If visibility is needed, a Query CRD can optionally be created as a pass-through - resolution still happens via the broker, but the CRD provides kubectl access and K8s event integration.
 
-## Resolution Matrix
-
-|  | **No Broker** | **Broker Installed** |
-|--|---------------|----------------------|
-| **Direct** | Controller runs QueryReconciler in-proc | Controller publishes to broker, QueryReconciler service processes |
-| **Broker** | Error (no broker) | QueryReconciler service processes directly |
-
-### No Broker + Direct
-- Query CRD created via kubectl/API
-- Controller runs QueryReconciler in-proc
-- Result written to `status.response`
-- **Current behavior, unchanged**
-
-### No Broker + Broker Mode
-- User requests broker mode but no broker installed
-- Error returned to caller
-
-### Broker Installed + Direct
-- Query CRD created via kubectl/API
-- Controller publishes query to broker
-- QueryReconciler service subscribes and processes
-- Controller syncs result back to `status.response`
-
-### Broker Installed + Broker Mode
-- POST to /queries (no CRD)
-- Broker routes to QueryReconciler service
-- Result streamed via SSE
-- Optional: caller can request CRD creation
-
 ## Goals
 
 ### Primary Goals
 
-1. **Extract QueryReconciler**: Modularise query resolution logic into a distinct Go component
-2. **Define interfaces**: Clear contracts for QueryReconciler that work in-controller and as standalone service
-3. **Design routing logic**: Controller detects mode and either runs in-proc or publishes to broker
-4. **Design status sync**: Controller syncs results from broker back to CRD status
-5. **Prototype**: Demonstrate the architecture with working code
+1. **Explore and learn**: Understand current query resolution flow, broker capabilities, and K8s patterns
+2. **Define specification**: Document API structures, data structures, and interface contracts
+3. **Prototype key interactions**: Build throwaway code to validate assumptions and discover edge cases
+4. **Produce detailed spec**: Output is a specification document for actual development, not production code
 
-### Non-Goals (Follow-on Work)
+### Output Artifacts
 
-- Full production implementation with all edge cases
-- Performance optimization and benchmarking
-- Multi-cluster broker federation
-- Migration tooling for existing queries
+- API specification (endpoints, request/response shapes)
+- Data structures (QueryReconciler interface, broker messages, CRD status fields)
+- Sequence diagrams for key flows
+- Decision log with rationale
+
+### Non-Goals
+
+- Production-ready code
+- Performance optimization
+- Complete error handling
+- Migration tooling
 
 ## Related Issues
 
@@ -351,8 +328,16 @@ Producers publish query objects directly to the broker or via Ark API with `reco
 ## Success Criteria
 
 After this task:
-- QueryReconciler is modularised and can run in-controller or as standalone service
-- Controller can detect broker presence and route accordingly
-- QueryReconciler service can process queries from broker
-- Architecture decisions are captured with rationale
-- Prototype demonstrates end-to-end flow in both modes
+- Architecture is validated through exploration and prototyping
+- Specification is detailed enough to hand off for production implementation
+- Key decisions are documented with rationale
+- Open questions and risks are identified
+- Spec is reviewed and approved for development
+
+## For Discussion
+
+- System configuration schema (`defaultReconciliation`, `allowedModes`)
+- API semantics for reading (aggregation) vs writing (explicit mode)
+- Deployment patterns (Simple, Scale flexible, Scale strict)
+- Status sync protocol (how controller syncs broker results back to CRD)
+- Future reconcilers scope (Responses, Embeddings - in scope or follow-on?)
