@@ -119,6 +119,30 @@ make test          # Run tests
 make dev           # Run in development mode
 ```
 
+### Running Tests
+
+**SQLite tests** (no dependencies):
+```bash
+go test ./pkg/storage/sqlite/...
+```
+
+**PostgreSQL integration tests** (requires PostgreSQL):
+```bash
+# Start PostgreSQL (e.g., via Docker)
+docker run -d --name ark-postgres \
+  -e POSTGRES_DB=ark \
+  -e POSTGRES_USER=ark \
+  -e POSTGRES_PASSWORD=arktest \
+  -p 5432:5432 postgres:15
+
+# Run tests
+POSTGRES_HOST=localhost \
+POSTGRES_DB=ark \
+POSTGRES_USER=ark \
+POSTGRES_PASSWORD=arktest \
+go test -v ./pkg/storage/postgresql/...
+```
+
 ## Current Status
 
 **Phase 2 (Current):**
