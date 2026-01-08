@@ -63,6 +63,16 @@ resources:
     memory: 512Mi
     cpu: 500m
 
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  # maxUnavailable: 1
+
+podAntiAffinity:
+  enabled: true
+  type: soft  # soft or hard
+  topologyKey: kubernetes.io/hostname
+
 nodeSelector: {}
 tolerations: []
 affinity: {}

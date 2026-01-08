@@ -219,6 +219,58 @@ The API server uses:
 - 5 idle connections
 - Connection lifetime management
 
+## High Availability
+
+### Requirements
+
+| Backend | HA Support | Notes |
+|---------|------------|-------|
+| SQLite | No | Single-writer, file-based storage |
+| PostgreSQL | Yes | Multiple replicas can connect simultaneously |
+
+### Configuration
+
+For production deployments with PostgreSQL:
+
+```yaml
+replicaCount: 2  # or more
+
+storage:
+  driver: postgresql
+  postgresql:
+    host: postgres.example.com
+    # ...
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+podAntiAffinity:
+  enabled: true
+  type: soft  # or hard
+  topologyKey: kubernetes.io/hostname
+```
+
+### Pod Anti-Affinity
+
+Spreads replicas across nodes to prevent single points of failure.
+
+| Type | Behavior |
+|------|----------|
+| `soft` | Prefers different nodes, allows co-location if necessary |
+| `hard` | Requires different nodes, pods won't schedule if unavailable |
+
+### PodDisruptionBudget
+
+Ensures availability during voluntary disruptions (upgrades, node drains):
+
+```yaml
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1      # At least 1 pod always running
+  # maxUnavailable: 1  # Alternative: at most 1 pod down
+```
+
 ## Current Status
 
 **Phase 2 (Complete):**
@@ -226,8 +278,8 @@ The API server uses:
 - SQLite and PostgreSQL backends
 - Full CRUD support
 
-**Phase 3 (In Progress):**
-- Prometheus metrics (done)
-- Health checks (done)
-- ServiceMonitor support (done)
-- High availability configuration (planned)
+**Phase 3 (Complete):**
+- Prometheus metrics
+- Health checks
+- ServiceMonitor support
+- High availability (PDB, anti-affinity)
