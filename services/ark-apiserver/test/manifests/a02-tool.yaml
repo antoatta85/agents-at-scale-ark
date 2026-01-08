@@ -1,0 +1,10 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Tool
+metadata:
+  name: test-tool
+spec:
+  name: test_tool
+  description: Test tool for E2E testing
+  type: bash
+  bash:
+    command: echo "test"

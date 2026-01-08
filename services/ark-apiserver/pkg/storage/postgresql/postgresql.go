@@ -417,6 +417,17 @@ func (p *PostgreSQLBackend) Close() error {
 	return p.db.Close()
 }
 
+func (p *PostgreSQLBackend) Cleanup(ctx context.Context, retention time.Duration) (int64, error) {
+	cutoff := time.Now().Add(-retention)
+	result, err := p.db.ExecContext(ctx, `
+		DELETE FROM resources WHERE deleted_at IS NOT NULL AND deleted_at < $1
+	`, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("failed to cleanup deleted resources: %w", err)
+	}
+	return result.RowsAffected()
+}
+
 func (p *PostgreSQLBackend) reconstructObject(kind, namespace, name string, rv, generation int64, uid, spec, status, labels, annotations string, createdAt time.Time) (runtime.Object, error) {
 	var labelsMap map[string]string
 	var annotationsMap map[string]string

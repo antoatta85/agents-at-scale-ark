@@ -274,6 +274,17 @@ func (s *SQLiteBackend) Close() error {
 	return s.db.Close()
 }
 
+func (s *SQLiteBackend) Cleanup(ctx context.Context, retention time.Duration) (int64, error) {
+	cutoff := time.Now().Add(-retention)
+	result, err := s.db.ExecContext(ctx, `
+		DELETE FROM resources WHERE deleted_at IS NOT NULL AND deleted_at < ?
+	`, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("failed to cleanup deleted resources: %w", err)
+	}
+	return result.RowsAffected()
+}
+
 func (s *SQLiteBackend) reconstructObject(kind, namespace, name string, rv, generation int64, uid, spec, status, labels, annotations string, createdAt time.Time) (runtime.Object, error) {
 	var labelsMap map[string]string
 	var annotationsMap map[string]string

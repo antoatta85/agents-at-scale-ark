@@ -1,0 +1,139 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ark-apiserver
+spec:
+  description: Test Ark Aggregated API Server deployment and CRUD operations
+  timeouts:
+    apply: 180s
+    assert: 180s
+    exec: 180s
+  steps:
+  - name: setup
+    try:
+    - script:
+        content: |
+          helm install ark-apiserver ../chart --wait --timeout=120s \
+            --namespace $NAMESPACE \
+            --set storage.driver=sqlite \
+            --set storage.sqlite.persistence.enabled=false \
+            --set image.repository=${ARK_APISERVER_IMAGE:-ark-apiserver} \
+            --set image.tag=${ARK_APISERVER_IMAGE_TAG:-latest}
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+        timeout: 150s
+    cleanup:
+    - script:
+        content: |
+          helm uninstall ark-apiserver --namespace $NAMESPACE --wait --timeout=30s || true
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+
+  - name: wait-for-deployment
+    try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ark-apiserver
+          status:
+            readyReplicas: 1
+    - script:
+        content: |
+          for i in $(seq 1 30); do
+            if kubectl get agents.ark.mckinsey.com -n $NAMESPACE 2>/dev/null; then
+              echo "API Server is ready"
+              exit 0
+            fi
+            echo "Waiting for API Server registration... ($i/30)"
+            sleep 2
+          done
+          echo "API Server not ready"
+          exit 1
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+        timeout: 90s
+
+  - name: test-create-agent
+    try:
+    - apply:
+        file: manifests/a01-agent.yaml
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Agent
+          metadata:
+            name: test-agent
+    catch:
+    - events: {}
+    - describe:
+        apiVersion: ark.mckinsey.com/v1alpha1
+        kind: Agent
+        name: test-agent
+
+  - name: test-get-and-list
+    try:
+    - script:
+        content: |
+          echo "=== Testing GET ==="
+          kubectl get agent test-agent -n $NAMESPACE -o yaml
+
+          echo "=== Testing LIST ==="
+          COUNT=$(kubectl get agents -n $NAMESPACE -o json | jq '.items | length')
+          if [ "$COUNT" -lt 1 ]; then
+            echo "Expected at least 1 agent, got $COUNT"
+            exit 1
+          fi
+          echo "Listed $COUNT agents successfully"
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+
+  - name: test-update-agent
+    try:
+    - script:
+        content: |
+          kubectl patch agent test-agent -n $NAMESPACE --type=merge -p '{"spec":{"description":"Updated description"}}'
+
+          UPDATED_DESC=$(kubectl get agent test-agent -n $NAMESPACE -o jsonpath='{.spec.description}')
+          if [ "$UPDATED_DESC" != "Updated description" ]; then
+            echo "Update not reflected, got: $UPDATED_DESC"
+            exit 1
+          fi
+          echo "Update successful"
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+
+  - name: test-create-tool
+    try:
+    - apply:
+        file: manifests/a02-tool.yaml
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Tool
+          metadata:
+            name: test-tool
+    catch:
+    - events: {}
+
+  - name: test-delete-agent
+    try:
+    - script:
+        content: |
+          kubectl delete agent test-agent -n $NAMESPACE
+          sleep 2
+
+          if kubectl get agent test-agent -n $NAMESPACE 2>/dev/null; then
+            echo "Agent still exists after deletion"
+            exit 1
+          fi
+          echo "Delete successful"
+        env:
+        - name: NAMESPACE
+          value: ($namespace)

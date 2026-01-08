@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
@@ -55,6 +57,9 @@ type ArkServerOptions struct {
 	PostgresSSLMode  string
 	MetricsPort      int
 	EnableMetrics    bool
+
+	RunCleanup       bool
+	CleanupRetention string
 }
 
 func NewArkServerOptions() *ArkServerOptions {
@@ -80,6 +85,8 @@ func (o *ArkServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.PostgresSSLMode, "postgres-sslmode", "disable", "PostgreSQL SSL mode (disable, require, verify-ca, verify-full)")
 	fs.IntVar(&o.MetricsPort, "metrics-port", o.MetricsPort, "Port for metrics endpoint")
 	fs.BoolVar(&o.EnableMetrics, "enable-metrics", o.EnableMetrics, "Enable Prometheus metrics endpoint")
+	fs.BoolVar(&o.RunCleanup, "cleanup", false, "Run cleanup of soft-deleted resources and exit")
+	fs.StringVar(&o.CleanupRetention, "cleanup-retention", "168h", "Retention period for soft-deleted resources (e.g., 24h, 168h)")
 }
 
 func (o *ArkServerOptions) Validate() []error {
@@ -252,6 +259,56 @@ func (o *ArkServerOptions) RunArkServer(stopCh <-chan struct{}) error {
 	return server.PrepareRun().Run(stopCh)
 }
 
+func (o *ArkServerOptions) ExecuteCleanup() error {
+	retention, err := time.ParseDuration(o.CleanupRetention)
+	if err != nil {
+		return fmt.Errorf("invalid cleanup-retention: %w", err)
+	}
+
+	converter := storage.NewArkTypeConverter()
+	var backend storage.Backend
+
+	switch o.StorageDriver {
+	case "sqlite":
+		dir := filepath.Dir(o.SQLitePath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create data directory: %w", err)
+		}
+		backend, err = sqlite.New(o.SQLitePath, converter)
+		if err != nil {
+			return fmt.Errorf("failed to create SQLite backend: %w", err)
+		}
+	case "postgresql":
+		cfg := postgresql.Config{
+			Host:     o.PostgresHost,
+			Port:     o.PostgresPort,
+			Database: o.PostgresDB,
+			User:     o.PostgresUser,
+			Password: o.PostgresPassword,
+			SSLMode:  o.PostgresSSLMode,
+		}
+		backend, err = postgresql.New(cfg, converter)
+		if err != nil {
+			return fmt.Errorf("failed to create PostgreSQL backend: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported storage driver: %s", o.StorageDriver)
+	}
+	defer backend.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	klog.Infof("Running cleanup with retention %s", retention)
+	deleted, err := backend.Cleanup(ctx, retention)
+	if err != nil {
+		return fmt.Errorf("cleanup failed: %w", err)
+	}
+
+	klog.Infof("Cleanup complete: %d resources permanently deleted", deleted)
+	return nil
+}
+
 func main() {
 	klog.InitFlags(nil)
 	defer klog.Flush()
@@ -266,6 +323,13 @@ func main() {
 			klog.Error(err)
 		}
 		os.Exit(1)
+	}
+
+	if options.RunCleanup {
+		if err := options.ExecuteCleanup(); err != nil {
+			klog.Fatal(err)
+		}
+		return
 	}
 
 	stopCh := genericapiserver.SetupSignalHandler()

@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	genericrequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
@@ -40,6 +41,7 @@ var _ rest.Getter = &GenericStorage{}
 var _ rest.Lister = &GenericStorage{}
 var _ rest.CreaterUpdater = &GenericStorage{}
 var _ rest.GracefulDeleter = &GenericStorage{}
+var _ rest.Watcher = &GenericStorage{}
 var _ rest.Scoper = &GenericStorage{}
 var _ rest.SingularNameProvider = &GenericStorage{}
 
@@ -224,6 +226,22 @@ func (s *GenericStorage) Delete(ctx context.Context, name string, deleteValidati
 	metrics.RecordStorageOperation("delete", s.config.Kind, "success")
 	metrics.RecordStorageLatency("delete", s.config.Kind, start)
 	return existing, true, nil
+}
+
+func (s *GenericStorage) Watch(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
+	namespace := getNamespace(ctx)
+	opts := arkstorage.WatchOptions{}
+	if options != nil {
+		if options.LabelSelector != nil {
+			opts.LabelSelector = options.LabelSelector.String()
+		}
+		if options.FieldSelector != nil {
+			opts.FieldSelector = options.FieldSelector.String()
+		}
+		opts.ResourceVersion = options.ResourceVersion
+	}
+
+	return s.backend.Watch(ctx, s.config.Kind, namespace, opts)
 }
 
 func (s *GenericStorage) ConvertToTable(ctx context.Context, obj runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {

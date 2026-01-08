@@ -1,0 +1,7 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: test-agent
+spec:
+  description: Test agent for E2E testing
+  prompt: You are a test agent.
