@@ -21,6 +21,7 @@ We want to modularise query resolution to:
 - Simplify the core controller
 - Allow query reconciliation in-controller (simple setups)
 - Allow query reconciliation via broker (scaling setups)
+- Enable tenant data isolation (broker mode bypasses etcd, critical for teams like W Team who encrypt sensitive query data per-tenant)
 
 ## Current Architecture
 
@@ -341,3 +342,4 @@ After this task:
 - Deployment patterns (Simple, Scale flexible, Scale strict)
 - Status sync protocol (how controller syncs broker results back to CRD)
 - Future reconcilers scope (Responses, Embeddings - in scope or follow-on?)
+- Tenant data isolation (broker mode enables routing query data to tenant-specific databases with per-tenant encryption - key requirement for W Team and similar enterprise deployments)
