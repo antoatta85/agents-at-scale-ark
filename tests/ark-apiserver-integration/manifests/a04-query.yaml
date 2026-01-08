@@ -1,0 +1,9 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: test-query
+spec:
+  input: "Hello, confirm the Ark API server integration is working correctly."
+  target:
+    type: agent
+    name: test-agent

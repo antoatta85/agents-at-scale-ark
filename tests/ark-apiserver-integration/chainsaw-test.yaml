@@ -1,0 +1,193 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ark-apiserver-integration
+  labels:
+    apiserver: "true"
+spec:
+  description: Test full Ark stack with aggregated API server backend
+  timeouts:
+    apply: 300s
+    assert: 300s
+    exec: 300s
+  steps:
+  - name: setup-azure-credentials
+    try:
+    - script:
+        skipLogOutput: true
+        content: |
+          set -u
+          echo "{\"token\": \"$E2E_TEST_AZURE_OPENAI_KEY\", \"url\": \"$E2E_TEST_AZURE_OPENAI_BASE_URL\"}"
+        outputs:
+        - name: azure
+          value: (json_parse($stdout))
+
+  - name: deploy-ark-apiserver
+    try:
+    - script:
+        content: |
+          helm install ark-apiserver ../../services/ark-apiserver/chart --wait --timeout=120s \
+            --namespace ark-system \
+            --create-namespace \
+            --set storage.driver=sqlite \
+            --set storage.sqlite.persistence.enabled=false \
+            --set image.repository=${ARK_APISERVER_IMAGE:-ark-apiserver} \
+            --set image.tag=${ARK_APISERVER_IMAGE_TAG:-latest}
+        timeout: 150s
+    cleanup:
+    - script:
+        content: |
+          helm uninstall ark-apiserver --namespace ark-system --wait --timeout=30s || true
+
+  - name: wait-for-apiserver
+    try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ark-apiserver
+            namespace: ark-system
+          status:
+            readyReplicas: 1
+    - script:
+        content: |
+          for i in $(seq 1 30); do
+            if kubectl get agents.ark.mckinsey.com 2>/dev/null; then
+              echo "API Server is ready and serving ark.mckinsey.com API"
+              exit 0
+            fi
+            echo "Waiting for API Server registration... ($i/30)"
+            sleep 2
+          done
+          echo "API Server not ready"
+          exit 1
+        timeout: 90s
+
+  - name: deploy-ark-controller
+    try:
+    - script:
+        content: |
+          helm install ark-controller ../../ark/dist/chart --wait --timeout=180s \
+            --namespace ark-system \
+            --set crd.enable=false \
+            --set controllerManager.container.image.repository=${ARK_CONTROLLER_IMAGE:-ghcr.io/mckinsey/agents-at-scale-ark/ark-controller} \
+            --set controllerManager.container.image.tag=${ARK_CONTROLLER_IMAGE_TAG:-latest}
+        timeout: 200s
+    cleanup:
+    - script:
+        content: |
+          helm uninstall ark-controller --namespace ark-system --wait --timeout=30s || true
+
+  - name: wait-for-controller
+    try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ark-controller
+            namespace: ark-system
+          status:
+            readyReplicas: 1
+
+  - name: setup-tenant
+    try:
+    - script:
+        content: |
+          helm install ark-tenant ../../charts/ark-tenant --namespace $NAMESPACE --create-namespace --wait
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+    cleanup:
+    - script:
+        content: |
+          helm uninstall ark-tenant --namespace $NAMESPACE --wait --timeout=30s || true
+        env:
+        - name: NAMESPACE
+          value: ($namespace)
+
+  - name: create-resources
+    try:
+    - apply:
+        file: manifests/a01-secret.yaml
+    - apply:
+        file: manifests/a02-model.yaml
+    - apply:
+        file: manifests/a03-agent.yaml
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Model
+          metadata:
+            name: test-model
+          status:
+            conditions:
+            - type: ModelAvailable
+              status: "True"
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Agent
+          metadata:
+            name: test-agent
+    catch:
+    - events: {}
+    - describe:
+        apiVersion: ark.mckinsey.com/v1alpha1
+        kind: Model
+        name: test-model
+
+  - name: execute-query
+    try:
+    - apply:
+        file: manifests/a04-query.yaml
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Query
+          metadata:
+            name: test-query
+          status:
+            (conditions[?type == 'Completed']):
+            - status: 'True'
+    - assert:
+        resource:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Query
+          metadata:
+            name: test-query
+          status:
+            (response != null): true
+            (response.target.name): 'test-agent'
+            (length(response.content) > `10`): true
+    catch:
+    - events: {}
+    - describe:
+        apiVersion: ark.mckinsey.com/v1alpha1
+        kind: Query
+        name: test-query
+
+  - name: verify-storage
+    try:
+    - script:
+        content: |
+          echo "=== Verifying resources stored in API server ==="
+
+          AGENTS=$(kubectl get agents -n $NAMESPACE -o json | jq '.items | length')
+          MODELS=$(kubectl get models -n $NAMESPACE -o json | jq '.items | length')
+          QUERIES=$(kubectl get queries -n $NAMESPACE -o json | jq '.items | length')
+
+          echo "Agents: $AGENTS"
+          echo "Models: $MODELS"
+          echo "Queries: $QUERIES"
+
+          if [ "$AGENTS" -lt 1 ] || [ "$MODELS" -lt 1 ] || [ "$QUERIES" -lt 1 ]; then
+            echo "Missing resources in storage"
+            exit 1
+          fi
+
+          echo "All resources stored correctly in API server"
+        env:
+        - name: NAMESPACE
+          value: ($namespace)

@@ -1,0 +1,11 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: test-agent
+spec:
+  modelRef:
+    name: test-model
+  prompt: |
+    You are a test agent used for end-to-end testing with the Ark API server.
+    Respond helpfully and confirm the system is working correctly.
+    Keep responses concise.
