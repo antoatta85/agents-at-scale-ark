@@ -211,16 +211,16 @@ QueryReconciler deployed as separate Go service. Controller publishes to broker,
                                      │
                                      │ subscribe
                                      ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                       QUERY RECONCILER SERVICE (Go)                           │
-│                                                                               │
-│    - Same code as in-controller QueryReconciler                               │
-│    - Agent loop (tool calls, inference)                                       │
-│    - Memory integration                                                       │
-│    - Publishes results back to broker                                         │
-│    - Horizontally scalable                                                    │
-│                                                                               │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐  ┌──────────────────────┐
+│           QUERY RECONCILER SERVICE (Go)          │  │  Future Reconcilers  │
+│                                                  │  ├──────────────────────┤
+│    - Same code as in-controller QueryReconciler  │  │ Responses Reconciler │
+│    - Agent loop (tool calls, inference)          │  │ (chat completions)   │
+│    - Memory integration                          │  ├──────────────────────┤
+│    - Publishes results back to broker            │  │ Embeddings Reconciler│
+│    - Horizontally scalable                       │  │ (vector generation)  │
+│                                                  │  └──────────────────────┘
+└──────────────────────────────────────────────────┘
                                      │
                                      ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -228,6 +228,8 @@ QueryReconciler deployed as separate Go service. Controller publishes to broker,
 │         ark cli, fark, ark api, ark dashboard, custom apps, etc...           │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+> **Note:** This architecture opens the door for different types of query reconciliation in a modular fashion. Different reconcilers can subscribe to different topics on the broker, enabling specialised processing for chat completions, embeddings, evaluations, etc.
 
 ### Step 3: Direct Broker Mode (no CRD)
 
