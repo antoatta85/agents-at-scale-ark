@@ -15,43 +15,204 @@ Phase: Objectives (awaiting review)
 
 ## Why This Task Matters
 
-Ark currently executes queries synchronously within the controller. This works for small scale but limits horizontal scaling and prevents streaming responses. We need to extract query resolution into a reusable component that can run either in-process (direct) or as a separate service (broker).
+The query controller currently handles query resolution inline, with streaming fully supported via chat completion chunks sent to the broker, and OTEL events sent to both OTEL and the broker. This works well but tightly couples resolution logic to the controller.
 
-## Current State
+We want to modularise query resolution to:
+- Simplify the core controller
+- Allow query reconciliation in-controller (simple setups)
+- Allow query reconciliation via broker (scaling setups)
 
-**Query Controller (`ark/internal/controller/query_controller.go`):**
-- Handles Query CRD reconciliation
-- `executeQueryAsync()` contains the resolution logic
-- Tightly coupled to controller lifecycle
-- No way to forward resolution to external service
+## Current Architecture
 
-**Agentic Loop (`ark/internal/genai/agent.go`):**
-- `executeLocally()` runs the agent loop
-- Used by both Query and Team controllers
-- No streaming support for external callers
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              CURRENT STATE                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
 
-**Broker (`services/ark-broker/`):**
-- TypeScript/Express service with append-only streams
-- Handles sessions and streaming
-- Cannot currently run QueryReconciler
-- No status sync back to K8s CRDs
+                    ┌─────────────────┐
+                    │   Query CRD     │
+                    │   (kubectl)     │
+                    └────────┬────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                         QUERY CONTROLLER                                      │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────────┐ │
+│  │                    Query Resolution Logic                                │ │
+│  │  - Target resolution                                                     │ │
+│  │  - Agent/Team/Model/Tool execution                                       │ │
+│  │  - Agentic loop (tool calls)                                            │ │
+│  │  - Memory integration                                                    │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                               │
+└───────────────┬───────────────────────────────────┬───────────────────────────┘
+                │                                   │
+                ▼                                   ▼
+┌───────────────────────────┐       ┌───────────────────────────┐
+│        ARK BROKER         │       │          OTEL             │
+│  - Completion chunks      │       │  - Trace spans            │
+│  - Session events         │       │  - Metrics                │
+│  - Messages               │       │                           │
+└───────────────────────────┘       └───────────────────────────┘
+```
+
+## Hypothesised Architecture
+
+### Step 1: Modularise QueryReconciler (in-controller)
+
+Extract query resolution logic into a distinct `QueryReconciler` component within the controller.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                      MODULARISED (IN-CONTROLLER)                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+                    ┌─────────────────┐
+                    │   Query CRD     │
+                    └────────┬────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                         QUERY CONTROLLER                                      │
+│                                                                               │
+│    ┌────────────────────────────────────────────────────────────────────┐    │
+│    │                      QUERY RECONCILER                              │    │
+│    │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │    │
+│    │  │   Target     │  │   Agent      │  │   Memory     │             │    │
+│    │  │  Resolution  │  │   Loop       │  │ Integration  │             │    │
+│    │  └──────────────┘  └──────────────┘  └──────────────┘             │    │
+│    └────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+└───────────────┬───────────────────────────────────┬───────────────────────────┘
+                │                                   │
+                ▼                                   ▼
+┌───────────────────────────┐       ┌───────────────────────────┐
+│        ARK BROKER         │       │          OTEL             │
+└───────────────────────────┘       └───────────────────────────┘
+```
+
+### Step 2: Extract QueryReconciler to Service (broker mode)
+
+Controller offloads query resolution to the broker via the QueryReconciler service.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                      EXTRACTED (BROKER MODE)                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+                    ┌─────────────────┐
+                    │   Query CRD     │
+                    └────────┬────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                    QUERY CONTROLLER (thin)                                    │
+│                                                                               │
+│    - Watches Query CRDs                                                       │
+│    - Forwards to broker                                                       │
+│    - Syncs status back to CRD                                                │
+│                                                                               │
+└───────────────┬──────────────────────────────────────────────────────────────┘
+                │
+                │ forward query
+                ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            ARK BROKER                                         │
+│                                                                               │
+│    ┌────────────────────────────────────────────────────────────────────┐    │
+│    │                      QUERY RECONCILER                              │    │
+│    │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │    │
+│    │  │   Target     │  │   Agent      │  │   Memory     │             │    │
+│    │  │  Resolution  │  │   Loop       │  │ Integration  │             │    │
+│    │  └──────────────┘  └──────────────┘  └──────────────┘             │    │
+│    └────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│    - Completion chunks (SSE)                                                  │
+│    - Session management                                                       │
+│    - Status sync to CRD                                                       │
+│                                                                               │
+└───────────────────────────────────────────────┬───────────────────────────────┘
+                                                │
+                                                ▼
+                                ┌───────────────────────────┐
+                                │          OTEL             │
+                                └───────────────────────────┘
+```
+
+### Step 3: Direct Broker Mode (no CRD)
+
+Users fire query objects directly into the broker, bypassing K8s entirely.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                      DIRECT BROKER MODE                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+                    ┌─────────────────┐
+                    │  POST /queries  │
+                    │  (HTTP client)  │
+                    └────────┬────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            ARK BROKER                                         │
+│                                                                               │
+│    ┌────────────────────────────────────────────────────────────────────┐    │
+│    │                      QUERY RECONCILER                              │    │
+│    └────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│    - No K8s CRD created                                                       │
+│    - Result via SSE stream                                                    │
+│    - Horizontal scaling                                                       │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Resolution Matrix
+
+|  | **No Broker** | **Broker Installed** |
+|--|---------------|----------------------|
+| **Direct** | Controller runs QueryReconciler in-proc | Controller forwards to broker |
+| **Broker** | Error (no broker) | Broker runs QueryReconciler directly |
+
+### No Broker + Direct
+- Query CRD created via kubectl/API
+- Controller runs QueryReconciler in-proc
+- Result written to `status.response`
+- **Current behavior, unchanged**
+
+### No Broker + Broker Mode
+- User requests broker mode but no broker installed
+- Error returned to caller
+
+### Broker Installed + Direct
+- Query CRD created via kubectl/API
+- Controller forwards query to broker
+- Broker runs QueryReconciler
+- Controller syncs result back to `status.response`
+
+### Broker Installed + Broker Mode
+- POST to /queries (no CRD)
+- Broker runs QueryReconciler
+- Result streamed via SSE
+- Optional: caller can request CRD creation
 
 ## Goals
 
 ### Primary Goals
 
-1. **Extract QueryReconciler**: Create a reusable package from `executeQueryAsync()` that encapsulates query resolution logic
-2. **Define interfaces**: Establish clear contracts between controller/broker and QueryReconciler
+1. **Extract QueryReconciler**: Modularise query resolution logic into a distinct component
+2. **Define interfaces**: Clear contracts for QueryReconciler that work in-controller and in-broker
 3. **Design routing logic**: Controller detects mode and either runs in-proc or forwards to broker
 4. **Design status sync**: Broker updates CRD status when processing forwarded queries
-5. **Prototype minimal changes**: Demonstrate the architecture with working code
+5. **Prototype**: Demonstrate the architecture with working code
 
 ### Non-Goals (Follow-on Work)
 
 - Full production implementation with all edge cases
 - Performance optimization and benchmarking
 - Multi-cluster broker federation
-- Complete streaming implementation
 - Migration tooling for existing queries
 
 ## Related Issues
@@ -64,26 +225,16 @@ Ark currently executes queries synchronously within the controller. This works f
 | [#550](https://github.com/mckinsey/agents-at-scale-ark/issues/550) | fix: separate session id and conversation id |
 | [#597](https://github.com/mckinsey/agents-at-scale-ark/pull/597) | feat: Pub/sub for session events and queries |
 
-## Research Available
-
-| Topic | Artifact |
-|-------|----------|
-| Design document | `/Users/Dave_Kerr/repos/github/mckinsey/agents-at-scale-ark-query-resolution/query-resolution.md` |
-| Current query controller | `ark/internal/controller/query_controller.go` |
-| Current agent loop | `ark/internal/genai/agent.go` |
-| Broker service | `services/ark-broker/` |
-
 ## Constraints
 
 1. **Backward compatibility**: Direct mode must work exactly as today when broker is not installed
 2. **No breaking API changes**: Existing Query CRDs must continue to work
-3. **Go + TypeScript boundary**: QueryReconciler runs in Go; broker is TypeScript
-4. **Kubernetes-native**: Must respect K8s patterns for status updates and reconciliation
+3. **Kubernetes-native**: Must respect K8s patterns for status updates and reconciliation
 
 ## Success Criteria
 
 After this task:
-- QueryReconciler interface is defined and documented
+- QueryReconciler is modularised and can run in-controller or in-broker
 - Controller can detect broker presence and route accordingly
 - Broker can run QueryReconciler and sync status back to CRDs
 - Architecture decisions are captured with rationale
