@@ -1,0 +1,109 @@
+# Ark API Server
+
+Aggregated API Server for Ark resources with pluggable storage backends.
+
+## Overview
+
+The Ark API Server is a Kubernetes [aggregated API server](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/) that stores Ark resources (Queries, Agents, Models, etc.) outside of etcd. This addresses scalability limitations when running high-volume AI workloads.
+
+## Why Not etcd?
+
+Kubernetes stores all resources in etcd, which has practical limits:
+- ~10-20k writes/sec shared across the entire cluster
+- Queries generate 3-4 writes each (create, status updates, completion)
+- High Query volume can impact cluster operations (pod scheduling, etc.)
+
+The Ark API Server solves this by storing Ark resources in a dedicated database while maintaining full Kubernetes API compatibility.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Kubernetes Cluster                               │
+│                                                                          │
+│   kubectl get queries       kubectl get pods                            │
+│        │                         │                                       │
+│        ▼                         ▼                                       │
+│   ┌─────────────────────────────────────────────┐                       │
+│   │              kube-apiserver                  │                       │
+│   └─────────────────┬───────────────────────────┘                       │
+│        ┌────────────┴────────────┐                                      │
+│        ▼                         ▼                                       │
+│   ┌──────────┐            ┌──────────────┐                              │
+│   │  Core    │            │  Ark API     │  ← Aggregated API            │
+│   │  (etcd)  │            │  Server      │                              │
+│   │          │            │              │                              │
+│   │  pods    │            │  queries     │                              │
+│   │  services│            │  agents      │                              │
+│   └──────────┘            │  models      │                              │
+│                           └──────┬───────┘                              │
+│                                  │                                       │
+│                                  ▼                                       │
+│                           ┌──────────────┐                              │
+│                           │   Storage    │                              │
+│                           │  SQLite /    │                              │
+│                           │  PostgreSQL  │                              │
+│                           └──────────────┘                              │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## Storage Backends
+
+### SQLite (Default)
+
+Zero-configuration storage for development and small deployments.
+
+- Single file database with WAL mode
+- No external dependencies
+- Suitable for development and single-node deployments
+
+### PostgreSQL
+
+Production-ready storage with connection pooling.
+
+- LISTEN/NOTIFY for efficient WATCH implementation
+- Connection pooling for high concurrency
+- Horizontal scaling support
+
+## Configuration
+
+### Helm Values
+
+```yaml
+storage:
+  driver: sqlite  # or postgresql
+
+  sqlite:
+    path: /data/ark.db
+    persistence:
+      enabled: true
+      size: 1Gi
+
+  postgresql:
+    host: postgres.example.com
+    port: 5432
+    database: ark
+    username: ark
+    existingSecret: ark-db-credentials
+```
+
+## Development
+
+```bash
+cd services/ark-apiserver
+
+make help          # Show available commands
+make generate      # Regenerate deepcopy after type changes
+make build-binary  # Build locally
+make test          # Run tests
+make dev           # Run in development mode
+```
+
+## Current Status
+
+**Phase 1 (Current):** Query resource with SQLite backend
+
+**Phase 2 (Planned):**
+- Add remaining 9 resource types
+- PostgreSQL backend implementation
+- Production hardening

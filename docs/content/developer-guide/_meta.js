@@ -16,6 +16,7 @@ export default {
 
   '---services': { type: 'separator', title: 'Services and runtime' },
   services: 'Services',
+  'ark-apiserver': 'Ark API Server',
   'ark-dashboard': 'ARK Dashboard',
   'ark-gateway': 'ARK Gateway',
   'building-a2a-servers': 'Building A2A Servers',
