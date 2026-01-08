@@ -1,16 +1,16 @@
 module mckinsey.com/ark-apiserver
 
-go 1.25.0
+go 1.24.11
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.24
-	github.com/spf13/pflag v1.0.9
-	k8s.io/apimachinery v0.35.0
+	github.com/spf13/pflag v1.0.6
+	k8s.io/apimachinery v0.34.0
 	k8s.io/apiserver v0.34.0
-	k8s.io/code-generator v0.35.0
+	k8s.io/code-generator v0.34.0
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
+	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
 )
 
 require (
