@@ -193,12 +193,12 @@ QueryReconciler deployed as separate Go service. Controller publishes to broker,
 │                         ARK CONTROLLER (thin)                                 │
 │                                                                               │
 │    - Watches Query CRDs                                                       │
-│    - Publishes query to broker ─────────────────────────────┐                │
-│    - Subscribes to results, syncs status back to CRD        │                │
-│                                                              │                │
-└──────────────────────────────────────────────────────────────│────────────────┘
-                                                               │
-                                                               ▼
+│    - Publishes query to broker                                                │
+│    - Subscribes to results, syncs status back to CRD                         │
+│                                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                              ARK BROKER (bus)                                 │
 │                                                                               │
@@ -208,19 +208,25 @@ QueryReconciler deployed as separate Go service. Controller publishes to broker,
 │    - Memory / messages                                                        │
 │                                                                               │
 └──────────────────────────────────────────────────────────────────────────────┘
-              │                                              │
-              │ subscribe                                    │
-              ▼                                              ▼
-┌───────────────────────────────────┐      ┌────────────────────────────────────┐
-│    QUERY RECONCILER SERVICE (Go)  │      │            CONSUMERS               │
-│                                   │      │  ark cli, fark, ark api,           │
-│    - Same code as in-controller   │      │  ark dashboard, custom apps, etc.. │
-│    - Agent loop                   │      └────────────────────────────────────┘
-│    - Memory integration           │
-│    - Publishes results to broker  │
-│    - Horizontally scalable        │
-│                                   │
-└───────────────────────────────────┘
+                                     │
+                                     │ subscribe
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                       QUERY RECONCILER SERVICE (Go)                           │
+│                                                                               │
+│    - Same code as in-controller QueryReconciler                               │
+│    - Agent loop (tool calls, inference)                                       │
+│    - Memory integration                                                       │
+│    - Publishes results back to broker                                         │
+│    - Horizontally scalable                                                    │
+│                                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          CONSUMERS (Unchanged)                                │
+│         ark cli, fark, ark api, ark dashboard, custom apps, etc...           │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Step 3: Direct Broker Mode (no CRD)
