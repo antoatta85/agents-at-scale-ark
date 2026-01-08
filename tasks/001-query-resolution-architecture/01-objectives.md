@@ -165,7 +165,7 @@ Before extracting the QueryReconciler to a standalone service, we define the pos
 - etcd still stores the query (same potential perf issues at scale)
 
 **Broker + Standalone** (Step 3)
-- POST directly to broker API
+- POST to broker API or Ark API (with `reconciliation: broker`)
 - No K8s CRD by default - bypasses etcd entirely
 - Optionally request CRD creation (pass-through) for visibility
   - If CRD requested: etcd stores query, but resolution still offloaded
