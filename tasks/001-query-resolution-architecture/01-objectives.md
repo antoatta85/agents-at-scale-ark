@@ -146,19 +146,31 @@ Before extracting the QueryReconciler to a standalone service, we define the pos
 │                     │                             │                             │
 │  QUERY MODE         │  N/A                        │  POST to broker API         │
 │  Broker             │  (no broker = no broker     │  Service processes          │
-│  (via Broker API)   │   mode)                     │  No K8s CRD                 │
+│  (via Broker API)   │   mode)                     │  Optionally create CRD      │
 │                     │                             │                             │
 │                     │                             │  ► Step 3                   │
 │                     │                             │                             │
 └─────────────────────┴─────────────────────────────┴─────────────────────────────┘
 ```
 
-| Query Mode | Resolution Mode | Description |
-|------------|-----------------|-------------|
-| Direct | In-Controller | Current behavior + Step 1. Query CRD triggers controller, runs in-proc. |
-| Direct | Standalone | Step 2. Query CRD triggers controller, forwards to broker, service processes. |
-| Broker | In-Controller | N/A. Broker mode requires broker infrastructure. |
-| Broker | Standalone | Step 3. POST to broker API, service processes, no CRD created. |
+**Direct + In-Controller** (Current + Step 1)
+- Query CRD created in etcd
+- Controller runs QueryReconciler in-proc
+- Full K8s visibility (kubectl, events, status)
+
+**Direct + Standalone** (Step 2)
+- Query CRD created in etcd
+- Controller forwards to broker, resolution offloaded to service
+- Full K8s visibility, but resolution scales independently
+- etcd still stores the query (same potential perf issues at scale)
+
+**Broker + Standalone** (Step 3)
+- POST directly to broker API
+- No K8s CRD by default - bypasses etcd entirely
+- Optionally request CRD creation (pass-through) for visibility
+  - If CRD requested: etcd stores query, but resolution still offloaded
+  - CRD becomes an "API over the broker" - visibility without blocking resolution
+- Maximum scale: no etcd bottleneck when CRD skipped
 
 ### Step 2: Extract QueryReconciler to Service (broker mode)
 
