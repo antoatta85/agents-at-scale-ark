@@ -11,7 +11,11 @@ metadata:
 type: Opaque
 stringData:
   token: ${E2E_TEST_AZURE_OPENAI_KEY:?}
----
+EOF
+
+kubectl wait --for=jsonpath='{.metadata.name}'=test-model-token secret/test-model-token -n "$NAMESPACE" --timeout=30s
+
+kubectl apply -n "$NAMESPACE" -f - <<EOF
 apiVersion: ark.mckinsey.com/v1alpha1
 kind: Model
 metadata:
