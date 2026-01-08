@@ -5,7 +5,7 @@ include ../../helpers.mk
 BINARY_NAME := ark-apiserver
 IMAGE_NAME := ark-apiserver
 
-.PHONY: help build build-binary test lint dev install uninstall clean
+.PHONY: help build build-binary test lint dev install uninstall clean generate
 
 help:
 	@grep -E '^[a-zA-Z0-9 -]+:.*#'  Makefile | sort | while read -r l; do printf "\033[1;32m$$(echo $$l | cut -f 1 -d':')\033[00m:$$(echo $$l | cut -f 2- -d'#')\n"; done
@@ -36,6 +36,9 @@ uninstall: # remove service from cluster
 
 clean: # clean build artifacts
 	rm -rf bin/ data/
+
+generate: # generate deepcopy functions
+	./hack/update-codegen.sh
 
 mod-tidy: # tidy go modules
 	go mod tidy

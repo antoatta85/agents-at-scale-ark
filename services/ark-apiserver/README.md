@@ -75,6 +75,7 @@ storage:
 
 ```bash
 go mod tidy
+make generate      # regenerate deepcopy after type changes
 make build-binary
 make dev
 ```
