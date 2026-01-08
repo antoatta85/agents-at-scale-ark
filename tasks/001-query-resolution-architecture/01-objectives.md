@@ -109,7 +109,7 @@ Extract query resolution logic into a distinct `QueryReconciler` component withi
                                      │
                                      ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                              ARK BROKER                                       │
+│                          ARK BROKER (Unchanged)                               │
 │                                                                               │
 │    - LLM completion chunks                                                    │
 │    - Query events                                                             │
@@ -125,6 +125,40 @@ Extract query resolution logic into a distinct `QueryReconciler` component withi
 │         ark cli, fark, ark api, ark dashboard, custom apps, etc...           │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Query Mode vs Resolution Mode Matrix
+
+Before extracting the QueryReconciler to a standalone service, we define the possible combinations:
+
+```
+┌─────────────────────┬─────────────────────────────┬─────────────────────────────┐
+│                     │      RESOLUTION MODE        │      RESOLUTION MODE        │
+│                     │      In-Controller          │      Standalone Service     │
+├─────────────────────┼─────────────────────────────┼─────────────────────────────┤
+│                     │                             │                             │
+│  QUERY MODE         │  Query CRD created          │  Query CRD created          │
+│  Direct             │  Controller runs            │  Controller publishes to    │
+│  (via K8s)          │  QueryReconciler in-proc    │  broker, service processes  │
+│                     │                             │                             │
+│                     │  ► Current + Step 1         │  ► Step 2                   │
+│                     │                             │                             │
+├─────────────────────┼─────────────────────────────┼─────────────────────────────┤
+│                     │                             │                             │
+│  QUERY MODE         │  N/A                        │  POST to broker API         │
+│  Broker             │  (no broker = no broker     │  Service processes          │
+│  (via Broker API)   │   mode)                     │  No K8s CRD                 │
+│                     │                             │                             │
+│                     │                             │  ► Step 3                   │
+│                     │                             │                             │
+└─────────────────────┴─────────────────────────────┴─────────────────────────────┘
+```
+
+| Query Mode | Resolution Mode | Description |
+|------------|-----------------|-------------|
+| Direct | In-Controller | Current behavior + Step 1. Query CRD triggers controller, runs in-proc. |
+| Direct | Standalone | Step 2. Query CRD triggers controller, forwards to broker, service processes. |
+| Broker | In-Controller | N/A. Broker mode requires broker infrastructure. |
+| Broker | Standalone | Step 3. POST to broker API, service processes, no CRD created. |
 
 ### Step 2: Extract QueryReconciler to Service (broker mode)
 
