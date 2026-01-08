@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,6 +23,7 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 
 	arkv1alpha1 "mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1"
+	_ "mckinsey.com/ark-apiserver/pkg/metrics"
 	genericregistry "mckinsey.com/ark-apiserver/pkg/registry/generic"
 	"mckinsey.com/ark-apiserver/pkg/storage"
 	"mckinsey.com/ark-apiserver/pkg/storage/postgresql"
@@ -49,6 +52,8 @@ type ArkServerOptions struct {
 	PostgresDB       string
 	PostgresUser     string
 	PostgresPassword string
+	MetricsPort      int
+	EnableMetrics    bool
 }
 
 func NewArkServerOptions() *ArkServerOptions {
@@ -56,6 +61,8 @@ func NewArkServerOptions() *ArkServerOptions {
 		SecureServing: genericoptions.NewSecureServingOptions().WithLoopback(),
 		StorageDriver: "sqlite",
 		SQLitePath:    "/data/ark.db",
+		MetricsPort:   8080,
+		EnableMetrics: true,
 	}
 	return o
 }
@@ -69,6 +76,8 @@ func (o *ArkServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.PostgresDB, "postgres-db", "ark", "PostgreSQL database name")
 	fs.StringVar(&o.PostgresUser, "postgres-user", "ark", "PostgreSQL user")
 	fs.StringVar(&o.PostgresPassword, "postgres-password", "", "PostgreSQL password")
+	fs.IntVar(&o.MetricsPort, "metrics-port", o.MetricsPort, "Port for metrics endpoint")
+	fs.BoolVar(&o.EnableMetrics, "enable-metrics", o.EnableMetrics, "Enable Prometheus metrics endpoint")
 }
 
 func (o *ArkServerOptions) Validate() []error {
@@ -222,6 +231,18 @@ func (o *ArkServerOptions) RunArkServer(stopCh <-chan struct{}) error {
 
 	if err := server.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return fmt.Errorf("failed to install API group: %w", err)
+	}
+
+	if o.EnableMetrics {
+		go func() {
+			mux := http.NewServeMux()
+			mux.Handle("/metrics", promhttp.Handler())
+			metricsAddr := fmt.Sprintf(":%d", o.MetricsPort)
+			klog.Infof("Starting metrics server on %s", metricsAddr)
+			if err := http.ListenAndServe(metricsAddr, mux); err != nil {
+				klog.Errorf("Metrics server failed: %v", err)
+			}
+		}()
 	}
 
 	klog.Info("Starting Ark API Server")

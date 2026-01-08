@@ -143,14 +143,91 @@ POSTGRES_PASSWORD=arktest \
 go test -v ./pkg/storage/postgresql/...
 ```
 
+## Observability
+
+### Prometheus Metrics
+
+The Ark API Server exposes Prometheus metrics on port 8080 at `/metrics`.
+
+**Storage Operations Metrics:**
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `ark_apiserver_storage_operations_total` | Counter | operation, kind, status | Total storage operations |
+| `ark_apiserver_storage_latency_seconds` | Histogram | operation, kind | Operation latency |
+| `ark_apiserver_active_resources` | Gauge | kind | Active resource count |
+
+Labels:
+- `operation`: create, get, list, update, delete
+- `kind`: Agent, Query, Model, etc.
+- `status`: success, error, not_found, validation_error
+
+**Enable in Helm:**
+
+```yaml
+metrics:
+  enabled: true
+  port: 8080
+  serviceMonitor:
+    enabled: true  # Requires Prometheus Operator
+    interval: 30s
+```
+
+**Scraping Metrics:**
+
+```bash
+kubectl port-forward -n ark-system svc/ark-apiserver 8080:8080
+curl http://localhost:8080/metrics | grep ark_apiserver
+```
+
+### Health Checks
+
+The API server provides standard Kubernetes health endpoints on port 8443:
+
+- `/healthz` - Liveness probe
+- `/readyz` - Readiness probe
+
+## Performance
+
+### Latency Targets
+
+| Operation | Target p99 | Notes |
+|-----------|------------|-------|
+| Create | < 10ms | Single row insert |
+| Get | < 5ms | Index lookup |
+| List | < 50ms | Depends on result size |
+| Update | < 10ms | Single row update |
+| Delete | < 5ms | Soft delete |
+
+### SQLite Tuning
+
+SQLite is configured with:
+- WAL (Write-Ahead Logging) mode for concurrent reads
+- Synchronous=NORMAL for balanced durability/performance
+- Busy timeout of 5000ms
+
+### PostgreSQL Tuning
+
+Recommended PostgreSQL settings for production:
+- `max_connections`: 100+
+- `shared_buffers`: 25% of RAM
+- `effective_cache_size`: 75% of RAM
+- Connection pooling via PgBouncer or internal pooling
+
+The API server uses:
+- 25 max open connections
+- 5 idle connections
+- Connection lifetime management
+
 ## Current Status
 
-**Phase 2 (Current):**
+**Phase 2 (Complete):**
 - All 10 resource types implemented
 - SQLite and PostgreSQL backends
-- Full CRUD and WATCH support
+- Full CRUD support
 
-**Phase 3 (Planned):**
-- High availability configuration
-- Prometheus metrics
-- Performance tuning documentation
+**Phase 3 (In Progress):**
+- Prometheus metrics (done)
+- Health checks (done)
+- ServiceMonitor support (done)
+- High availability configuration (planned)

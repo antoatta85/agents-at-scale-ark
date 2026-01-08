@@ -11,5 +11,11 @@ spec:
       targetPort: https
       protocol: TCP
       name: https
+    {{- if .Values.metrics.enabled }}
+    - port: {{ .Values.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
   selector:
     {{- include "ark-apiserver.selectorLabels" . | nindent 4 }}

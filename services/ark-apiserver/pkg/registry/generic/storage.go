@@ -3,6 +3,7 @@ package generic
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	arkv1alpha1 "mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1"
+	"mckinsey.com/ark-apiserver/pkg/metrics"
 	arkstorage "mckinsey.com/ark-apiserver/pkg/storage"
 )
 
@@ -68,15 +70,21 @@ func (s *GenericStorage) GetSingularName() string {
 }
 
 func (s *GenericStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	start := time.Now()
 	namespace := getNamespace(ctx)
 	obj, err := s.backend.Get(ctx, s.config.Kind, namespace, name)
 	if err != nil {
+		metrics.RecordStorageOperation("get", s.config.Kind, "error")
+		metrics.RecordStorageLatency("get", s.config.Kind, start)
 		return nil, apierrors.NewNotFound(schema.GroupResource{Group: arkv1alpha1.GroupName, Resource: s.config.Resource}, name)
 	}
+	metrics.RecordStorageOperation("get", s.config.Kind, "success")
+	metrics.RecordStorageLatency("get", s.config.Kind, start)
 	return obj, nil
 }
 
 func (s *GenericStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
+	start := time.Now()
 	namespace := getNamespace(ctx)
 	opts := arkstorage.ListOptions{}
 	if options != nil {
@@ -92,20 +100,28 @@ func (s *GenericStorage) List(ctx context.Context, options *metainternalversion.
 
 	objects, continueToken, err := s.backend.List(ctx, s.config.Kind, namespace, opts)
 	if err != nil {
+		metrics.RecordStorageOperation("list", s.config.Kind, "error")
+		metrics.RecordStorageLatency("list", s.config.Kind, start)
 		return nil, fmt.Errorf("failed to list %s: %w", s.config.Resource, err)
 	}
 
 	list := s.config.NewListFunc()
 	if err := setListItems(list, objects, continueToken); err != nil {
+		metrics.RecordStorageOperation("list", s.config.Kind, "error")
+		metrics.RecordStorageLatency("list", s.config.Kind, start)
 		return nil, err
 	}
 
+	metrics.RecordStorageOperation("list", s.config.Kind, "success")
+	metrics.RecordStorageLatency("list", s.config.Kind, start)
 	return list, nil
 }
 
 func (s *GenericStorage) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
+	start := time.Now()
 	if createValidation != nil {
 		if err := createValidation(ctx, obj); err != nil {
+			metrics.RecordStorageOperation("create", s.config.Kind, "validation_error")
 			return nil, err
 		}
 	}
@@ -113,6 +129,7 @@ func (s *GenericStorage) Create(ctx context.Context, obj runtime.Object, createV
 	namespace := getNamespace(ctx)
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
+		metrics.RecordStorageOperation("create", s.config.Kind, "error")
 		return nil, fmt.Errorf("failed to access object metadata: %w", err)
 	}
 
@@ -128,13 +145,18 @@ func (s *GenericStorage) Create(ctx context.Context, obj runtime.Object, createV
 	}
 
 	if err := s.backend.Create(ctx, s.config.Kind, accessor.GetNamespace(), accessor.GetName(), obj); err != nil {
+		metrics.RecordStorageOperation("create", s.config.Kind, "error")
+		metrics.RecordStorageLatency("create", s.config.Kind, start)
 		return nil, fmt.Errorf("failed to create %s: %w", s.config.SingularName, err)
 	}
 
+	metrics.RecordStorageOperation("create", s.config.Kind, "success")
+	metrics.RecordStorageLatency("create", s.config.Kind, start)
 	return s.Get(ctx, accessor.GetName(), &metav1.GetOptions{})
 }
 
 func (s *GenericStorage) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+	start := time.Now()
 	namespace := getNamespace(ctx)
 
 	existing, err := s.backend.Get(ctx, s.config.Kind, namespace, name)
@@ -147,46 +169,60 @@ func (s *GenericStorage) Update(ctx context.Context, name string, objInfo rest.U
 			created, err := s.Create(ctx, obj, createValidation, &metav1.CreateOptions{})
 			return created, true, err
 		}
+		metrics.RecordStorageOperation("update", s.config.Kind, "not_found")
 		return nil, false, apierrors.NewNotFound(schema.GroupResource{Group: arkv1alpha1.GroupName, Resource: s.config.Resource}, name)
 	}
 
 	updated, err := objInfo.UpdatedObject(ctx, existing)
 	if err != nil {
+		metrics.RecordStorageOperation("update", s.config.Kind, "error")
 		return nil, false, fmt.Errorf("failed to get updated object: %w", err)
 	}
 
 	if updateValidation != nil {
 		if err := updateValidation(ctx, updated, existing); err != nil {
+			metrics.RecordStorageOperation("update", s.config.Kind, "validation_error")
 			return nil, false, err
 		}
 	}
 
 	if err := s.backend.Update(ctx, s.config.Kind, namespace, name, updated); err != nil {
+		metrics.RecordStorageOperation("update", s.config.Kind, "error")
+		metrics.RecordStorageLatency("update", s.config.Kind, start)
 		return nil, false, fmt.Errorf("failed to update %s: %w", s.config.SingularName, err)
 	}
 
+	metrics.RecordStorageOperation("update", s.config.Kind, "success")
+	metrics.RecordStorageLatency("update", s.config.Kind, start)
 	result, err := s.Get(ctx, name, &metav1.GetOptions{})
 	return result, false, err
 }
 
 func (s *GenericStorage) Delete(ctx context.Context, name string, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	start := time.Now()
 	namespace := getNamespace(ctx)
 
 	existing, err := s.backend.Get(ctx, s.config.Kind, namespace, name)
 	if err != nil {
+		metrics.RecordStorageOperation("delete", s.config.Kind, "not_found")
 		return nil, false, apierrors.NewNotFound(schema.GroupResource{Group: arkv1alpha1.GroupName, Resource: s.config.Resource}, name)
 	}
 
 	if deleteValidation != nil {
 		if err := deleteValidation(ctx, existing); err != nil {
+			metrics.RecordStorageOperation("delete", s.config.Kind, "validation_error")
 			return nil, false, err
 		}
 	}
 
 	if err := s.backend.Delete(ctx, s.config.Kind, namespace, name); err != nil {
+		metrics.RecordStorageOperation("delete", s.config.Kind, "error")
+		metrics.RecordStorageLatency("delete", s.config.Kind, start)
 		return nil, false, fmt.Errorf("failed to delete %s: %w", s.config.SingularName, err)
 	}
 
+	metrics.RecordStorageOperation("delete", s.config.Kind, "success")
+	metrics.RecordStorageLatency("delete", s.config.Kind, start)
 	return existing, true, nil
 }
 

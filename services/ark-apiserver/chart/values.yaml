@@ -47,6 +47,14 @@ service:
   type: ClusterIP
   port: 443
 
+metrics:
+  enabled: true
+  port: 8080
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+
 resources:
   requests:
     memory: 256Mi

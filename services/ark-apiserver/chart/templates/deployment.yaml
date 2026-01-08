@@ -38,6 +38,12 @@ spec:
             - --secure-port=8443
             - --cert-dir=/tmp/certs
             - --storage-driver={{ .Values.storage.driver }}
+            {{- if .Values.metrics.enabled }}
+            - --enable-metrics=true
+            - --metrics-port={{ .Values.metrics.port }}
+            {{- else }}
+            - --enable-metrics=false
+            {{- end }}
             {{- if eq .Values.storage.driver "sqlite" }}
             - --sqlite-path={{ .Values.storage.sqlite.path }}
             {{- end }}
@@ -52,6 +58,11 @@ spec:
             - name: https
               containerPort: 8443
               protocol: TCP
+            {{- if .Values.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz
