@@ -17,9 +17,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import {
-  A2A_TASKS_FEATURE_KEY,
   BROKER_FEATURE_KEY,
-  isA2ATasksEnabledAtom,
   isBrokerEnabledAtom,
   isExperimentalDarkModeEnabledAtom,
 } from '@/atoms/experimental-features';
@@ -69,7 +67,6 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUser();
-  const isA2ATasksEnabled = useAtomValue(isA2ATasksEnabledAtom);
   const isBrokerEnabled = useAtomValue(isBrokerEnabledAtom);
   const isExperimentalDarkModeEnabled = useAtomValue(
     isExperimentalDarkModeEnabledAtom,
@@ -127,8 +124,6 @@ export function AppSidebar() {
 
   const enabledOperationSections = OPERATION_SECTIONS.filter(item => {
     switch (item.enablerFeature) {
-      case A2A_TASKS_FEATURE_KEY:
-        return isA2ATasksEnabled;
       case BROKER_FEATURE_KEY:
         return isBrokerEnabled;
       default:
