@@ -24,14 +24,18 @@ We want to modularise query resolution to:
 
 ## Current Architecture
 
+### Current State
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                              CURRENT STATE                                    │
+│                                USERS                                          │
+│         kubectl, ark cli, fark, ark dashboard, custom apps, etc...           │
 └──────────────────────────────────────────────────────────────────────────────┘
-
+                             │
+                             ▼
   ┌─────────────────┐                              ┌─────────────────┐
   │   Query CRD     │◄─────────────────────────────│    ARK API      │
-  │   (kubectl)     │         POST /v1/queries     │                 │
+  │                 │         POST /v1/queries     │                 │
   └────────┬────────┘                              └─────────────────┘
            │
            ▼
