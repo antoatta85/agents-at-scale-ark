@@ -172,57 +172,55 @@ Before extracting the QueryReconciler to a standalone service, we define the pos
   - CRD becomes an "API over the broker" - visibility without blocking resolution
 - Maximum scale: no etcd bottleneck when CRD skipped
 
-### Step 2: Extract QueryReconciler to Service (broker mode)
+### Step 2: Extract QueryReconciler to Service (Direct + Standalone)
 
 QueryReconciler deployed as separate Go service. Controller publishes to broker, QueryReconciler subscribes and processes.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                      EXTRACTED (BROKER MODE)                                  │
+│                          PRODUCERS (Unchanged)                                │
+│         kubectl, ark cli, fark, ark dashboard, custom apps, etc...           │
 └──────────────────────────────────────────────────────────────────────────────┘
-
-                    ┌─────────────────┐
-                    │   Query CRD     │
-                    └────────┬────────┘
-                             │
-                             ▼
+           │                                                │
+           ▼                                                ▼
+  ┌─────────────────┐                              ┌─────────────────┐
+  │   Query CRD     │◄─────────────────────────────│    ARK API      │
+  │                 │                              │   /v1/queries   │
+  └────────┬────────┘                              └─────────────────┘
+           │
+           ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                      ARK CONTROLLER (thin)                                    │
+│                         ARK CONTROLLER (thin)                                 │
 │                                                                               │
 │    - Watches Query CRDs                                                       │
-│    - Publishes to broker                                                      │
-│    - Syncs status back to CRD                                                │
-│                                                                               │
-└───────────────┬──────────────────────────────────────────────────────────────┘
-                │
-                │ publish query
-                ▼
+│    - Publishes query to broker ─────────────────────────────┐                │
+│    - Subscribes to results, syncs status back to CRD        │                │
+│                                                              │                │
+└──────────────────────────────────────────────────────────────│────────────────┘
+                                                               │
+                                                               ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                            ARK BROKER (bus)                                   │
+│                              ARK BROKER (bus)                                 │
 │                                                                               │
-│    - Message routing                                                          │
-│    - Completion chunks                                                        │
-│    - Session events                                                           │
+│    - Query routing (publish/subscribe)                                        │
+│    - LLM completion chunks                                                    │
+│    - Query events / OTEL traces                                               │
+│    - Memory / messages                                                        │
 │                                                                               │
-└───────────────┬──────────────────────────────────────────────────────────────┘
-                │
-                │ subscribe
-                ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                      QUERY RECONCILER SERVICE (Go)                            │
-│                                                                               │
-│    - Same code as in-controller QueryReconciler                               │
-│    - Agent loop (tool calls, inference)                                       │
-│    - Memory integration                                                       │
-│    - Publishes results back to broker                                         │
-│    - Horizontally scalable                                                    │
-│                                                                               │
-└───────────────────────────────────────────────┬───────────────────────────────┘
-                                                │
-                                                ▼
-                                ┌───────────────────────────┐
-                                │          OTEL             │
-                                └───────────────────────────┘
+└──────────────────────────────────────────────────────────────────────────────┘
+              │                                              │
+              │ subscribe                                    │
+              ▼                                              ▼
+┌───────────────────────────────────┐      ┌────────────────────────────────────┐
+│    QUERY RECONCILER SERVICE (Go)  │      │            CONSUMERS               │
+│                                   │      │  ark cli, fark, ark api,           │
+│    - Same code as in-controller   │      │  ark dashboard, custom apps, etc.. │
+│    - Agent loop                   │      └────────────────────────────────────┘
+│    - Memory integration           │
+│    - Publishes results to broker  │
+│    - Horizontally scalable        │
+│                                   │
+└───────────────────────────────────┘
 ```
 
 ### Step 3: Direct Broker Mode (no CRD)
