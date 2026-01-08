@@ -231,41 +231,59 @@ QueryReconciler deployed as separate Go service. Controller publishes to broker,
 
 > **Note:** This architecture opens the door for different types of query reconciliation in a modular fashion. Different reconcilers can subscribe to different topics on the broker, enabling specialised processing for chat completions, embeddings, evaluations, etc.
 
-### Step 3: Direct Broker Mode (no CRD)
+### Step 3: Broker Mode (Broker + Standalone)
 
-Users publish query objects directly to the broker, bypassing K8s entirely.
+Producers publish query objects directly to the broker or via Ark API with `reconciliation: broker`. Bypasses K8s Query CRD by default.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                      DIRECT BROKER MODE                                       │
+│                              PRODUCERS                                        │
+│         kubectl, ark cli, fark, ark dashboard, custom apps, etc...           │
 └──────────────────────────────────────────────────────────────────────────────┘
-
-                    ┌─────────────────┐
-                    │  POST /queries  │
-                    │  (HTTP client)  │
-                    └────────┬────────┘
-                             │
-                             ▼
+           │                                                │
+           │                                                ▼
+           │                                       ┌─────────────────┐
+           │                                       │    ARK API      │
+           │                                       │   /v1/queries   │
+           │                                       │ reconciliation: │
+           │                                       │     broker      │
+           │                                       └────────┬────────┘
+           │                                                │
+           └────────────────────┬───────────────────────────┘
+                                │
+                                ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                            ARK BROKER (bus)                                   │
+│                              ARK BROKER (bus)                                 │
 │                                                                               │
-│    - Message routing                                                          │
-│    - Completion chunks (SSE)                                                  │
-│    - No K8s CRD created                                                       │
+│    - Query routing (publish/subscribe)                                        │
+│    - LLM completion chunks (SSE)                                              │
+│    - Query events / OTEL traces                                               │
+│    - Memory / messages                                                        │
+│    - No K8s CRD by default (optionally request CRD for visibility)           │
 │                                                                               │
-└───────────────┬──────────────────────────────────────────────────────────────┘
-                │
-                │ subscribe
-                ▼
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     │ subscribe
+                                     ▼
+┌──────────────────────────────────────────────────┐  ┌──────────────────────┐
+│           QUERY RECONCILER SERVICE (Go)          │  │  Future Reconcilers  │
+│                                                  │  ├──────────────────────┤
+│    - Same code as in-controller QueryReconciler  │  │ Responses Reconciler │
+│    - Agent loop (tool calls, inference)          │  │ (chat completions)   │
+│    - Memory integration                          │  ├──────────────────────┤
+│    - Publishes results back to broker            │  │ Embeddings Reconciler│
+│    - Horizontally scalable                       │  │ (vector generation)  │
+│                                                  │  └──────────────────────┘
+└──────────────────────────────────────────────────┘
+                                     │
+                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                      QUERY RECONCILER SERVICE (Go)                            │
-│                                                                               │
-│    - Same code as in-controller QueryReconciler                               │
-│    - Agent loop (tool calls, inference)                                       │
-│    - Horizontally scalable                                                    │
-│                                                                               │
-└───────────────────────────────────────────────────────────────────────────────┘
+│                              CONSUMERS                                        │
+│         ark cli, fark, ark api, ark dashboard, custom apps, etc...           │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+> **Note:** In broker mode, producers bypass etcd entirely for maximum scale. If visibility is needed, a Query CRD can optionally be created as a pass-through - resolution still happens via the broker, but the CRD provides kubectl access and K8s event integration.
 
 ## Resolution Matrix
 
