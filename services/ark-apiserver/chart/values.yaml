@@ -1,0 +1,60 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/mckinsey/agents-at-scale-ark/ark-apiserver
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+storage:
+  driver: sqlite
+
+  sqlite:
+    path: /data/ark.db
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 1Gi
+
+  postgresql:
+    host: ""
+    port: 5432
+    database: ark
+    username: ark
+    existingSecret: ""
+    secretPasswordKey: password
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 443
+
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 250m
+  limits:
+    memory: 512Mi
+    cpu: 500m
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
