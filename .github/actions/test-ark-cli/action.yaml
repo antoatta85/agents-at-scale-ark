@@ -109,6 +109,30 @@ runs:
 
         ark status
 
+    - name: Wait for webhooks to be ready
+      shell: bash
+      run: |
+        echo "Waiting for admission webhooks to be ready..."
+        for i in {1..30}; do
+          if kubectl create -f - --dry-run=server <<EOF 2>/dev/null
+        apiVersion: ark.mckinsey.com/v1alpha1
+        kind: Model
+        metadata:
+          name: webhook-test
+          namespace: default
+        spec:
+          type: openai
+          model:
+            value: gpt-4
+        EOF
+          then
+            echo "✓ Webhooks are ready"
+            break
+          fi
+          echo "Waiting for webhooks... attempt $i/30"
+          sleep 2
+        done
+
     - name: Create default model
       shell: bash
       run: |
