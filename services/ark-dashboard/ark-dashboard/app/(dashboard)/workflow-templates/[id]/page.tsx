@@ -550,7 +550,7 @@ export default function FlowDetailPage() {
 
   const breadcrumbs: BreadcrumbElement[] = [
     { href: '/', label: 'ARK Dashboard' },
-    { href: '/flows', label: 'Flows' },
+    { href: '/workflow-templates', label: 'Workflow Templates' },
   ];
 
   if (loading) {

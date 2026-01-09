@@ -8,4 +8,4 @@ export { QueriesSection } from './queries-section';
 export { EvaluatorsSection } from './evaluators-section';
 export { EvaluationsSection } from './evaluations-section';
 export { MemorySection } from './memory-section';
-export { FlowsSection } from './flows-section';
+export { WorkflowTemplatesSection } from './workflow-templates-section';

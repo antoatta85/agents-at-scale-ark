@@ -28,7 +28,7 @@ function mapWorkflowTemplateToFlow(template: WorkflowTemplate): Flow {
   };
 }
 
-export function FlowsSection() {
+export function WorkflowTemplatesSection() {
   const [flows, setFlows] = useState<Flow[]>([]);
   const [loading, setLoading] = useState(true);
   const showLoading = useDelayedLoading(loading);
@@ -60,16 +60,17 @@ export function FlowsSection() {
   }
 
   if (flows.length === 0 && !loading) {
+    const WorkflowIcon = DASHBOARD_SECTIONS['workflow-templates'].icon;
     return (
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <DASHBOARD_SECTIONS.flows.icon />
+            <WorkflowIcon />
           </EmptyMedia>
-          <EmptyTitle>No Flows Yet</EmptyTitle>
+          <EmptyTitle>No Workflow Templates Yet</EmptyTitle>
           <EmptyDescription>
-            You haven&apos;t created any flows yet. Get started by creating your
-            first flow.
+            You haven&apos;t created any workflow templates yet. Get started by creating your
+            first workflow template.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent></EmptyContent>

@@ -92,9 +92,9 @@ export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
     group: 'operations',
     enablerFeature: A2A_TASKS_FEATURE_KEY,
   },
-  flows: {
-    key: 'flows',
-    title: 'Flows',
+  'workflow-templates': {
+    key: 'workflow-templates',
+    title: 'Workflow Templates',
     icon: Workflow,
     group: 'operations',
   },
