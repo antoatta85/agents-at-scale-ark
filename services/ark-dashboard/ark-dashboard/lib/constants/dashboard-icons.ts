@@ -59,6 +59,12 @@ export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
     icon: CheckCircle,
     group: 'configurations',
   },
+  'workflow-templates': {
+    key: 'workflow-templates',
+    title: 'Workflow Templates',
+    icon: Workflow,
+    group: 'configurations',
+  },
 
   // Operations
   queries: {
@@ -91,12 +97,6 @@ export const DASHBOARD_SECTIONS: Record<string, DashboardSection> = {
     icon: ClipboardList,
     group: 'operations',
     enablerFeature: A2A_TASKS_FEATURE_KEY,
-  },
-  'workflow-templates': {
-    key: 'workflow-templates',
-    title: 'Workflow Templates',
-    icon: Workflow,
-    group: 'operations',
   },
 
   // Runtime
