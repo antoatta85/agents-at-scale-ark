@@ -24,9 +24,18 @@ type SQLiteBackend struct {
 }
 
 func New(path string, converter storage.TypeConverter) (*SQLiteBackend, error) {
-	db, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=5000")
+	db, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=10000&_txlock=immediate&cache=shared")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(time.Hour)
+
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	backend := &SQLiteBackend{
@@ -246,6 +255,7 @@ func (s *SQLiteBackend) Delete(ctx context.Context, kind, namespace, name string
 }
 
 func (s *SQLiteBackend) Watch(ctx context.Context, kind, namespace string, opts storage.WatchOptions) (watch.Interface, error) {
+	klog.V(2).Infof("Watch starting for %s/%s", kind, namespace)
 	ch := make(chan watch.Event, 100)
 	key := fmt.Sprintf("%s/%s", kind, namespace)
 
@@ -253,12 +263,60 @@ func (s *SQLiteBackend) Watch(ctx context.Context, kind, namespace string, opts 
 	s.watchers[key] = append(s.watchers[key], ch)
 	s.mu.Unlock()
 
-	return &sqliteWatcher{
+	watcher := &sqliteWatcher{
 		ch:        ch,
 		backend:   s,
 		key:       key,
 		ctx:       ctx,
-	}, nil
+	}
+
+	immediateBookmark := s.converter.NewObject(kind)
+	select {
+	case ch <- watch.Event{Type: watch.Bookmark, Object: immediateBookmark}:
+	default:
+		klog.Warningf("Could not send immediate bookmark for %s/%s", kind, namespace)
+	}
+
+	go func() {
+		objects, _, err := s.List(ctx, kind, namespace, storage.ListOptions{})
+		if err != nil {
+			klog.Errorf("Failed to list objects for watch: %v", err)
+			return
+		}
+
+		for _, obj := range objects {
+			select {
+			case ch <- watch.Event{Type: watch.Added, Object: obj}:
+			case <-ctx.Done():
+				return
+			}
+		}
+
+		bookmarkObj := s.converter.NewObject(kind)
+		select {
+		case ch <- watch.Event{Type: watch.Bookmark, Object: bookmarkObj}:
+		case <-ctx.Done():
+			return
+		}
+		klog.V(2).Infof("Watch for %s/%s initialized with %d objects", kind, namespace, len(objects))
+
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				bookmarkObj := s.converter.NewObject(kind)
+				select {
+				case ch <- watch.Event{Type: watch.Bookmark, Object: bookmarkObj}:
+				default:
+				}
+			}
+		}
+	}()
+
+	return watcher, nil
 }
 
 func (s *SQLiteBackend) GetResourceVersion(ctx context.Context, kind, namespace, name string) (int64, error) {

@@ -11,17 +11,6 @@ spec:
     assert: 300s
     exec: 300s
   steps:
-  - name: setup-azure-credentials
-    try:
-    - script:
-        skipLogOutput: true
-        content: |
-          set -u
-          echo "{\"token\": \"$E2E_TEST_AZURE_OPENAI_KEY\", \"url\": \"$E2E_TEST_AZURE_OPENAI_BASE_URL\"}"
-        outputs:
-        - name: azure
-          value: (json_parse($stdout))
-
   - name: deploy-ark-apiserver
     try:
     - script:
@@ -32,7 +21,8 @@ spec:
             --set storage.driver=sqlite \
             --set storage.sqlite.persistence.enabled=false \
             --set image.repository=${ARK_APISERVER_IMAGE:-ark-apiserver} \
-            --set image.tag=${ARK_APISERVER_IMAGE_TAG:-latest}
+            --set image.tag=${ARK_APISERVER_IMAGE_TAG:-latest} \
+            --set image.pullPolicy=${ARK_IMAGE_PULL_POLICY:-IfNotPresent}
         timeout: 150s
     cleanup:
     - script:
@@ -64,6 +54,16 @@ spec:
           exit 1
         timeout: 90s
 
+  - name: install-v1prealpha1-crds
+    try:
+    - script:
+        content: |
+          helm template ark-controller ../../ark/dist/chart --namespace ark-system --set crd.enable=true \
+            --show-only templates/crd/ark.mckinsey.com_a2aservers.yaml | kubectl apply -f -
+          helm template ark-controller ../../ark/dist/chart --namespace ark-system --set crd.enable=true \
+            --show-only templates/crd/ark.mckinsey.com_executionengines.yaml | kubectl apply -f -
+        timeout: 60s
+
   - name: deploy-ark-controller
     try:
     - script:
@@ -71,8 +71,10 @@ spec:
           helm install ark-controller ../../ark/dist/chart --wait --timeout=180s \
             --namespace ark-system \
             --set crd.enable=false \
+            --set arkApiserver.enabled=true \
             --set controllerManager.container.image.repository=${ARK_CONTROLLER_IMAGE:-ghcr.io/mckinsey/agents-at-scale-ark/ark-controller} \
-            --set controllerManager.container.image.tag=${ARK_CONTROLLER_IMAGE_TAG:-latest}
+            --set controllerManager.container.image.tag=${ARK_CONTROLLER_IMAGE_TAG:-latest} \
+            --set controllerManager.container.image.pullPolicy=${ARK_IMAGE_PULL_POLICY:-IfNotPresent}
         timeout: 200s
     cleanup:
     - script:
@@ -91,26 +93,57 @@ spec:
           status:
             readyReplicas: 1
 
-  - name: setup-tenant
+  - name: deploy-mock-llm
     try:
     - script:
         content: |
-          helm install ark-tenant ../../charts/ark-tenant --namespace $NAMESPACE --create-namespace --wait
+          helm install mock-llm oci://ghcr.io/dwmkerr/charts/mock-llm \
+            --version 0.1.27 \
+            --namespace $NAMESPACE \
+            --values mock-llm-values.yaml \
+            --wait --timeout=120s
         env:
         - name: NAMESPACE
           value: ($namespace)
     cleanup:
     - script:
         content: |
-          helm uninstall ark-tenant --namespace $NAMESPACE --wait --timeout=30s || true
+          helm uninstall mock-llm --namespace $NAMESPACE --wait --timeout=30s || true
         env:
         - name: NAMESPACE
           value: ($namespace)
 
-  - name: create-resources
+  - name: setup-rbac
     try:
     - apply:
-        file: manifests/a01-secret.yaml
+        resource:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: Role
+          metadata:
+            name: ark-test-role
+          rules:
+          - apiGroups: ["ark.mckinsey.com"]
+            resources: ["*"]
+            verbs: ["*"]
+          - apiGroups: [""]
+            resources: ["secrets", "configmaps"]
+            verbs: ["get", "list", "watch"]
+    - apply:
+        resource:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata:
+            name: ark-test-rolebinding
+          subjects:
+          - kind: ServiceAccount
+            name: default
+          roleRef:
+            kind: Role
+            name: ark-test-role
+            apiGroup: rbac.authorization.k8s.io
+
+  - name: create-resources
+    try:
     - apply:
         file: manifests/a02-model.yaml
     - apply:

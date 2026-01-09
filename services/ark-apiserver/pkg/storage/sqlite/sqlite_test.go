@@ -367,6 +367,49 @@ func TestModelCRUD(t *testing.T) {
 	}
 }
 
+func TestConcurrentListRequests(t *testing.T) {
+	backend, cleanup := setupTestBackend(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	for i := 0; i < 50; i++ {
+		name := fmt.Sprintf("query-%d", i)
+		query := &arkv1alpha1.Query{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "ark.mckinsey.com/v1alpha1",
+				Kind:       "Query",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: "default",
+				UID:       types.UID(fmt.Sprintf("uid-%d", i)),
+			},
+		}
+		if err := backend.Create(ctx, "Query", "default", name, query); err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+	}
+
+	resourceTypes := []string{"Query", "Agent", "Model", "Team", "Tool", "Memory", "MCPServer", "Evaluation", "Evaluator", "A2ATask"}
+	const concurrentRequests = 20
+	errors := make(chan error, concurrentRequests)
+
+	for i := 0; i < concurrentRequests; i++ {
+		go func(idx int) {
+			kind := resourceTypes[idx%len(resourceTypes)]
+			_, _, err := backend.List(ctx, kind, "default", storage.ListOptions{})
+			errors <- err
+		}(i)
+	}
+
+	for i := 0; i < concurrentRequests; i++ {
+		if err := <-errors; err != nil {
+			t.Errorf("Concurrent list failed: %v", err)
+		}
+	}
+}
+
 func TestMultipleResourceTypes(t *testing.T) {
 	backend, cleanup := setupTestBackend(t)
 	defer cleanup()

@@ -31,6 +31,9 @@ spec:
             {{- range .Values.controllerManager.container.args }}
             - {{ . }}
             {{- end }}
+            {{- if .Values.arkApiserver.enabled }}
+            - --ark-apiserver-url={{ .Values.arkApiserver.url | default (printf "https://ark-apiserver.%s.svc:443" .Release.Namespace) }}
+            {{- end }}
           command:
             - /manager
           image: {{ .Values.controllerManager.container.image.repository }}:{{ .Values.controllerManager.container.image.tag | default .Chart.AppVersion }}

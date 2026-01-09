@@ -10,59 +10,40 @@ Full integration test for the Ark stack using the aggregated API server as the s
 - Full Model → Agent → Query flow
 - Query execution and response
 
-## Architecture
+## Known Limitations
 
-```
-┌─────────────────┐     ┌─────────────────┐
-│  Ark Controller │────▶│  Ark API Server │
-│   (no CRDs)     │     │   (SQLite)      │
-└─────────────────┘     └─────────────────┘
-        │                       │
-        ▼                       ▼
-┌─────────────────┐     ┌─────────────────┐
-│  Reconcile      │     │  Store in       │
-│  Resources      │     │  SQLite/PG      │
-└─────────────────┘     └─────────────────┘
+**Concurrent Request Handling**: The ark-apiserver has a known issue where concurrent LIST requests (sent by the controller when syncing informer caches) may timeout. This is tracked for future improvement. Individual kubectl operations work correctly.
+
+## Prerequisites
+
+This test requires **cert-manager** installed in the cluster (controller needs TLS certs for webhooks).
+
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
+kubectl wait --for=condition=Available deployment --all -n cert-manager --timeout=300s
 ```
 
 ## Running
 
 ```bash
-# Requires Azure OpenAI credentials
-export E2E_TEST_AZURE_OPENAI_KEY="your-key"
-export E2E_TEST_AZURE_OPENAI_BASE_URL="https://your-endpoint.openai.azure.com"
-
-# Run the test
+# Run the test (uses mock-llm, no API key needed)
 chainsaw test
 
-# With custom images (for CI)
-ARK_APISERVER_IMAGE=ghcr.io/org/ark-apiserver \
-ARK_APISERVER_IMAGE_TAG=sha \
-ARK_CONTROLLER_IMAGE=ghcr.io/org/ark-controller \
-ARK_CONTROLLER_IMAGE_TAG=sha \
+# With local images (for local development)
+ARK_APISERVER_IMAGE=ark-apiserver \
+ARK_APISERVER_IMAGE_TAG=latest \
+ARK_CONTROLLER_IMAGE=ark-controller \
+ARK_CONTROLLER_IMAGE_TAG=latest \
+ARK_IMAGE_PULL_POLICY=Never \
 chainsaw test
 ```
 
-## CI Integration
+## Simpler Alternative
 
-This test requires:
-1. `ark-apiserver` container image built
-2. `ark-controller` container image built
-3. Azure OpenAI credentials configured
-
-Add to CI workflow:
-```yaml
-- name: Run API server integration tests
-  env:
-    E2E_TEST_AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
-    E2E_TEST_AZURE_OPENAI_BASE_URL: ${{ secrets.AZURE_OPENAI_BASE_URL }}
-    ARK_APISERVER_IMAGE: ${{ env.CI_REGISTRY }}/ark-apiserver
-    ARK_APISERVER_IMAGE_TAG: ${{ github.sha }}
-    ARK_CONTROLLER_IMAGE: ${{ env.CI_REGISTRY }}/ark-controller
-    ARK_CONTROLLER_IMAGE_TAG: ${{ github.sha }}
-  run: |
-    cd tests
-    chainsaw test --selector 'apiserver=true'
+For basic CRUD testing without cert-manager, use the API server tests:
+```bash
+cd services/ark-apiserver
+chainsaw test test/
 ```
 
 ## Selector

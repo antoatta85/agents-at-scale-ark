@@ -112,3 +112,10 @@ customCACert:
   enabled: false
   secretName: "custom-ca-cert"
   key: "ca.crt"
+
+# Ark API Server configuration
+# When enabled, routes Ark API requests directly to ark-apiserver,
+# bypassing kube-apiserver aggregation to avoid watch timeout issues
+arkApiserver:
+  enabled: false
+  url: ""  # Auto-detected if empty: https://ark-apiserver.{{ .Release.Namespace }}.svc:443

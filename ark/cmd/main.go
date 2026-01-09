@@ -13,6 +13,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +33,7 @@ import (
 	"mckinsey.com/ark/internal/controller"
 	eventingconfig "mckinsey.com/ark/internal/eventing/config"
 	telemetryconfig "mckinsey.com/ark/internal/telemetry/config"
+	arktransport "mckinsey.com/ark/internal/transport"
 	webhookv1 "mckinsey.com/ark/internal/webhook/v1"
 	webhookv1prealpha1 "mckinsey.com/ark/internal/webhook/v1prealpha1"
 	// +kubebuilder:scaffold:imports
@@ -63,6 +65,7 @@ type config struct {
 	probeAddr                                        string
 	secureMetrics                                    bool
 	enableHTTP2                                      bool
+	arkAPIServerURL                                  string
 }
 
 func main() {
@@ -125,6 +128,9 @@ func parseFlags() struct {
 	flag.StringVar(&cfg.metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
 	flag.BoolVar(&cfg.enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.StringVar(&cfg.arkAPIServerURL, "ark-apiserver-url", "",
+		"Direct URL to ark-apiserver (e.g., https://ark-apiserver.ark-system.svc:443). "+
+			"Routes Ark API requests directly, bypassing kube-apiserver aggregation.")
 	flag.BoolVar(&showVersion, "version", false, "Show version information and exit")
 
 	zapOpts := zap.Options{Development: false}
@@ -156,7 +162,23 @@ func setupManager(cfg config) (ctrl.Manager, *certwatcher.CertWatcher, *certwatc
 		}),
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), managerOptions)
+	restConfig := ctrl.GetConfigOrDie()
+
+	if cfg.arkAPIServerURL != "" {
+		setupLog.Info("configuring direct routing to ark-apiserver",
+			"url", cfg.arkAPIServerURL)
+
+		splitTransport, err := arktransport.NewSplitTransport(restConfig, cfg.arkAPIServerURL)
+		if err != nil {
+			setupLog.Error(err, "failed to create split transport")
+			os.Exit(1)
+		}
+
+		restConfig.Transport = splitTransport
+		restConfig.TLSClientConfig = rest.TLSClientConfig{}
+	}
+
+	mgr, err := ctrl.NewManager(restConfig, managerOptions)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)

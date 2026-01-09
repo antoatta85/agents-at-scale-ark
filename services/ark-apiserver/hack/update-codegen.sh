@@ -15,4 +15,9 @@ go run k8s.io/code-generator/cmd/deepcopy-gen \
   --go-header-file ./hack/boilerplate.go.txt \
   ./pkg/apis/ark/v1alpha1
 
+go run k8s.io/code-generator/cmd/deepcopy-gen \
+  --output-file zz_generated_deepcopy.go \
+  --go-header-file ./hack/boilerplate.go.txt \
+  ./pkg/apis/ark/v1prealpha1
+
 echo "Done."

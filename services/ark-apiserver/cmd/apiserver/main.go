@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	genericrequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
@@ -25,6 +26,7 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 
 	arkv1alpha1 "mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1"
+	arkv1prealpha1 "mckinsey.com/ark-apiserver/pkg/apis/ark/v1prealpha1"
 	_ "mckinsey.com/ark-apiserver/pkg/metrics"
 	genericregistry "mckinsey.com/ark-apiserver/pkg/registry/generic"
 	"mckinsey.com/ark-apiserver/pkg/storage"
@@ -40,8 +42,17 @@ var (
 
 func init() {
 	utilruntime.Must(arkv1alpha1.AddToScheme(Scheme))
+	utilruntime.Must(arkv1prealpha1.AddToScheme(Scheme))
 	utilruntime.Must(metav1.AddMetaToScheme(Scheme))
 	metav1.AddToGroupVersion(Scheme, schema.GroupVersion{Group: "", Version: "v1"})
+}
+
+func GetCombinedOpenAPIDefinitions(ref openapicommon.ReferenceCallback) map[string]openapicommon.OpenAPIDefinition {
+	defs := arkv1alpha1.GetOpenAPIDefinitions(ref)
+	for k, v := range arkv1prealpha1.GetOpenAPIDefinitions(ref) {
+		defs[k] = v
+	}
+	return defs
 }
 
 type ArkServerOptions struct {
@@ -63,8 +74,11 @@ type ArkServerOptions struct {
 }
 
 func NewArkServerOptions() *ArkServerOptions {
+	secureServing := genericoptions.NewSecureServingOptions().WithLoopback()
+	secureServing.HTTP2MaxStreamsPerConnection = 1000
+
 	o := &ArkServerOptions{
-		SecureServing: genericoptions.NewSecureServingOptions().WithLoopback(),
+		SecureServing: secureServing,
 		StorageDriver: "sqlite",
 		SQLitePath:    "/data/ark.db",
 		MetricsPort:   8080,
@@ -105,6 +119,11 @@ func (o *ArkServerOptions) RunArkServer(stopCh <-chan struct{}) error {
 
 	serverConfig := genericapiserver.NewConfig(Codecs)
 	serverConfig.EffectiveVersion = compatibility.DefaultBuildEffectiveVersion()
+	serverConfig.RequestTimeout = 24 * time.Hour
+	serverConfig.MinRequestTimeout = 86400
+	serverConfig.LongRunningFunc = func(r *http.Request, requestInfo *genericrequest.RequestInfo) bool {
+		return true
+	}
 
 	serverConfig.OpenAPIV3Config = &openapicommon.OpenAPIV3Config{
 		IgnorePrefixes: []string{"/swaggerapi"},
@@ -119,7 +138,7 @@ func (o *ArkServerOptions) RunArkServer(stopCh <-chan struct{}) error {
 				Description: "Default Response.",
 			},
 		},
-		GetDefinitions: arkv1alpha1.GetOpenAPIDefinitions,
+		GetDefinitions: GetCombinedOpenAPIDefinitions,
 	}
 
 	if err := o.SecureServing.ApplyTo(&serverConfig.SecureServing, &serverConfig.LoopbackClientConfig); err != nil {
@@ -236,6 +255,23 @@ func (o *ArkServerOptions) RunArkServer(stopCh <-chan struct{}) error {
 			SingularName: "a2atask",
 			NewFunc:      func() runtime.Object { return &arkv1alpha1.A2ATask{} },
 			NewListFunc:  func() runtime.Object { return &arkv1alpha1.A2ATaskList{} },
+		}),
+	}
+
+	apiGroupInfo.VersionedResourcesStorageMap[arkv1prealpha1.SchemeGroupVersion.Version] = map[string]rest.Storage{
+		"a2aservers": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
+			Kind:         "A2AServer",
+			Resource:     "a2aservers",
+			SingularName: "a2aserver",
+			NewFunc:      func() runtime.Object { return &arkv1prealpha1.A2AServer{} },
+			NewListFunc:  func() runtime.Object { return &arkv1prealpha1.A2AServerList{} },
+		}),
+		"executionengines": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
+			Kind:         "ExecutionEngine",
+			Resource:     "executionengines",
+			SingularName: "executionengine",
+			NewFunc:      func() runtime.Object { return &arkv1prealpha1.ExecutionEngine{} },
+			NewListFunc:  func() runtime.Object { return &arkv1prealpha1.ExecutionEngineList{} },
 		}),
 	}
 

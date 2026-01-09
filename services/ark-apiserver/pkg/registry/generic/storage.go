@@ -18,9 +18,16 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	arkv1alpha1 "mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1"
+	arkv1prealpha1 "mckinsey.com/ark-apiserver/pkg/apis/ark/v1prealpha1"
 	"mckinsey.com/ark-apiserver/pkg/metrics"
 	arkstorage "mckinsey.com/ark-apiserver/pkg/storage"
 )
+
+const storageTimeout = 30 * time.Second
+
+func storageContext(ctx context.Context) context.Context {
+	return context.WithoutCancel(ctx)
+}
 
 type ResourceConfig struct {
 	Kind         string
@@ -74,7 +81,7 @@ func (s *GenericStorage) GetSingularName() string {
 func (s *GenericStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	start := time.Now()
 	namespace := getNamespace(ctx)
-	obj, err := s.backend.Get(ctx, s.config.Kind, namespace, name)
+	obj, err := s.backend.Get(storageContext(ctx), s.config.Kind, namespace, name)
 	if err != nil {
 		metrics.RecordStorageOperation("get", s.config.Kind, "error")
 		metrics.RecordStorageLatency("get", s.config.Kind, start)
@@ -100,7 +107,7 @@ func (s *GenericStorage) List(ctx context.Context, options *metainternalversion.
 		opts.Continue = options.Continue
 	}
 
-	objects, continueToken, err := s.backend.List(ctx, s.config.Kind, namespace, opts)
+	objects, continueToken, err := s.backend.List(storageContext(ctx), s.config.Kind, namespace, opts)
 	if err != nil {
 		metrics.RecordStorageOperation("list", s.config.Kind, "error")
 		metrics.RecordStorageLatency("list", s.config.Kind, start)
@@ -146,7 +153,7 @@ func (s *GenericStorage) Create(ctx context.Context, obj runtime.Object, createV
 		accessor.SetCreationTimestamp(metav1.Now())
 	}
 
-	if err := s.backend.Create(ctx, s.config.Kind, accessor.GetNamespace(), accessor.GetName(), obj); err != nil {
+	if err := s.backend.Create(storageContext(ctx), s.config.Kind, accessor.GetNamespace(), accessor.GetName(), obj); err != nil {
 		metrics.RecordStorageOperation("create", s.config.Kind, "error")
 		metrics.RecordStorageLatency("create", s.config.Kind, start)
 		return nil, fmt.Errorf("failed to create %s: %w", s.config.SingularName, err)
@@ -161,7 +168,7 @@ func (s *GenericStorage) Update(ctx context.Context, name string, objInfo rest.U
 	start := time.Now()
 	namespace := getNamespace(ctx)
 
-	existing, err := s.backend.Get(ctx, s.config.Kind, namespace, name)
+	existing, err := s.backend.Get(storageContext(ctx), s.config.Kind, namespace, name)
 	if err != nil {
 		if forceAllowCreate {
 			obj, err := objInfo.UpdatedObject(ctx, nil)
@@ -188,7 +195,7 @@ func (s *GenericStorage) Update(ctx context.Context, name string, objInfo rest.U
 		}
 	}
 
-	if err := s.backend.Update(ctx, s.config.Kind, namespace, name, updated); err != nil {
+	if err := s.backend.Update(storageContext(ctx), s.config.Kind, namespace, name, updated); err != nil {
 		metrics.RecordStorageOperation("update", s.config.Kind, "error")
 		metrics.RecordStorageLatency("update", s.config.Kind, start)
 		return nil, false, fmt.Errorf("failed to update %s: %w", s.config.SingularName, err)
@@ -204,7 +211,7 @@ func (s *GenericStorage) Delete(ctx context.Context, name string, deleteValidati
 	start := time.Now()
 	namespace := getNamespace(ctx)
 
-	existing, err := s.backend.Get(ctx, s.config.Kind, namespace, name)
+	existing, err := s.backend.Get(storageContext(ctx), s.config.Kind, namespace, name)
 	if err != nil {
 		metrics.RecordStorageOperation("delete", s.config.Kind, "not_found")
 		return nil, false, apierrors.NewNotFound(schema.GroupResource{Group: arkv1alpha1.GroupName, Resource: s.config.Resource}, name)
@@ -217,7 +224,7 @@ func (s *GenericStorage) Delete(ctx context.Context, name string, deleteValidati
 		}
 	}
 
-	if err := s.backend.Delete(ctx, s.config.Kind, namespace, name); err != nil {
+	if err := s.backend.Delete(storageContext(ctx), s.config.Kind, namespace, name); err != nil {
 		metrics.RecordStorageOperation("delete", s.config.Kind, "error")
 		metrics.RecordStorageLatency("delete", s.config.Kind, start)
 		return nil, false, fmt.Errorf("failed to delete %s: %w", s.config.SingularName, err)
@@ -281,7 +288,7 @@ func getNamespace(ctx context.Context) string {
 	return "default"
 }
 
-func setListItems(list runtime.Object, objects []runtime.Object, continueToken string) error {
+func setListItems(list runtime.Object, objects []runtime.Object, resourceVersion string) error {
 	switch l := list.(type) {
 	case *arkv1alpha1.QueryList:
 		for _, obj := range objects {
@@ -289,70 +296,84 @@ func setListItems(list runtime.Object, objects []runtime.Object, continueToken s
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.AgentList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.Agent); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.ModelList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.Model); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.TeamList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.Team); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.ToolList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.Tool); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.MemoryList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.Memory); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.MCPServerList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.MCPServer); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.EvaluationList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.Evaluation); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.EvaluatorList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.Evaluator); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
 	case *arkv1alpha1.A2ATaskList:
 		for _, obj := range objects {
 			if item, ok := obj.(*arkv1alpha1.A2ATask); ok {
 				l.Items = append(l.Items, *item)
 			}
 		}
-		l.Continue = continueToken
+		l.ResourceVersion = resourceVersion
+	case *arkv1prealpha1.A2AServerList:
+		for _, obj := range objects {
+			if item, ok := obj.(*arkv1prealpha1.A2AServer); ok {
+				l.Items = append(l.Items, *item)
+			}
+		}
+		l.ResourceVersion = resourceVersion
+	case *arkv1prealpha1.ExecutionEngineList:
+		for _, obj := range objects {
+			if item, ok := obj.(*arkv1prealpha1.ExecutionEngine); ok {
+				l.Items = append(l.Items, *item)
+			}
+		}
+		l.ResourceVersion = resourceVersion
 	default:
 		return fmt.Errorf("unknown list type: %T", list)
 	}

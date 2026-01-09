@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	arkv1alpha1 "mckinsey.com/ark-apiserver/pkg/apis/ark/v1alpha1"
+	arkv1prealpha1 "mckinsey.com/ark-apiserver/pkg/apis/ark/v1prealpha1"
 )
 
 type ArkTypeConverter struct{}
@@ -37,6 +38,10 @@ func (c *ArkTypeConverter) NewObject(kind string) runtime.Object {
 		return &arkv1alpha1.Evaluator{}
 	case "A2ATask":
 		return &arkv1alpha1.A2ATask{}
+	case "A2AServer":
+		return &arkv1prealpha1.A2AServer{}
+	case "ExecutionEngine":
+		return &arkv1prealpha1.ExecutionEngine{}
 	default:
 		return nil
 	}
@@ -64,6 +69,10 @@ func (c *ArkTypeConverter) NewListObject(kind string) runtime.Object {
 		return &arkv1alpha1.EvaluatorList{}
 	case "A2ATask":
 		return &arkv1alpha1.A2ATaskList{}
+	case "A2AServer":
+		return &arkv1prealpha1.A2AServerList{}
+	case "ExecutionEngine":
+		return &arkv1prealpha1.ExecutionEngineList{}
 	default:
 		return nil
 	}
