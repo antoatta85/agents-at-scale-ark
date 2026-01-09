@@ -38,35 +38,62 @@ Note: the failure is related to A2A message response accumulation. See [PR #579]
 
 **Goal**: Verify telemetry flows to configured backend.
 
-Ark uses `otel-environment-variables` ConfigMap/Secret for OTEL configuration. Create it if not present:
+Phoenix (or other OTEL backends) creates an `otel-environment-variables` secret that services can pick up via `envFrom`.
 
 ```bash
-# Check existing OTEL config
-kubectl get configmap otel-environment-variables 2>/dev/null || echo "No OTEL ConfigMap"
+# Install Phoenix (creates otel-environment-variables secret in default namespace)
+ark install marketplace/services/phoenix
 
-# If needed, create OTEL config (example for Phoenix)
-kubectl apply -f 99-resources/otel-configmap.yaml
+# Verify OTEL secret exists
+kubectl get secret otel-environment-variables
 
-# Upgrade chart to pick up OTEL config (requires envFrom in chart)
+# Upgrade chart with envFrom to pick up OTEL config
 helm upgrade claude-code-agent oci://ghcr.io/dwmkerr/charts/claude-code-agent \
-  --version ">=0.1.3" \
-  --set apiKey=$ANTHROPIC_API_KEY
+  --version "0.1.3" \
+  --set apiKey=$ANTHROPIC_API_KEY \
+  --set env.CLAUDE_CODE_ENABLE_TELEMETRY=1 \
+  --set env.OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+  --set envFrom[0].secretRef.name=otel-environment-variables \
+  --set envFrom[0].secretRef.optional=true
 
-# Restart pod to pick up new env
-kubectl rollout restart deployment/claude-code-agent
+# Verify agent has OTEL env vars
+kubectl exec deployment/claude-code-agent -- env | grep -E "TEL|OTEL"
+# eg:
+# CLAUDE_CODE_ENABLE_TELEMETRY=1
+# OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix-svc.phoenix.svc.cluster.local:6006
+# OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+# OTEL_EXPORTER_OTLP_HEADERS=
+
+# Open Phoenix UI
+kubectl port-forward -n phoenix svc/phoenix-svc 6006:6006
 
 # Send a query to generate traces
-ark query agent/claude-code-agent "Tell me about observability"
+ark query agent/claude-code "Tell me about observability"
 
-# Check agent logs for OTEL activity
-kubectl logs -l app.kubernetes.io/name=claude-code-agent | grep -i otel
+# Check Phoenix UI at http://localhost:6006 for traces
 ```
 
 **Checkpoint 2:**
-- [ ] OTEL ConfigMap/Secret exists in namespace
-- [ ] Agent picks up OTEL environment variables
-- [ ] Traces visible in backend (Phoenix/Langfuse/etc.)
-- [ ] Spans include Claude model calls
+- [x] OTEL secret exists in namespace
+- [x] Agent has OTEL environment variables
+- [ ] ~~Traces visible in Phoenix UI~~ - **BLOCKED** (see finding below)
+- [ ] ~~Spans include Claude model calls~~ - **BLOCKED**
+
+### Finding: Signal Type Mismatch
+
+**Claude Code CLI exports OTEL metrics and logs, not traces.** Phoenix only accepts traces. They are incompatible without modification.
+
+| Signal | Claude Code CLI | Phoenix |
+|--------|-----------------|---------|
+| Traces | ❌ Not exported | ✅ Required |
+| Metrics | ✅ Exported | ❌ Not supported |
+| Logs | ✅ Exported | ❌ Not supported |
+
+**Next steps**: Add OpenTelemetry tracing instrumentation to the `claude-code-agent` wrapper itself. When an A2A request arrives, start a trace span; when it completes, end the span and export to Phoenix. See `99-resources/otel.md` for implementation details.
+
+**Related PRs:**
+- [claude-code-agent #16](https://github.com/dwmkerr/claude-code-agent/pull/16) - OTEL docs update
+- [marketplace #89](https://github.com/mckinsey/agents-at-scale-marketplace/pull/89) - Phoenix OTEL protocol fix
 
 ## Step 3: MCP Servers
 
