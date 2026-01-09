@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { BreadcrumbElement } from '@/components/common/page-header';
 import { PageHeader } from '@/components/common/page-header';
 import type { Flow } from '@/components/rows/flow-row';
+import { workflowTemplatesService } from '@/lib/services/workflow-templates';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -511,10 +512,40 @@ export default function FlowDetailPage() {
   const params = useParams();
   const flowId = params.id as string;
   const [flow, setFlow] = useState<Flow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const foundFlow = MOCK_FLOWS.find(f => f.id === flowId);
-    setFlow(foundFlow || null);
+    async function fetchFlow() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [template, yamlManifest] = await Promise.all([
+          workflowTemplatesService.get(flowId),
+          workflowTemplatesService.getYaml(flowId),
+        ]);
+
+        const annotations = template.metadata.annotations || {};
+        const flowData: Flow = {
+          id: template.metadata.name,
+          title: annotations['workflows.argoproj.io/title'],
+          description: annotations['workflows.argoproj.io/description'],
+          stages: 0,
+          manifest: yamlManifest,
+        };
+
+        setFlow(flowData);
+      } catch (err) {
+        console.error('Failed to fetch workflow template:', err);
+        setError('Failed to load flow');
+        setFlow(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchFlow();
   }, [flowId]);
 
   const breadcrumbs: BreadcrumbElement[] = [
@@ -522,12 +553,23 @@ export default function FlowDetailPage() {
     { href: '/flows', label: 'Flows' },
   ];
 
-  if (!flow) {
+  if (loading) {
+    return (
+      <>
+        <PageHeader breadcrumbs={breadcrumbs} currentPage="Loading..." />
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-muted-foreground">Loading flow...</p>
+        </div>
+      </>
+    );
+  }
+
+  if (error || !flow) {
     return (
       <>
         <PageHeader breadcrumbs={breadcrumbs} currentPage="Flow Not Found" />
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-muted-foreground">Flow not found</p>
+          <p className="text-muted-foreground">{error || 'Flow not found'}</p>
         </div>
       </>
     );

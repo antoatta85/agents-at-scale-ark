@@ -14,6 +14,3 @@
 - pass the version and namespace to the with_ark_client
 - The sync and async functions on the ark client have the same signatures, the async ones start with a_
 - bias towards using async where possible
-
-### Making changes
-- After making changes run 'make test' to make sure we didn't break anything

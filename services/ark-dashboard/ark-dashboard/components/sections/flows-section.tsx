@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { type Flow, FlowRow } from '@/components/rows/flow-row';
 import {
@@ -13,53 +13,43 @@ import {
 } from '@/components/ui/empty';
 import { DASHBOARD_SECTIONS } from '@/lib/constants';
 import { useDelayedLoading } from '@/lib/hooks';
+import {
+  type WorkflowTemplate,
+  workflowTemplatesService,
+} from '@/lib/services/workflow-templates';
 
-const MOCK_FLOWS: Flow[] = [
-  {
-    id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    title: 'Customer Onboarding Flow',
-    description: 'Automated workflow for onboarding new customers',
-    stages: 5,
-  },
-  {
-    id: 'a3bb189e-8bf9-3888-9912-ace4e6543002',
-    title: 'Invoice Processing',
-    description: 'Extract and process invoice data from documents',
-    stages: 3,
-  },
-  {
-    id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
-    stages: 4,
-  },
-  {
-    id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-    title: 'Content Moderation Pipeline',
-    description: 'Review and moderate user-generated content',
-    stages: 6,
-  },
-  {
-    id: '9f4e7c3a-5d6b-4e8f-9a2b-1c3d4e5f6a7b',
-    title: 'Data Validation Workflow',
-    stages: 4,
-  },
-  {
-    id: 'd8e9f0a1-2b3c-4d5e-6f7a-8b9c0d1e2f3a',
-    title: 'Enterprise-Grade Multi-Stage Data Processing Pipeline with Advanced Quality Checks, Automated Reporting, and Real-Time Notification System',
-    description: 'This comprehensive workflow orchestrates a complex data pipeline that extracts data from multiple sources, performs sophisticated transformations using parallel processing, validates data quality through multiple checkpoints, loads the processed data into a distributed data warehouse, generates detailed analytical reports with visualizations, and sends real-time notifications to stakeholders across various communication channels including email, Slack, and webhooks',
-    stages: 8,
-  },
-  {
-    id: 'e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b',
-    title: 'Multi-Stage Deployment Pipeline',
-    description: 'Step-based workflow demonstrating parallel data fetching, processing, validation, deployment, and testing across multiple environments with comprehensive monitoring and notification',
-    stages: 10,
-  },
-];
+function mapWorkflowTemplateToFlow(template: WorkflowTemplate): Flow {
+  const annotations = template.metadata.annotations || {};
+  return {
+    id: template.metadata.name,
+    title: annotations['workflows.argoproj.io/title'],
+    description: annotations['workflows.argoproj.io/description'],
+    stages: 0,
+  };
+}
 
 export function FlowsSection() {
-  const [flows] = useState<Flow[]>(MOCK_FLOWS);
-  const [loading] = useState(false);
+  const [flows, setFlows] = useState<Flow[]>([]);
+  const [loading, setLoading] = useState(true);
   const showLoading = useDelayedLoading(loading);
+
+  useEffect(() => {
+    async function fetchFlows() {
+      try {
+        setLoading(true);
+        const templates = await workflowTemplatesService.list();
+        const mappedFlows = templates.map(mapWorkflowTemplateToFlow);
+        setFlows(mappedFlows);
+      } catch (error) {
+        console.error('Failed to fetch workflow templates:', error);
+        setFlows([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchFlows();
+  }, []);
 
   if (showLoading) {
     return (
