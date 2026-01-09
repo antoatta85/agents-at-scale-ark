@@ -6,9 +6,10 @@ spec:
   provider: openai
   model:
     value: gpt-4
+  pollInterval: 1m
   config:
     openai:
       baseUrl:
-        value: http://mock-llm/v1
+        value: http://mock-llm.ark-system.svc.cluster.local:6556/v1
       apiKey:
         value: mock-api-key

@@ -99,19 +99,14 @@ spec:
         content: |
           helm install mock-llm oci://ghcr.io/dwmkerr/charts/mock-llm \
             --version 0.1.27 \
-            --namespace $NAMESPACE \
+            --namespace ark-system \
             --values mock-llm-values.yaml \
             --wait --timeout=120s
-        env:
-        - name: NAMESPACE
-          value: ($namespace)
+        timeout: 150s
     cleanup:
     - script:
         content: |
-          helm uninstall mock-llm --namespace $NAMESPACE --wait --timeout=30s || true
-        env:
-        - name: NAMESPACE
-          value: ($namespace)
+          helm uninstall mock-llm --namespace ark-system --wait --timeout=30s || true
 
   - name: setup-rbac
     try:
