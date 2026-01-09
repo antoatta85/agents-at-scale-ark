@@ -13,3 +13,7 @@ arkApiserver:
 ```
 
 See `ark/internal/transport/split.go` for implementation.
+
+## Concurrent LIST Request Timeouts
+
+Concurrent LIST requests (sent by the controller when syncing informer caches) may timeout. Individual kubectl operations work correctly. Tracked for future improvement.
