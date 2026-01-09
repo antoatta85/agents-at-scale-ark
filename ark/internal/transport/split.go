@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"k8s.io/client-go/rest"
 )
@@ -27,7 +28,8 @@ func NewSplitTransport(defaultConfig *rest.Config, arkURL string) (*SplitTranspo
 	}
 
 	arkConfig := &rest.Config{
-		Host: arkURL,
+		Host:    arkURL,
+		Timeout: 60 * time.Second,
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: true,
 		},
