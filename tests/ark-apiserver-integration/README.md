@@ -10,10 +10,6 @@ Full integration test for the Ark stack using the aggregated API server as the s
 - Full Model → Agent → Query flow
 - Query execution and response
 
-## Known Limitations
-
-**Concurrent Request Handling**: The ark-apiserver has a known issue where concurrent LIST requests (sent by the controller when syncing informer caches) may timeout. This is tracked for future improvement. Individual kubectl operations work correctly.
-
 ## Prerequisites
 
 This test requires **cert-manager** installed in the cluster (controller needs TLS certs for webhooks).
