@@ -156,10 +156,3 @@ PostgreSQL WATCH uses native pub/sub:
 2. Backend listens on `ark_resources` channel
 3. Events delivered to watchers in real-time
 
-## Next Steps
-
-- [ ] Add remaining 9 resource types (Agent, Model, Team, Tool, etc.)
-- [ ] Implement PostgreSQL backend
-- [ ] Add connection pooling for PostgreSQL
-- [ ] Add Prometheus metrics
-- [ ] Integration testing with existing controllers
