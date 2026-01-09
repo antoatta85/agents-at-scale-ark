@@ -19,7 +19,7 @@ export function FlowRow({ flow }: FlowRowProps) {
   const isComposerFlow = !!(flow.title && flow.description);
 
   return (
-    <Link href={`/flows/${flow.id}`} className="block w-full">
+    <Link href={`/workflow-templates/${flow.id}`} className="block w-full">
       <div className="bg-card hover:bg-accent/5 flex w-full items-center gap-4 rounded-md border px-4 py-3 transition-colors cursor-pointer hover:border-primary/50 overflow-hidden">
         <div className="flex flex-1 items-center gap-3 min-w-0 overflow-hidden">
           <div className="relative flex-shrink-0">
