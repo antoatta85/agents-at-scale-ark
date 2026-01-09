@@ -33,6 +33,7 @@ spec:
             {{- end }}
             {{- if .Values.arkApiserver.enabled }}
             - --ark-apiserver-url={{ .Values.arkApiserver.url | default (printf "https://ark-apiserver.%s.svc:443" .Release.Namespace) }}
+            - --ark-apiserver-insecure={{ .Values.arkApiserver.insecure | default true }}
             {{- end }}
           command:
             - /manager

@@ -119,3 +119,4 @@ customCACert:
 arkApiserver:
   enabled: false
   url: ""  # Auto-detected if empty: https://ark-apiserver.{{ .Release.Namespace }}.svc:443
+  insecure: true  # Skip TLS verification. Set to false and configure CA for production.

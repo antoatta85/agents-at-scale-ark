@@ -66,6 +66,7 @@ type config struct {
 	secureMetrics                                    bool
 	enableHTTP2                                      bool
 	arkAPIServerURL                                  string
+	arkAPIServerInsecure                             bool
 }
 
 func main() {
@@ -131,6 +132,8 @@ func parseFlags() struct {
 	flag.StringVar(&cfg.arkAPIServerURL, "ark-apiserver-url", "",
 		"Direct URL to ark-apiserver (e.g., https://ark-apiserver.ark-system.svc:443). "+
 			"Routes Ark API requests directly, bypassing kube-apiserver aggregation.")
+	flag.BoolVar(&cfg.arkAPIServerInsecure, "ark-apiserver-insecure", true,
+		"Skip TLS verification when connecting to ark-apiserver. Set to false and configure CA for production.")
 	flag.BoolVar(&showVersion, "version", false, "Show version information and exit")
 
 	zapOpts := zap.Options{Development: false}
@@ -166,9 +169,9 @@ func setupManager(cfg config) (ctrl.Manager, *certwatcher.CertWatcher, *certwatc
 
 	if cfg.arkAPIServerURL != "" {
 		setupLog.Info("configuring direct routing to ark-apiserver",
-			"url", cfg.arkAPIServerURL)
+			"url", cfg.arkAPIServerURL, "insecure", cfg.arkAPIServerInsecure)
 
-		splitTransport, err := arktransport.NewSplitTransport(restConfig, cfg.arkAPIServerURL)
+		splitTransport, err := arktransport.NewSplitTransport(restConfig, cfg.arkAPIServerURL, cfg.arkAPIServerInsecure)
 		if err != nil {
 			setupLog.Error(err, "failed to create split transport")
 			os.Exit(1)

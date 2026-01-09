@@ -16,7 +16,7 @@ type SplitTransport struct {
 	arkHost          string
 }
 
-func NewSplitTransport(defaultConfig *rest.Config, arkURL string) (*SplitTransport, error) {
+func NewSplitTransport(defaultConfig *rest.Config, arkURL string, insecureSkipTLSVerify bool) (*SplitTransport, error) {
 	defaultTransport, err := rest.TransportFor(defaultConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create default transport: %w", err)
@@ -31,7 +31,7 @@ func NewSplitTransport(defaultConfig *rest.Config, arkURL string) (*SplitTranspo
 		Host:    arkURL,
 		Timeout: 60 * time.Second,
 		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: true,
+			Insecure: insecureSkipTLSVerify,
 		},
 	}
 	arkTransport, err := rest.TransportFor(arkConfig)
