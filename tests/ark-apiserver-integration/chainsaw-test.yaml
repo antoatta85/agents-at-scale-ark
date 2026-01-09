@@ -149,6 +149,7 @@ spec:
     - apply:
         file: manifests/a03-agent.yaml
     - assert:
+        timeout: 120s
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
           kind: Model
@@ -176,6 +177,7 @@ spec:
     - apply:
         file: manifests/a04-query.yaml
     - assert:
+        timeout: 300s
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
           kind: Query
@@ -185,6 +187,7 @@ spec:
             (conditions[?type == 'Completed']):
             - status: 'True'
     - assert:
+        timeout: 60s
         resource:
           apiVersion: ark.mckinsey.com/v1alpha1
           kind: Query

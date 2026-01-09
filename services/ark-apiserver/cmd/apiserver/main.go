@@ -185,94 +185,121 @@ func (o *ArkServerOptions) RunArkServer(stopCh <-chan struct{}) error {
 	}
 
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(arkv1alpha1.GroupName, Scheme, ParameterCodec, Codecs)
+
+	queryConfig := genericregistry.ResourceConfig{
+		Kind:         "Query",
+		Resource:     "queries",
+		SingularName: "query",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.Query{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.QueryList{} },
+	}
+	agentConfig := genericregistry.ResourceConfig{
+		Kind:         "Agent",
+		Resource:     "agents",
+		SingularName: "agent",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.Agent{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.AgentList{} },
+	}
+	modelConfig := genericregistry.ResourceConfig{
+		Kind:         "Model",
+		Resource:     "models",
+		SingularName: "model",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.Model{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.ModelList{} },
+	}
+	teamConfig := genericregistry.ResourceConfig{
+		Kind:         "Team",
+		Resource:     "teams",
+		SingularName: "team",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.Team{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.TeamList{} },
+	}
+	toolConfig := genericregistry.ResourceConfig{
+		Kind:         "Tool",
+		Resource:     "tools",
+		SingularName: "tool",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.Tool{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.ToolList{} },
+	}
+	memoryConfig := genericregistry.ResourceConfig{
+		Kind:         "Memory",
+		Resource:     "memories",
+		SingularName: "memory",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.Memory{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.MemoryList{} },
+	}
+	mcpserverConfig := genericregistry.ResourceConfig{
+		Kind:         "MCPServer",
+		Resource:     "mcpservers",
+		SingularName: "mcpserver",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.MCPServer{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.MCPServerList{} },
+	}
+	evaluationConfig := genericregistry.ResourceConfig{
+		Kind:         "Evaluation",
+		Resource:     "evaluations",
+		SingularName: "evaluation",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.Evaluation{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.EvaluationList{} },
+	}
+	evaluatorConfig := genericregistry.ResourceConfig{
+		Kind:         "Evaluator",
+		Resource:     "evaluators",
+		SingularName: "evaluator",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.Evaluator{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.EvaluatorList{} },
+	}
+	a2ataskConfig := genericregistry.ResourceConfig{
+		Kind:         "A2ATask",
+		Resource:     "a2atasks",
+		SingularName: "a2atask",
+		NewFunc:      func() runtime.Object { return &arkv1alpha1.A2ATask{} },
+		NewListFunc:  func() runtime.Object { return &arkv1alpha1.A2ATaskList{} },
+	}
+
 	apiGroupInfo.VersionedResourcesStorageMap[arkv1alpha1.SchemeGroupVersion.Version] = map[string]rest.Storage{
-		"queries": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "Query",
-			Resource:     "queries",
-			SingularName: "query",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.Query{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.QueryList{} },
-		}),
-		"agents": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "Agent",
-			Resource:     "agents",
-			SingularName: "agent",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.Agent{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.AgentList{} },
-		}),
-		"models": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "Model",
-			Resource:     "models",
-			SingularName: "model",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.Model{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.ModelList{} },
-		}),
-		"teams": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "Team",
-			Resource:     "teams",
-			SingularName: "team",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.Team{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.TeamList{} },
-		}),
-		"tools": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "Tool",
-			Resource:     "tools",
-			SingularName: "tool",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.Tool{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.ToolList{} },
-		}),
-		"memories": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "Memory",
-			Resource:     "memories",
-			SingularName: "memory",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.Memory{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.MemoryList{} },
-		}),
-		"mcpservers": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "MCPServer",
-			Resource:     "mcpservers",
-			SingularName: "mcpserver",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.MCPServer{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.MCPServerList{} },
-		}),
-		"evaluations": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "Evaluation",
-			Resource:     "evaluations",
-			SingularName: "evaluation",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.Evaluation{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.EvaluationList{} },
-		}),
-		"evaluators": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "Evaluator",
-			Resource:     "evaluators",
-			SingularName: "evaluator",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.Evaluator{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.EvaluatorList{} },
-		}),
-		"a2atasks": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "A2ATask",
-			Resource:     "a2atasks",
-			SingularName: "a2atask",
-			NewFunc:      func() runtime.Object { return &arkv1alpha1.A2ATask{} },
-			NewListFunc:  func() runtime.Object { return &arkv1alpha1.A2ATaskList{} },
-		}),
+		"queries":            genericregistry.NewGenericStorage(backend, converter, queryConfig),
+		"queries/status":     genericregistry.NewStatusStorage(backend, converter, queryConfig),
+		"agents":             genericregistry.NewGenericStorage(backend, converter, agentConfig),
+		"agents/status":      genericregistry.NewStatusStorage(backend, converter, agentConfig),
+		"models":             genericregistry.NewGenericStorage(backend, converter, modelConfig),
+		"models/status":      genericregistry.NewStatusStorage(backend, converter, modelConfig),
+		"teams":              genericregistry.NewGenericStorage(backend, converter, teamConfig),
+		"teams/status":       genericregistry.NewStatusStorage(backend, converter, teamConfig),
+		"tools":              genericregistry.NewGenericStorage(backend, converter, toolConfig),
+		"tools/status":       genericregistry.NewStatusStorage(backend, converter, toolConfig),
+		"memories":           genericregistry.NewGenericStorage(backend, converter, memoryConfig),
+		"memories/status":    genericregistry.NewStatusStorage(backend, converter, memoryConfig),
+		"mcpservers":         genericregistry.NewGenericStorage(backend, converter, mcpserverConfig),
+		"mcpservers/status":  genericregistry.NewStatusStorage(backend, converter, mcpserverConfig),
+		"evaluations":        genericregistry.NewGenericStorage(backend, converter, evaluationConfig),
+		"evaluations/status": genericregistry.NewStatusStorage(backend, converter, evaluationConfig),
+		"evaluators":         genericregistry.NewGenericStorage(backend, converter, evaluatorConfig),
+		"evaluators/status":  genericregistry.NewStatusStorage(backend, converter, evaluatorConfig),
+		"a2atasks":           genericregistry.NewGenericStorage(backend, converter, a2ataskConfig),
+		"a2atasks/status":    genericregistry.NewStatusStorage(backend, converter, a2ataskConfig),
+	}
+
+	a2aserverConfig := genericregistry.ResourceConfig{
+		Kind:         "A2AServer",
+		Resource:     "a2aservers",
+		SingularName: "a2aserver",
+		NewFunc:      func() runtime.Object { return &arkv1prealpha1.A2AServer{} },
+		NewListFunc:  func() runtime.Object { return &arkv1prealpha1.A2AServerList{} },
+	}
+	executionengineConfig := genericregistry.ResourceConfig{
+		Kind:         "ExecutionEngine",
+		Resource:     "executionengines",
+		SingularName: "executionengine",
+		NewFunc:      func() runtime.Object { return &arkv1prealpha1.ExecutionEngine{} },
+		NewListFunc:  func() runtime.Object { return &arkv1prealpha1.ExecutionEngineList{} },
 	}
 
 	apiGroupInfo.VersionedResourcesStorageMap[arkv1prealpha1.SchemeGroupVersion.Version] = map[string]rest.Storage{
-		"a2aservers": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "A2AServer",
-			Resource:     "a2aservers",
-			SingularName: "a2aserver",
-			NewFunc:      func() runtime.Object { return &arkv1prealpha1.A2AServer{} },
-			NewListFunc:  func() runtime.Object { return &arkv1prealpha1.A2AServerList{} },
-		}),
-		"executionengines": genericregistry.NewGenericStorage(backend, converter, genericregistry.ResourceConfig{
-			Kind:         "ExecutionEngine",
-			Resource:     "executionengines",
-			SingularName: "executionengine",
-			NewFunc:      func() runtime.Object { return &arkv1prealpha1.ExecutionEngine{} },
-			NewListFunc:  func() runtime.Object { return &arkv1prealpha1.ExecutionEngineList{} },
-		}),
+		"a2aservers":              genericregistry.NewGenericStorage(backend, converter, a2aserverConfig),
+		"a2aservers/status":       genericregistry.NewStatusStorage(backend, converter, a2aserverConfig),
+		"executionengines":        genericregistry.NewGenericStorage(backend, converter, executionengineConfig),
+		"executionengines/status": genericregistry.NewStatusStorage(backend, converter, executionengineConfig),
 	}
 
 	if err := server.InstallAPIGroup(&apiGroupInfo); err != nil {
