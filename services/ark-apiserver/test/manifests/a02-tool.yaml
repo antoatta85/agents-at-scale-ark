@@ -3,8 +3,7 @@ kind: Tool
 metadata:
   name: test-tool
 spec:
-  name: test_tool
+  type: builtin
   description: Test tool for E2E testing
-  type: bash
-  bash:
-    command: echo "test"
+  builtin:
+    name: calculator
