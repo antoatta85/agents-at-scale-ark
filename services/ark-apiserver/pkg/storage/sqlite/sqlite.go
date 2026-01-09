@@ -21,6 +21,7 @@ type SQLiteBackend struct {
 	converter storage.TypeConverter
 	watchers  map[string][]chan watch.Event
 	mu        sync.RWMutex
+	sem       chan struct{}
 }
 
 func New(path string, converter storage.TypeConverter) (*SQLiteBackend, error) {
@@ -42,6 +43,7 @@ func New(path string, converter storage.TypeConverter) (*SQLiteBackend, error) {
 		db:        db,
 		converter: converter,
 		watchers:  make(map[string][]chan watch.Event),
+		sem:       make(chan struct{}, 3),
 	}
 
 	if err := backend.initSchema(); err != nil {
@@ -137,6 +139,13 @@ func (s *SQLiteBackend) Get(ctx context.Context, kind, namespace, name string) (
 }
 
 func (s *SQLiteBackend) List(ctx context.Context, kind, namespace string, opts storage.ListOptions) ([]runtime.Object, string, error) {
+	select {
+	case s.sem <- struct{}{}:
+		defer func() { <-s.sem }()
+	case <-ctx.Done():
+		return nil, "", ctx.Err()
+	}
+
 	query := `
 		SELECT resource_version, generation, name, uid, spec, status, labels, annotations, created_at
 		FROM resources
