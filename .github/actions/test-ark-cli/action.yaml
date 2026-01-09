@@ -64,6 +64,20 @@ runs:
       shell: bash
       run: ark status
 
+    - name: Build ark-controller image
+      shell: bash
+      run: |
+        set -x
+        cd ark
+
+        # Build controller Docker image with CI tag
+        docker build -t ark-controller:ci-test -f Dockerfile .
+
+        # Load image into K3s
+        docker save ark-controller:ci-test -o /tmp/ark-controller-ci.tar
+        sudo k3s ctr images import /tmp/ark-controller-ci.tar
+        rm /tmp/ark-controller-ci.tar
+
     - name: Install Ark from local charts
       shell: bash
       run: |
@@ -76,9 +90,13 @@ runs:
           --wait --timeout=5m
 
         # Install ark-controller from local chart (includes CRDs)
+        # Use the locally built controller image
         helm upgrade --install ark-controller ark/dist/chart \
           --namespace ark-system \
           --create-namespace \
+          --set controllerManager.container.image.repository=ark-controller \
+          --set controllerManager.container.image.tag=ci-test \
+          --set controllerManager.container.image.pullPolicy=Never \
           --wait --timeout=5m
 
         # Install ark-tenant from local chart
@@ -109,29 +127,16 @@ runs:
 
         ark status
 
-    - name: Wait for webhooks to be ready
+    - name: Wait for Ark to be fully ready
       shell: bash
       run: |
-        echo "Waiting for admission webhooks to be ready..."
-        for i in {1..30}; do
-          if kubectl create -f - --dry-run=server <<EOF 2>/dev/null
-        apiVersion: ark.mckinsey.com/v1alpha1
-        kind: Model
-        metadata:
-          name: webhook-test
-          namespace: default
-        spec:
-          type: openai
-          model:
-            value: gpt-4
-        EOF
-          then
-            echo "✓ Webhooks are ready"
-            break
-          fi
-          echo "Waiting for webhooks... attempt $i/30"
-          sleep 2
-        done
+        echo "Waiting for Ark controller to be ready..."
+
+        # Simple wait for controller to be available (via ark status)
+        # This is sufficient for the validating webhook to work
+        kubectl wait --for=condition=available deployment/ark-controller -n ark-system --timeout=5m
+
+        echo "✓ Ark controller is ready"
 
     - name: Create default model
       shell: bash
