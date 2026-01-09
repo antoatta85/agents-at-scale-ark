@@ -24,7 +24,7 @@ type SQLiteBackend struct {
 }
 
 func New(path string, converter storage.TypeConverter) (*SQLiteBackend, error) {
-	db, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_busy_timeout=5000")
+	db, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=5000")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
