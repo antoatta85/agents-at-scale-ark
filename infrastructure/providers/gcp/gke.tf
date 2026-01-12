@@ -1,5 +1,5 @@
 module "gke" {
-  source  = "terraform-google-modules/kubernetes-engine/google"
+  source  = "terraform-google-modules/kubernetes-engine/google//modules/beta-public-cluster"
   version = "~> 43.0"
 
   project_id             = var.gcp_project_id
