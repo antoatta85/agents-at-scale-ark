@@ -347,6 +347,101 @@ jobs:
           jfrog_password: ${{ secrets.DOCKER_CICD_CACHE_REGISTRY_PASSWORD }}
           jfrog_url: ${{ vars.JFROG_PLATFORM_URL }}
 
+  xray-container-violations:
+    needs: [xray-container-scan]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all container scan artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: xray-container-scan-*
+          path: ./container-scans
+          merge-multiple: true
+
+      - name: Get last container scan from main branch
+        if: always()
+        shell: bash
+        run: |
+          GITHUB_REPOSITORY="${{ github.repository }}"
+          LAST_RUN_ID=$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs?branch=main&status=completed&per_page=50" | jq -c '.workflow_runs[] | select(.name == "CI/CD") | .id' | head -n 1)
+
+          if [ -n "$LAST_RUN_ID" ]; then
+            echo "Downloading artifacts from run ID: $LAST_RUN_ID"
+            gh run download "$LAST_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern "xray-container-scan-*" --dir ./last-main-scans || echo "No previous container scans found"
+          else
+            echo "No previous CI/CD run found on main branch"
+            mkdir -p ./last-main-scans
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Detect new vulnerabilities
+        if: always()
+        shell: bash
+        run: |
+          WHITELIST=".github/actions/jfrog-xray-container-scan/tolerated_vulnerabilities.txt"
+          FAIL=0
+
+          echo "=== Container Security Scan Results ==="
+          echo ""
+
+          # Collect all current vulnerabilities
+          > current_vulnerabilities.txt
+          for scan_file in ./container-scans/*.json; do
+            if [ -f "$scan_file" ]; then
+              jq -r '.[].vulnerabilities[]?.issue_id // empty' "$scan_file" >> current_vulnerabilities.txt 2>/dev/null || true
+            fi
+          done
+          sort -u current_vulnerabilities.txt -o current_vulnerabilities.txt
+
+          # Collect all previous vulnerabilities from main branch
+          > previous_vulnerabilities.txt
+          for scan_file in ./last-main-scans/**/*.json ./last-main-scans/*.json; do
+            if [ -f "$scan_file" ]; then
+              jq -r '.[].vulnerabilities[]?.issue_id // empty' "$scan_file" >> previous_vulnerabilities.txt 2>/dev/null || true
+            fi
+          done
+          sort -u previous_vulnerabilities.txt -o previous_vulnerabilities.txt
+
+          # Find new vulnerabilities
+          NEW_VULNS=$(comm -13 previous_vulnerabilities.txt current_vulnerabilities.txt)
+          REMOVED_VULNS=$(comm -23 previous_vulnerabilities.txt current_vulnerabilities.txt)
+
+          if [ -n "$NEW_VULNS" ]; then
+            echo "New vulnerabilities found:"
+            echo "$NEW_VULNS"
+            echo ""
+            echo "Checking against whitelist..."
+
+            while IFS= read -r vuln; do
+              if [ -n "$vuln" ] && ! grep -q "^$vuln$" "$WHITELIST" 2>/dev/null; then
+                echo "❌ New vulnerability not whitelisted: $vuln"
+                FAIL=1
+              else
+                echo "✓ Vulnerability whitelisted: $vuln"
+              fi
+            done <<< "$NEW_VULNS"
+          else
+            echo "✓ No new vulnerabilities found"
+          fi
+
+          if [ -n "$REMOVED_VULNS" ]; then
+            echo ""
+            echo "Vulnerabilities removed since last main branch scan:"
+            echo "$REMOVED_VULNS"
+          fi
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "❌ Failing due to unwhitelisted new container vulnerabilities."
+            exit 1
+          fi
+
+          echo ""
+          echo "✓ Container security scan passed"
+
   build-libs:
     runs-on: ubuntu-24.04
     steps:
@@ -994,6 +1089,7 @@ jobs:
     needs:
       [
         build-containers,
+        xray-container-violations,
         e2e-quickstart,
         e2e-smoke-test,
         e2e-tests-standard,
