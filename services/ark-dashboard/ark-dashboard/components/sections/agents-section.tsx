@@ -17,6 +17,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { type ToggleOption, ToggleSwitch } from '@/components/ui/toggle-switch';
+import { TrackedButton } from '@/components/ui/tracked-button';
 import { DASHBOARD_SECTIONS } from '@/lib/constants';
 import { useDelayedLoading } from '@/lib/hooks';
 import { type Agent, agentsService } from '@/lib/services';
@@ -98,12 +99,15 @@ export function AgentsSection() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button asChild>
+          <TrackedButton
+            trackingEvent="create_agent_clicked"
+            trackingProperties={{ source: 'empty_state' }}
+            asChild>
             <Link href="/agents/new">
               <Plus className="h-4 w-4" />
               Create Agent
             </Link>
-          </Button>
+          </TrackedButton>
         </EmptyContent>
         <Button
           variant="link"
