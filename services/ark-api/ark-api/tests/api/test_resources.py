@@ -3,8 +3,16 @@ import os
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 from fastapi.testclient import TestClient
+import asyncio
 
 os.environ["AUTH_MODE"] = "open"
+
+
+def make_awaitable(return_value):
+    """Create an awaitable that returns the given value."""
+    async def _awaitable(*args, **kwargs):
+        return return_value
+    return _awaitable
 
 
 class TestResourcesEndpoint(unittest.TestCase):
@@ -26,7 +34,7 @@ class TestResourcesEndpoint(unittest.TestCase):
         mock_api_client.return_value.__aenter__.return_value = mock_api_client_instance
 
         mock_dynamic_client_instance = AsyncMock()
-        mock_dynamic_client_cls.return_value = mock_dynamic_client_instance
+        mock_dynamic_client_cls.side_effect = make_awaitable(mock_dynamic_client_instance)
 
         mock_api_resource = AsyncMock()
         mock_resource = Mock()
@@ -56,7 +64,7 @@ class TestResourcesEndpoint(unittest.TestCase):
         mock_api_client.return_value.__aenter__.return_value = mock_api_client_instance
 
         mock_dynamic_client_instance = AsyncMock()
-        mock_dynamic_client_cls.return_value = mock_dynamic_client_instance
+        mock_dynamic_client_cls.side_effect = make_awaitable(mock_dynamic_client_instance)
 
         mock_api_resource = AsyncMock()
         mock_resources = Mock()
@@ -89,7 +97,7 @@ class TestResourcesEndpoint(unittest.TestCase):
         mock_api_client.return_value.__aenter__.return_value = mock_api_client_instance
 
         mock_dynamic_client_instance = AsyncMock()
-        mock_dynamic_client_cls.return_value = mock_dynamic_client_instance
+        mock_dynamic_client_cls.side_effect = make_awaitable(mock_dynamic_client_instance)
 
         mock_api_resource = AsyncMock()
         mock_resource = Mock()
@@ -119,7 +127,7 @@ class TestResourcesEndpoint(unittest.TestCase):
         mock_api_client.return_value.__aenter__.return_value = mock_api_client_instance
 
         mock_dynamic_client_instance = AsyncMock()
-        mock_dynamic_client_cls.return_value = mock_dynamic_client_instance
+        mock_dynamic_client_cls.side_effect = make_awaitable(mock_dynamic_client_instance)
 
         mock_api_resource = AsyncMock()
         mock_resources = Mock()
@@ -152,7 +160,7 @@ class TestResourcesEndpoint(unittest.TestCase):
         mock_api_client.return_value.__aenter__.return_value = mock_api_client_instance
 
         mock_dynamic_client_instance = AsyncMock()
-        mock_dynamic_client_cls.return_value = mock_dynamic_client_instance
+        mock_dynamic_client_cls.side_effect = make_awaitable(mock_dynamic_client_instance)
 
         mock_api_resource = AsyncMock()
         mock_resource = Mock()
@@ -182,7 +190,7 @@ class TestResourcesEndpoint(unittest.TestCase):
         mock_api_client.return_value.__aenter__.return_value = mock_api_client_instance
 
         mock_dynamic_client_instance = AsyncMock()
-        mock_dynamic_client_cls.return_value = mock_dynamic_client_instance
+        mock_dynamic_client_cls.side_effect = make_awaitable(mock_dynamic_client_instance)
 
         mock_api_resource = AsyncMock()
         mock_resource = Mock()
