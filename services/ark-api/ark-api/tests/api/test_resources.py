@@ -3,7 +3,6 @@ import os
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 from fastapi.testclient import TestClient
-import asyncio
 
 os.environ["AUTH_MODE"] = "open"
 
