@@ -13,6 +13,10 @@ vi.mock('@/lib/api/client', () => ({
   },
 }));
 
+interface ErrorWithResponse extends Error {
+  response?: { status: number };
+}
+
 describe('workflowTemplatesService', () => {
   const mockWorkflowTemplate: WorkflowTemplate = {
     apiVersion: 'argoproj.io/v1alpha1',
@@ -111,7 +115,7 @@ describe('workflowTemplatesService', () => {
     });
 
     it('should handle 404 errors', async () => {
-      const error = new Error('Not found') as any;
+      const error: ErrorWithResponse = new Error('Not found');
       error.response = { status: 404 };
       vi.mocked(apiClient.get).mockRejectedValueOnce(error);
 
@@ -159,7 +163,7 @@ spec:
     });
 
     it('should handle 404 errors for YAML requests', async () => {
-      const error = new Error('Not found') as any;
+      const error: ErrorWithResponse = new Error('Not found');
       error.response = { status: 404 };
       vi.mocked(apiClient.get).mockRejectedValueOnce(error);
 
