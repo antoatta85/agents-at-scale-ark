@@ -1116,6 +1116,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/proxy/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Services
+         * @description List services available for proxying in the current namespace.
+         */
+        get: operations["list_services_v1_proxy_services_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/proxy/services/{service_name}/{api_path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proxy Request Get
+         * @description Proxy GET requests to other services in the cluster.
+         */
+        get: operations["proxy_request_get_v1_proxy_services__service_name___api_path__get"];
+        /**
+         * Proxy Request Put
+         * @description Proxy PUT requests to other services in the cluster.
+         */
+        put: operations["proxy_request_put_v1_proxy_services__service_name___api_path__put"];
+        /**
+         * Proxy Request Post
+         * @description Proxy POST requests to other services in the cluster.
+         */
+        post: operations["proxy_request_post_v1_proxy_services__service_name___api_path__post"];
+        /**
+         * Proxy Request Delete
+         * @description Proxy DELETE requests to other services in the cluster.
+         */
+        delete: operations["proxy_request_delete_v1_proxy_services__service_name___api_path__delete"];
+        /**
+         * Proxy Request Options
+         * @description Proxy OPTIONS requests to other services in the cluster.
+         */
+        options: operations["proxy_request_options_v1_proxy_services__service_name___api_path__options"];
+        /**
+         * Proxy Request Head
+         * @description Proxy HEAD requests to other services in the cluster.
+         */
+        head: operations["proxy_request_head_v1_proxy_services__service_name___api_path__head"];
+        /**
+         * Proxy Request Patch
+         * @description Proxy PATCH requests to other services in the cluster.
+         */
+        patch: operations["proxy_request_patch_v1_proxy_services__service_name___api_path__patch"];
+        trace?: never;
+    };
     "/v1/queries": {
         parameters: {
             query?: never;
@@ -2724,6 +2788,32 @@ export interface components {
             namespace: string;
         };
         /**
+         * ConversationListResponse
+         * @description Response model for listing conversations.
+         */
+        ConversationListResponse: {
+            /** Items */
+            items: components["schemas"]["ConversationResponse"][];
+            /** Total */
+            total?: number | null;
+        };
+        /**
+         * ConversationResponse
+         * @description Response model for a conversation.
+         */
+        ConversationResponse: {
+            /** Conversationid */
+            conversationId: string;
+            /** Lastactivity */
+            lastActivity?: string | null;
+            /** Memoryname */
+            memoryName: string;
+            /** Messagecount */
+            messageCount?: number | null;
+            /** Queries */
+            queries?: string[] | null;
+        };
+        /**
          * Custom
          * @description The custom tool that the model called.
          */
@@ -3833,6 +3923,8 @@ export interface components {
         QueryCreateRequest: {
             /** Cancel */
             cancel?: boolean | null;
+            /** Conversationid */
+            conversationId?: string | null;
             evaluatorSelector?: components["schemas"]["QueryLabelSelector"] | null;
             /** Evaluators */
             evaluators?: components["schemas"]["Memory"][] | null;
@@ -3869,6 +3961,8 @@ export interface components {
         QueryDetailResponse: {
             /** Cancel */
             cancel?: boolean | null;
+            /** Conversationid */
+            conversationId?: string | null;
             /** Input */
             input: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Output"] | components["schemas"]["ChatCompletionAssistantMessageParam-Output"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[];
             memory?: components["schemas"]["Memory"] | null;
@@ -4006,6 +4100,8 @@ export interface components {
          * @description Basic query response for list operations.
          */
         QueryResponse: {
+            /** Conversationid */
+            conversationId?: string | null;
             /** Creationtimestamp */
             creationTimestamp?: string | null;
             /** Input */
@@ -4046,6 +4142,8 @@ export interface components {
         QueryUpdateRequest: {
             /** Cancel */
             cancel?: boolean | null;
+            /** Conversationid */
+            conversationId?: string | null;
             /** Input */
             input?: string | (components["schemas"]["ChatCompletionDeveloperMessageParam"] | components["schemas"]["ChatCompletionSystemMessageParam"] | components["schemas"]["ChatCompletionUserMessageParam-Input"] | components["schemas"]["ChatCompletionAssistantMessageParam-Input"] | components["schemas"]["ChatCompletionToolMessageParam"] | components["schemas"]["ChatCompletionFunctionMessageParam"])[] | null;
             memory?: components["schemas"]["Memory"] | null;
@@ -4186,30 +4284,12 @@ export interface components {
             selectorPrompt?: string | null;
         };
         /**
-         * SessionListResponse
-         * @description Response model for listing sessions.
+         * ServiceListResponse
+         * @description Response model for list services endpoint.
          */
-        SessionListResponse: {
-            /** Items */
-            items: components["schemas"]["SessionResponse"][];
-            /** Total */
-            total?: number | null;
-        };
-        /**
-         * SessionResponse
-         * @description Response model for a conversation.
-         */
-        SessionResponse: {
-            /** Conversationid */
-            conversationId: string;
-            /** Lastactivity */
-            lastActivity?: string | null;
-            /** Memoryname */
-            memoryName: string;
-            /** Messagecount */
-            messageCount?: number | null;
-            /** Queries */
-            queries?: string[] | null;
+        ServiceListResponse: {
+            /** Services */
+            services: string[];
         };
         /**
          * Skill
@@ -5523,7 +5603,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionListResponse"];
+                    "application/json": components["schemas"]["ConversationListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6709,6 +6789,250 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NamespaceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_services_v1_proxy_services_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceListResponse"];
+                };
+            };
+        };
+    };
+    proxy_request_get_v1_proxy_services__service_name___api_path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_name: string;
+                api_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proxy_request_put_v1_proxy_services__service_name___api_path__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_name: string;
+                api_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proxy_request_post_v1_proxy_services__service_name___api_path__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_name: string;
+                api_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proxy_request_delete_v1_proxy_services__service_name___api_path__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_name: string;
+                api_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proxy_request_options_v1_proxy_services__service_name___api_path__options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_name: string;
+                api_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proxy_request_head_v1_proxy_services__service_name___api_path__head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_name: string;
+                api_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proxy_request_patch_v1_proxy_services__service_name___api_path__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_name: string;
+                api_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
