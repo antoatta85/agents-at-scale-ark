@@ -28,8 +28,8 @@ podLabels: {}
 # L2 FIX: Pod security context for hardening
 podSecurityContext:
   runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
+  runAsUser: 1001
+  fsGroup: 1001
   seccompProfile:
     type: RuntimeDefault
 
