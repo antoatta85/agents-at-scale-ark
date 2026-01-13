@@ -53,12 +53,6 @@ type RetryPolicy struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="30s"
 	MaxDelay *metav1.Duration `json:"maxDelay,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=0
-	// Maximum total tokens across all retry attempts. If exceeded, query stops retrying.
-	// If not specified, only maxRetries is used.
-	MaxTokens *int64 `json:"maxTokens,omitempty"`
 }
 
 type QueryTarget struct {

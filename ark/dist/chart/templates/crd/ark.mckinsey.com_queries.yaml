@@ -337,13 +337,6 @@ spec:
                     maximum: 10
                     minimum: 0
                     type: integer
-                  maxTokens:
-                    description: |-
-                      Maximum total tokens across all retry attempts. If exceeded, query stops retrying.
-                      If not specified, only maxRetries is used.
-                    format: int64
-                    minimum: 0
-                    type: integer
                 type: object
               selector:
                 description: |-

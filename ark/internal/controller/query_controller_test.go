@@ -283,44 +283,6 @@ var _ = Describe("Query Controller Message Serialization", func() {
 				}
 				Expect(r.shouldRetry(query)).To(BeTrue())
 			})
-
-			It("should return false when maxTokens exceeded", func() {
-				maxTokens := int64(1000)
-				query := &arkv1alpha1.Query{
-					Spec: arkv1alpha1.QuerySpec{
-						RetryPolicy: &arkv1alpha1.RetryPolicy{
-							MaxRetries: 3,
-							MaxTokens:  &maxTokens,
-						},
-					},
-					Status: arkv1alpha1.QueryStatus{
-						RetryCount: 1,
-						TokenUsage: arkv1alpha1.TokenUsage{
-							TotalTokens: 1500,
-						},
-					},
-				}
-				Expect(r.shouldRetry(query)).To(BeFalse())
-			})
-
-			It("should return true when maxTokens not exceeded", func() {
-				maxTokens := int64(2000)
-				query := &arkv1alpha1.Query{
-					Spec: arkv1alpha1.QuerySpec{
-						RetryPolicy: &arkv1alpha1.RetryPolicy{
-							MaxRetries: 3,
-							MaxTokens:  &maxTokens,
-						},
-					},
-					Status: arkv1alpha1.QueryStatus{
-						RetryCount: 1,
-						TokenUsage: arkv1alpha1.TokenUsage{
-							TotalTokens: 500,
-						},
-					},
-				}
-				Expect(r.shouldRetry(query)).To(BeTrue())
-			})
 		})
 
 		Context("When testing calculateBackoffDelay", func() {

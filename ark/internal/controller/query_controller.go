@@ -582,12 +582,6 @@ func (r *QueryReconciler) shouldRetry(query *arkv1alpha1.Query) bool {
 		return false
 	}
 
-	if query.Spec.RetryPolicy.MaxTokens != nil && *query.Spec.RetryPolicy.MaxTokens > 0 {
-		if query.Status.TokenUsage.TotalTokens >= *query.Spec.RetryPolicy.MaxTokens {
-			return false
-		}
-	}
-
 	return true
 }
 
