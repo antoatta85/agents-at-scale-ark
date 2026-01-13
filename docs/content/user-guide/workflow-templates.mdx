@@ -1,0 +1,96 @@
+---
+title: Workflow Templates
+description: View and manage Argo WorkflowTemplates in the dashboard
+---
+
+# Workflow Templates
+
+The Workflow Templates page displays Argo WorkflowTemplates deployed in your cluster. View template details and visualize workflow DAGs (Directed Acyclic Graphs).
+
+## Accessing Workflow Templates
+
+Navigate to **Workflow Templates** from the dashboard sidebar or visit:
+
+```
+http://dashboard.127.0.0.1.nip.io:8080/workflow-templates
+```
+
+## Template List
+
+The main page displays all WorkflowTemplates in your namespace:
+
+- **Name** - Template identifier
+- **Description** - Template description from annotations
+- **Created** - Creation timestamp
+
+Click any template to view its details.
+
+## Template Details
+
+The detail view shows:
+
+### DAG Visualization
+
+Visual representation of the workflow graph showing:
+
+- **Nodes** - Individual workflow steps
+- **Edges** - Dependencies between steps
+- **Layout** - Hierarchical top-to-bottom flow
+
+### Template Information
+
+- **Name** - Template name
+- **Namespace** - Kubernetes namespace
+- **Entrypoint** - Starting workflow step
+- **Templates** - Available template definitions
+
+## DAG Viewer
+
+The DAG viewer provides:
+
+- **Interactive visualization** - Pan and zoom
+- **Node details** - Step names and types
+- **Dependency flow** - Visual connection between steps
+- **Auto-layout** - Automatic hierarchical positioning
+
+### Navigation
+
+- **Pan** - Click and drag the canvas
+- **Zoom** - Mouse wheel or pinch gesture
+
+## Use with Ark Workflows
+
+Argo WorkflowTemplates integrate with Ark for complex multi-agent workflows:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: multi-agent-analysis
+spec:
+  entrypoint: analyze
+  templates:
+  - name: analyze
+    dag:
+      tasks:
+      - name: gather-data
+        template: agent-task
+        arguments:
+          parameters:
+          - name: agent
+            value: data-gatherer
+      - name: process-data
+        template: agent-task
+        dependencies: [gather-data]
+        arguments:
+          parameters:
+          - name: agent
+            value: data-processor
+```
+
+View this template in the dashboard to see the dependency flow between agent tasks.
+
+## Related Documentation
+
+- [Argo Workflows](/developer-guide/workflows/argo-workflows) - Workflow integration
+- [Resources API](/reference/resources-api) - Accessing workflow templates via API

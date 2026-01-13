@@ -10,6 +10,7 @@ export default {
   teams: 'Creating and Managing Teams',
   queries: 'Creating Queries',
   tools: 'Creating Tools and MCP Servers',
+  'workflow-templates': 'Workflow Templates',
   'ark-cli': 'The Ark CLI',
 
   '---patterns': { type: 'separator', title: 'Patterns and guidance' },
