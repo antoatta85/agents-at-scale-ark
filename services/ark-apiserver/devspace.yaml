@@ -1,0 +1,59 @@
+# DevSpace configuration for ark-apiserver service
+version: v2beta1
+
+images:
+  ark-apiserver:
+    image: ark-apiserver
+    dockerfile: ./Dockerfile
+    context: .
+
+pipelines:
+  deploy: |-
+    build_images --all
+    create_deployments --all
+  dev: |-
+    create_deployments --all
+    start_dev --all
+
+deployments:
+  ark-apiserver:
+    namespace: ark-system
+    helm:
+      chart:
+        path: ./chart
+      values:
+        image:
+          repository: ${runtime.images.ark-apiserver.image}
+          tag: ${runtime.images.ark-apiserver.tag}
+        storage:
+          driver: sqlite
+          sqlite:
+            persistence:
+              enabled: true
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+        securityContext:
+          runAsNonRoot: false
+
+dev:
+  ark-apiserver:
+    imageSelector: ark-apiserver
+    devImage: golang:1.24.11-bookworm
+    command: ["sh", "-c", "cd /app && GOTOOLCHAIN=auto go run cmd/apiserver/main.go --storage-driver=sqlite --sqlite-path=/data/ark.db"]
+    namespace: ark-system
+    logs:
+      lastLines: 50
+    sync:
+      - path: .:/app
+        startContainer: true
+        disableDownload: true
+        uploadExcludeFile: .dockerignore
+        onUpload:
+          restartContainer: true
+    ssh:
+      enabled: true
