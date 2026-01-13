@@ -58,37 +58,73 @@ The DAG viewer provides:
 - **Pan** - Click and drag the canvas
 - **Zoom** - Mouse wheel or pinch gesture
 
-## Use with Ark Workflows
+## Creating Workflow Templates
 
-Argo WorkflowTemplates integrate with Ark for complex multi-agent workflows:
+### Simple DAG Example
+
+Save this to a file (e.g., `simple-pipeline.yaml`):
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: multi-agent-analysis
+  name: simple-data-pipeline
+  annotations:
+    workflows.argoproj.io/description: "Process data through multiple stages"
 spec:
-  entrypoint: analyze
+  entrypoint: pipeline
   templates:
-  - name: analyze
+  - name: pipeline
     dag:
       tasks:
-      - name: gather-data
-        template: agent-task
+      - name: collect
+        template: task-template
         arguments:
           parameters:
-          - name: agent
-            value: data-gatherer
-      - name: process-data
-        template: agent-task
-        dependencies: [gather-data]
+          - name: message
+            value: "Collecting data"
+
+      - name: validate
+        template: task-template
+        dependencies: [collect]
         arguments:
           parameters:
-          - name: agent
-            value: data-processor
+          - name: message
+            value: "Validating data"
+
+      - name: transform
+        template: task-template
+        dependencies: [validate]
+        arguments:
+          parameters:
+          - name: message
+            value: "Transforming data"
+
+      - name: load
+        template: task-template
+        dependencies: [transform]
+        arguments:
+          parameters:
+          - name: message
+            value: "Loading data"
+
+  - name: task-template
+    inputs:
+      parameters:
+      - name: message
+    container:
+      image: alpine:latest
+      command: [echo]
+      args: ["{{inputs.parameters.message}}"]
 ```
 
-View this template in the dashboard to see the dependency flow between agent tasks.
+Apply it:
+
+```bash
+kubectl apply -f simple-pipeline.yaml
+```
+
+The template will appear in the dashboard where you can view the DAG visualization.
 
 ## Related Documentation
 
