@@ -7,6 +7,19 @@ description: View and manage Argo WorkflowTemplates in the dashboard
 
 The Workflow Templates page displays Argo WorkflowTemplates deployed in your cluster. View template details and visualize workflow DAGs (Directed Acyclic Graphs).
 
+## Prerequisites
+
+This feature requires Argo Workflows to be installed in your cluster.
+
+Install Argo Workflows using the bundled devspace deployment:
+
+```bash
+cd services/argo-workflows
+devspace dev
+```
+
+See [Argo Workflows](/developer-guide/workflows/argo-workflows) for detailed installation instructions.
+
 ## Accessing Workflow Templates
 
 Navigate to **Workflow Templates** from the dashboard sidebar or visit:
