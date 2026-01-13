@@ -1,0 +1,83 @@
+name: SonarQube Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to scan (defaults to current branch)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  sonar_scan:
+    runs-on: [self-hosted, Linux]
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: "${{ secrets.SONAR_HOST_URL }}"
+      PROJECT_KEY: ${{ secrets.SONARQUBE_PROJECT_KEY }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+          fetch-depth: 0
+      - name: Set up Cloudflare WARP
+        uses: Boostport/setup-cloudflare-warp@v1
+        with:
+          organization: ${{ secrets.CF_ORGANIZATION }}
+          auth_client_id: ${{ secrets.CLOUDFLARE_AUTH_CLIENT_ID }}
+          auth_client_secret: ${{ secrets.CLOUDFLARE_AUTH_CLIENT_SECRET }}
+      - name: Run SonarQube Scan
+        run: |
+          if [ -n "${{ inputs.branch }}" ]; then
+            BRANCH="${{ inputs.branch }}"
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+          fi
+          docker run -i --user $(id -u) --rm \
+            -e SONAR_TOKEN \
+            -e SONAR_HOST_URL \
+            -v $(pwd):/app \
+            -w /app \
+            sonarsource/sonar-scanner-cli:5.0.1 \
+              -Dsonar.projectKey=$PROJECT_KEY \
+              -Dsonar.sources=./ \
+              -Dsonar.branch.name=$BRANCH \
+              -Dsonar.qualitygate.wait=true
+
+      - name: Get SonarQube Results
+        if: always()
+        run: |
+          BRANCH="${{ inputs.branch || github.ref_name }}"
+
+          QG_STATUS=$(curl -s -u "${SONAR_TOKEN}:" \
+            "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}&branch=${BRANCH}" \
+            | jq -r '.projectStatus.status')
+
+          MEASURES=$(curl -s -u "${SONAR_TOKEN}:" \
+            "${SONAR_HOST_URL}/api/measures/component?component=${PROJECT_KEY}&branch=${BRANCH}&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc")
+
+          BUGS=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric=="bugs") | .value // "N/A"')
+          VULNERABILITIES=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric=="vulnerabilities") | .value // "N/A"')
+          CODE_SMELLS=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric=="code_smells") | .value // "N/A"')
+          COVERAGE=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric=="coverage") | .value // "N/A"')
+          DUPLICATIONS=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric=="duplicated_lines_density") | .value // "N/A"')
+          LINES=$(echo "$MEASURES" | jq -r '.component.measures[] | select(.metric=="ncloc") | .value // "N/A"')
+
+          echo "## SonarQube Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Quality Gate:** ${QG_STATUS}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Bugs | ${BUGS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vulnerabilities | ${VULNERABILITIES} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Smells | ${CODE_SMELLS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage | ${COVERAGE}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Duplications | ${DUPLICATIONS}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lines of Code | ${LINES} |" >> $GITHUB_STEP_SUMMARY
