@@ -30,7 +30,7 @@ spec:
       - script:
           content: |
             helm install mock-llm oci://ghcr.io/dwmkerr/charts/mock-llm \
-              --version 0.1.23 \
+              --version 0.1.27 \
               --namespace $NAMESPACE \
               --values mock-llm-values.yaml
           env:
@@ -62,17 +62,16 @@ spec:
           file: manifests/a04-agent.yaml
       - apply:
           file: manifests/a05-query.yaml
-      # Assert query completes
-      - assert:
-          timeout: 5s
-          resource:
-            apiVersion: ark.mckinsey.com/v1alpha1
-            kind: Query
-            metadata:
-              name: test-query-with-params
-            status:
-              phase: done
-      # Validate response contains resolved parameter
+      # Wait for query to reach terminal state
+      - wait:
+          apiVersion: ark.mckinsey.com/v1alpha1
+          kind: Query
+          name: test-query-with-params
+          for:
+            condition:
+              name: Completed
+              value: 'True'
+      # Validate response (1s timeout - state won't change)
       - assert:
           timeout: 1s
           resource:
@@ -81,9 +80,10 @@ spec:
             metadata:
               name: test-query-with-params
             status:
-              (length(responses)): 1
-              (contains(responses[*].target.name, 'test-agent')): true
-              (contains(responses[0].content, 'QueryAgent123')): true
+              phase: done
+              (response != null): true
+              (response.target.name): 'test-agent'
+              (contains(response.content, 'QueryAgent123')): true
       catch:
       - events: {}
       - describe:
@@ -161,7 +161,9 @@ spec:
 
 ## Key Patterns
 
-1. **Mock-LLM echoes system message** - Use `{{jmes request body.messages[0]}}` to echo back for deterministic validation
-2. **Short timeouts** - Use 5-10s for mock-llm tests
-3. **Catch blocks** - Always include `events: {}` and `describe:` for debugging
-4. **JMESPath assertions** - Use `(contains(...))` and `(length(...))` for response validation
+1. **Wait for Completed** - Use `wait` for `Completed` condition before validating
+2. **Fast validation** - Use `timeout: 1s` after completion (state won't change)
+3. **Mock-LLM config** - Set `terminationGracePeriodSeconds: 3` and `pollInterval: 3s`
+4. **Catch blocks** - Always include `events: {}` and `describe:` for debugging
+5. **JMESPath assertions** - Use `(contains(...))` and `(response.target.name)` for validation
+6. **No helm uninstall** - Chainsaw deletes namespace automatically

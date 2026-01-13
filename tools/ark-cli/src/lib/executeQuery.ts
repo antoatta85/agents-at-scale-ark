@@ -22,6 +22,7 @@ export interface QueryOptions {
   outputFormat?: string;
   sessionId?: string;
   conversationId?: string;
+  maxRetries?: number;
 }
 
 interface StreamState {
@@ -169,6 +170,12 @@ async function executeQueryWithFormat(options: QueryOptions): Promise<void> {
         conversationId:
           options.conversationId || process.env.ARK_CONVERSATION_ID,
       }),
+      ...(options.maxRetries !== undefined &&
+        options.maxRetries > 0 && {
+          retryPolicy: {
+            maxRetries: options.maxRetries,
+          },
+        }),
       target: {
         type: options.targetType,
         name: options.targetName,

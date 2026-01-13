@@ -97,6 +97,37 @@ Notes:
 - For `type: messages`, `input` must be an array of objects with `role` and `content` fields.
 - Supported roles: `user`, `assistant`, `system`, and provider-specific roles.
 
+## Using ark CLI
+
+The ark CLI provides an interactive query interface with streaming responses:
+
+```bash
+# Query an agent
+ark query agent/weather-agent "What's the weather like in New York?"
+
+# Query a model directly
+ark query model/gpt-4 "Explain kubernetes operators"
+
+# Query a team
+ark query team/research-team "Analyze this data"
+```
+
+### Options
+
+```bash
+# Set a custom timeout
+ark query agent/my-agent "Long running task" --timeout 10m
+
+# Enable automatic retries (useful for rate limits)
+ark query agent/my-agent "Process this" --max-retries 3
+
+# Track queries with session ID for telemetry
+ark query agent/my-agent "Hello" --session-id user-123
+
+# Output as YAML/JSON instead of streaming
+ark query agent/my-agent "Hello" -o yaml
+```
+
 ## Using fark CLI
 
 Query an agent directly:

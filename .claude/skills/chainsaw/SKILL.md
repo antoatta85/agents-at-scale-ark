@@ -39,6 +39,44 @@ tests/my-test/
     └── a05-query.yaml      # Query last
 ```
 
+## Chainsaw Essentials
+
+### Mock-LLM Configuration
+```yaml
+terminationGracePeriodSeconds: 3  # Fast cleanup (default 30s)
+ark:
+  model:
+    pollInterval: 3s              # Fast model availability checks
+```
+
+### Query Completion Pattern
+Wait for `Completed` condition (terminal state), then validate:
+```yaml
+# Step 1: Wait for terminal state
+- wait:
+    apiVersion: ark.mckinsey.com/v1alpha1
+    kind: Query
+    name: my-query
+    for:
+      condition:
+        name: Completed
+        value: 'True'
+
+# Step 2: Validate (1s timeout - state won't change)
+- assert:
+    timeout: 1s
+    resource:
+      apiVersion: ark.mckinsey.com/v1alpha1
+      kind: Query
+      metadata:
+        name: my-query
+      status:
+        phase: done  # or 'error'
+```
+
+### Cleanup
+Don't add explicit `helm uninstall` - chainsaw deletes the namespace automatically.
+
 ## Environment Variables
 
 For real LLM tests (not mock-llm):

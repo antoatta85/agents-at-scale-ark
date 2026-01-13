@@ -24,6 +24,11 @@ export function createQueryCommand(config: ArkConfig): Command {
       '--conversation-id <conversationId>',
       'Conversation ID to associate with the query for memory continuity'
     )
+    .option(
+      '--max-retries <maxRetries>',
+      'Maximum number of retries on failure (0-10)',
+      (val) => parseInt(val, 10)
+    )
     .action(
       async (
         target: string,
@@ -33,6 +38,7 @@ export function createQueryCommand(config: ArkConfig): Command {
           timeout?: string;
           sessionId?: string;
           conversationId?: string;
+          maxRetries?: number;
         }
       ) => {
         const parsed = parseTarget(target);
@@ -53,6 +59,7 @@ export function createQueryCommand(config: ArkConfig): Command {
           timeout: options.timeout || config.queryTimeout,
           sessionId: options.sessionId,
           conversationId: options.conversationId,
+          maxRetries: options.maxRetries,
         });
       }
     );

@@ -385,6 +385,70 @@ describe('executeQuery', () => {
       );
     });
 
+    it('should include retryPolicy in query manifest when maxRetries is specified', async () => {
+      let capturedInput = '';
+      mockExeca.mockImplementation(
+        async (command: string, args: string[], options: any) => {
+          if (args.includes('apply') && options?.input) {
+            capturedInput = options.input;
+          }
+          if (args.includes('apply')) {
+            return {stdout: '', stderr: '', exitCode: 0};
+          }
+          if (args.includes('wait')) {
+            return {stdout: '', stderr: '', exitCode: 0};
+          }
+          return {stdout: '', stderr: '', exitCode: 0};
+        }
+      );
+
+      await executeQuery({
+        targetType: 'agent',
+        targetName: 'test-agent',
+        message: 'Hello',
+        outputFormat: 'name',
+        maxRetries: 3,
+      });
+
+      expect(mockExeca).toHaveBeenCalledWith(
+        'kubectl',
+        expect.arrayContaining(['apply', '-f', '-']),
+        expect.objectContaining({input: expect.any(String)})
+      );
+
+      const manifest = JSON.parse(capturedInput);
+      expect(manifest.spec.retryPolicy).toEqual({maxRetries: 3});
+    });
+
+    it('should not include retryPolicy when maxRetries is 0', async () => {
+      let capturedInput = '';
+      mockExeca.mockImplementation(
+        async (command: string, args: string[], options: any) => {
+          if (args.includes('apply') && options?.input) {
+            capturedInput = options.input;
+          }
+          if (args.includes('apply')) {
+            return {stdout: '', stderr: '', exitCode: 0};
+          }
+          if (args.includes('wait')) {
+            return {stdout: '', stderr: '', exitCode: 0};
+          }
+          return {stdout: '', stderr: '', exitCode: 0};
+        }
+      );
+
+      await executeQuery({
+        targetType: 'agent',
+        targetName: 'test-agent',
+        message: 'Hello',
+        outputFormat: 'name',
+        maxRetries: 0,
+      });
+
+      const manifest = JSON.parse(capturedInput);
+      expect(manifest.spec.retryPolicy).toBeUndefined();
+    });
+
     it('should output json format', async () => {
       const mockQuery = {
         apiVersion: 'ark.mckinsey.com/v1alpha1',
