@@ -181,8 +181,8 @@ class TestResourcesEndpoint(unittest.TestCase):
     @patch('ark_api.api.v1.resources.ApiClient')
     @patch('ark_api.api.v1.resources.DynamicClient')
     @patch('ark_api.api.v1.resources.get_context')
-    def test_get_resource_cluster_scoped_fallback(self, mock_get_context, mock_dynamic_client_cls, mock_api_client):
-        """Test cluster-scoped resource retrieval when namespace fails."""
+    def test_get_resource_namespace_failure(self, mock_get_context, mock_dynamic_client_cls, mock_api_client):
+        """Test resource retrieval returns error when namespace operation fails."""
         mock_get_context.return_value = {"namespace": "default"}
 
         mock_api_client_instance = AsyncMock()
@@ -192,26 +192,12 @@ class TestResourcesEndpoint(unittest.TestCase):
         mock_dynamic_client_cls.side_effect = make_awaitable(mock_dynamic_client_instance)
 
         mock_api_resource = AsyncMock()
-        mock_resource = Mock()
-        mock_resource.to_dict.return_value = {
-            "apiVersion": "v1",
-            "kind": "Node",
-            "metadata": {"name": "test-node"}
-        }
-
-        async def mock_get(*args, **kwargs):
-            if "namespace" in kwargs:
-                raise Exception("Namespace not applicable for cluster-scoped resource")
-            return mock_resource
-
-        mock_api_resource.get = mock_get
+        mock_api_resource.get = AsyncMock(side_effect=Exception("Namespace not applicable for cluster-scoped resource"))
         mock_dynamic_client_instance.resources.get = AsyncMock(return_value=mock_api_resource)
 
         response = self.client.get("/v1/resources/api/v1/Node/test-node")
 
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertEqual(data["kind"], "Node")
+        self.assertEqual(response.status_code, 500)
 
 
 if __name__ == "__main__":

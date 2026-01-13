@@ -69,12 +69,8 @@ async def get_core_resource(
         try:
             resource = await api_resource.get(name=resource_name, namespace=namespace)
         except Exception as e:
-            logger.debug(f"Namespaced get failed, trying cluster-scoped: {e}")
-            try:
-                resource = await api_resource.get(name=resource_name)
-            except Exception as e2:
-                logger.error(f"Both namespaced and cluster-scoped get failed: {e2}")
-                raise
+            logger.debug(f"Failed to retrieve core resource: {e}")
+            raise
 
         return _create_resource_response(resource.to_dict(), request)
 
@@ -120,12 +116,8 @@ async def list_core_resources(
         try:
             resources = await api_resource.get(namespace=namespace)
         except Exception as e:
-            logger.debug(f"Namespaced list failed, trying cluster-scoped: {e}")
-            try:
-                resources = await api_resource.get()
-            except Exception as e2:
-                logger.error(f"Both namespaced and cluster-scoped list failed: {e2}")
-                raise
+            logger.debug(f"Failed to list core resources: {e}")
+            raise
 
         return _create_resource_response(resources.to_dict(), request)
 
