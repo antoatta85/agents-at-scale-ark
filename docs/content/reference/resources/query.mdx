@@ -59,6 +59,13 @@ spec:
   # Optional: timeout for query execution
   timeout: 5m
 
+  # Optional: retry policy for transient failures
+  retryPolicy:
+    maxRetries: 3           # 0-10, default 0 (no retries)
+    backoffPolicy: exponential  # exponential, linear, or fixed
+    initialDelay: 1s        # Delay before first retry
+    maxDelay: 30s           # Maximum delay between retries
+
   # Optional: header overrides for models and MCP servers
   overrides:
     - headers:
@@ -70,6 +77,9 @@ spec:
 status:
   # Execution state: pending, running, done, error
   phase: done
+
+  # Number of retry attempts made (if retryPolicy configured)
+  retryCount: 0
 
   # Response from target
   response:
@@ -327,6 +337,65 @@ Individual A2A servers can also have their own timeout configured via `A2AServer
 
 See the [Building A2A Servers guide](/developer-guide/building-a2a-servers#timeout-configuration) for detailed timeout configuration for A2A agents.
 
+## Retry Policy
+
+Configure automatic retries for transient failures like rate limits or network timeouts.
+
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: resilient-query
+spec:
+  input: "Analyze this data"
+  target:
+    type: agent
+    name: data-analyst
+  retryPolicy:
+    maxRetries: 3
+    backoffPolicy: exponential
+    initialDelay: 1s
+    maxDelay: 30s
+```
+
+### Retry Policy Fields
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `maxRetries` | Maximum retry attempts (0-10) | `0` (disabled) |
+| `backoffPolicy` | Delay strategy between retries | `exponential` |
+| `initialDelay` | Delay before first retry | `1s` |
+| `maxDelay` | Maximum delay cap | `30s` |
+
+### Backoff Policies
+
+- **exponential**: Delay doubles each retry (1s → 2s → 4s → 8s...), capped at `maxDelay`
+- **linear**: Delay increases by `initialDelay` each retry (1s → 2s → 3s → 4s...)
+- **fixed**: Constant delay of `initialDelay` between all retries
+
+### Retry Behavior
+
+- Retries occur on transient errors (rate limits, network timeouts, 5xx errors)
+- Non-retryable errors (validation failures, 4xx errors) fail immediately
+- `status.retryCount` tracks the number of retry attempts made
+- Query phase becomes `error` if all retries are exhausted
+
+### Monitoring Retries
+
+Check retry status with kubectl:
+
+```bash
+kubectl get query my-query -o jsonpath='{.status.retryCount}'
+```
+
+The `Retries` column is also visible in query listings:
+
+```bash
+kubectl get queries
+# NAME        TYPE   PHASE   DURATION   RETRIES   AGE
+# my-query    user   done    1.2s       2         5m
+```
+
 ## Examples
 
 ### Simple Query
@@ -402,6 +471,28 @@ spec:
     name: tech-lead
     type: team
     name: qa-team
+```
+
+### Query with Retry Policy
+
+Handle transient failures with automatic retries:
+
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: resilient-api-query
+spec:
+  input: "Fetch latest market data"
+  target:
+    type: agent
+    name: market-data-agent
+  retryPolicy:
+    maxRetries: 3
+    backoffPolicy: exponential
+    initialDelay: 2s
+    maxDelay: 30s
+  timeout: 5m
 ```
 
 ### Query with Overrides
