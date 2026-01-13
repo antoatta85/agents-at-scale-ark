@@ -1,0 +1,8 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: retry-test-agent
+spec:
+  modelRef:
+    name: test-model
+  prompt: You are a test agent for retry functionality.

@@ -1,0 +1,76 @@
+# Mock LLM configuration for retry success test
+# Fails first request containing "retry success", succeeds on retry
+terminationGracePeriodSeconds: 3
+ark:
+  model:
+    enabled: true
+    name: test-model
+    type: openai
+    model: gpt-4.1-mini
+    pollInterval: 3s
+    apiKey: mock-api-key
+
+config:
+  rules:
+  # Fallback: handles probes and non-matching requests
+  - path: "/v1/chat/completions"
+    response:
+      status: 200
+      content: |
+        {
+          "id": "mock-probe",
+          "object": "chat.completion",
+          "model": "gpt-4.1-mini",
+          "choices": [{"message": {"role": "assistant", "content": "ok"}, "finish_reason": "stop"}]
+        }
+
+  # Sequence 0 + match: First query attempt fails with 500
+  # Only matches requests containing "retry success" when counter is 0
+  - path: "/v1/chat/completions"
+    match: "contains(body.messages[-1].content || '', 'retry success')"
+    sequence: 0
+    response:
+      status: 500
+      content: |
+        {
+          "error": {
+            "message": "Internal server error - temporary failure",
+            "type": "server_error",
+            "code": "internal_error"
+          }
+        }
+
+  # Sequence 1 + match: Retry succeeds
+  # Only matches requests containing "retry success" when counter is 1
+  - path: "/v1/chat/completions"
+    match: "contains(body.messages[-1].content || '', 'retry success')"
+    sequence: 1
+    response:
+      status: 200
+      content: |
+        {
+          "id": "mock-retry-success",
+          "object": "chat.completion",
+          "model": "gpt-4.1-mini",
+          "choices": [{
+            "message": {
+              "role": "assistant",
+              "content": "Success after retry"
+            },
+            "finish_reason": "stop"
+          }],
+          "usage": {
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+            "total_tokens": 15
+          }
+        }
+
+  # Model list endpoint
+  - path: "/v1/models"
+    response:
+      status: 200
+      content: |
+        {
+          "data": [{"id": "gpt-4.1-mini", "object": "model"}]
+        }

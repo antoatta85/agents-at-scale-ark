@@ -1,0 +1,48 @@
+# Mock LLM configuration for retry exhaustion test
+# Fails requests containing "retry exhaustion", succeeds for probes
+terminationGracePeriodSeconds: 3
+ark:
+  model:
+    enabled: true
+    name: test-model
+    type: openai
+    model: gpt-4.1-mini
+    pollInterval: 3s
+    apiKey: mock-api-key
+
+config:
+  rules:
+  # Default: succeed (for model probes and other requests)
+  - path: "/v1/chat/completions"
+    response:
+      status: 200
+      content: |
+        {
+          "id": "mock-success",
+          "object": "chat.completion",
+          "model": "gpt-4.1-mini",
+          "choices": [{"message": {"role": "assistant", "content": "ok"}, "finish_reason": "stop"}]
+        }
+
+  # Fail requests containing the test query content
+  - path: "/v1/chat/completions"
+    match: "contains(body.messages[-1].content || '', 'retry exhaustion')"
+    response:
+      status: 500
+      content: |
+        {
+          "error": {
+            "message": "Internal server error - persistent failure",
+            "type": "server_error",
+            "code": "internal_error"
+          }
+        }
+
+  # Model list endpoint
+  - path: "/v1/models"
+    response:
+      status: 200
+      content: |
+        {
+          "data": [{"id": "gpt-4.1-mini", "object": "model"}]
+        }

@@ -1,0 +1,13 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: retry-exhaustion-query
+spec:
+  input: "Test query for retry exhaustion"
+  target:
+    type: agent
+    name: retry-test-agent
+  retryPolicy:
+    maxRetries: 2
+    backoffPolicy: fixed
+    initialDelay: 1s
