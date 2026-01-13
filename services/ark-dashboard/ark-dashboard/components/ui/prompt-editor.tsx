@@ -11,6 +11,8 @@ export interface PromptEditorProps {
   disabled?: boolean;
   className?: string;
   parameters?: Array<{ name: string }>;
+  textareaClassName?: string;
+  highlightClassName?: string;
 }
 
 export interface PromptEditorRef {
@@ -23,7 +25,16 @@ const PARAM_NAME_REGEX = /\{\{\s*\.([\w]+)\s*\}\}/;
 
 export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
   function PromptEditor(
-    { value, onChange, placeholder, disabled, className, parameters = [] },
+    {
+      value,
+      onChange,
+      placeholder,
+      disabled,
+      className,
+      parameters = [],
+      textareaClassName,
+      highlightClassName,
+    },
     ref,
   ) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,7 +92,9 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
     };
 
     return (
-      <div className={cn('relative h-full w-full', className)}>
+      <div
+        className={cn('relative w-full h-full min-h-[inherit]', className)}
+        style={{ minHeight: 'inherit' }}>
         {/* Highlighted background layer */}
         <div
           ref={highlightRef}
@@ -91,6 +104,8 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
             'whitespace-pre-wrap break-words',
             'rounded-md border border-transparent bg-transparent',
             'p-3 font-mono text-sm leading-relaxed',
+            'h-full min-h-[inherit]',
+            highlightClassName,
           )}
           style={{ wordBreak: 'break-word' }}>
           {renderHighlightedContent()}
@@ -106,11 +121,12 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
           placeholder=""
           disabled={disabled}
           className={cn(
-            'relative z-10 h-full w-full resize-none',
+            'relative z-10 h-full min-h-[inherit] w-full resize-none',
             'rounded-md border bg-transparent p-3',
             'font-mono text-sm leading-relaxed',
             'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
             'disabled:cursor-not-allowed disabled:opacity-50',
+            textareaClassName,
           )}
           style={{
             color: 'transparent',
