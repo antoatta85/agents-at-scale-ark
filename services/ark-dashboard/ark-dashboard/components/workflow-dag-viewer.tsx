@@ -1,11 +1,18 @@
 'use client';
 
-import { ReactFlow, Node, Edge, Background, Controls, Handle, Position, MarkerType } from '@xyflow/react';
-import dagre from 'dagre';
-import { useEffect, useState } from 'react';
-import yaml from 'js-yaml';
-
+import type { Edge, Node } from '@xyflow/react';
+import {
+  Background,
+  Controls,
+  Handle,
+  MarkerType,
+  Position,
+  ReactFlow,
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import dagre from 'dagre';
+import yaml from 'js-yaml';
+import { useEffect, useState } from 'react';
 
 interface WorkflowDagViewerProps {
   manifest: string;
@@ -15,6 +22,30 @@ interface DagTask {
   name: string;
   template: string;
   dependencies?: string[];
+}
+
+interface WorkflowTemplate {
+  name?: string;
+  dag?: {
+    tasks: Array<{
+      name: string;
+      template: string;
+      dependencies?: string[];
+    }>;
+  };
+  steps?: Array<
+    Array<{
+      name: string;
+      template?: string;
+    }>
+  >;
+}
+
+interface WorkflowManifest {
+  spec?: {
+    entrypoint?: string;
+    templates?: WorkflowTemplate[];
+  };
 }
 
 const nodeWidth = 180;
@@ -35,8 +66,7 @@ function CustomNode({ data }: { data: { label: string } }) {
         fontSize: '12px',
         fontWeight: 500,
         padding: '8px',
-      }}
-    >
+      }}>
       <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       {data.label}
       <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
@@ -53,7 +83,7 @@ function getLayoutedElements(tasks: DagTask[]) {
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ rankdir: 'LR', nodesep: 50, ranksep: 100 });
 
-  const nodes: Node[] = tasks.map((task) => ({
+  const nodes: Node[] = tasks.map(task => ({
     id: task.name,
     type: 'custom',
     data: { label: task.name },
@@ -61,9 +91,9 @@ function getLayoutedElements(tasks: DagTask[]) {
   }));
 
   const edges: Edge[] = [];
-  tasks.forEach((task) => {
+  tasks.forEach(task => {
     if (task.dependencies) {
-      task.dependencies.forEach((dep) => {
+      task.dependencies.forEach(dep => {
         edges.push({
           id: `${dep}-${task.name}`,
           source: dep,
@@ -85,17 +115,17 @@ function getLayoutedElements(tasks: DagTask[]) {
     }
   });
 
-  nodes.forEach((node) => {
+  nodes.forEach(node => {
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
   });
 
-  edges.forEach((edge) => {
+  edges.forEach(edge => {
     dagreGraph.setEdge(edge.source, edge.target);
   });
 
   dagre.layout(dagreGraph);
 
-  nodes.forEach((node) => {
+  nodes.forEach(node => {
     const nodeWithPosition = dagreGraph.node(node.id);
     node.position = {
       x: nodeWithPosition.x - nodeWidth / 2,
@@ -113,39 +143,36 @@ export function WorkflowDagViewer({ manifest }: WorkflowDagViewerProps) {
 
   useEffect(() => {
     try {
-      const parsed = yaml.load(manifest) as any;
+      const parsed = yaml.load(manifest) as WorkflowManifest;
 
       if (!parsed.spec?.templates) {
         setError('No templates found in workflow manifest');
         return;
       }
 
-      const dagTemplate = parsed.spec.templates.find(
-        (t: any) => t.dag?.tasks
-      );
+      const dagTemplate = parsed.spec.templates.find(t => t.dag?.tasks);
 
-      const stepsTemplate = parsed.spec.templates.find(
-        (t: any) => t.steps
-      );
+      const stepsTemplate = parsed.spec.templates.find(t => t.steps);
 
       let tasks: DagTask[] = [];
 
-      if (dagTemplate) {
-        tasks = dagTemplate.dag.tasks.map((task: any) => ({
+      if (dagTemplate && dagTemplate.dag) {
+        tasks = dagTemplate.dag.tasks.map(task => ({
           name: task.name,
           template: task.template,
           dependencies: task.dependencies || [],
         }));
-      } else if (stepsTemplate) {
-        const allStepTasks: string[][] = stepsTemplate.steps.map((step: any) => {
-          return step.map((s: any) => s.name);
+      } else if (stepsTemplate && stepsTemplate.steps) {
+        const allStepTasks: string[][] = stepsTemplate.steps.map(step => {
+          return step.map(s => s.name);
         });
 
         const flatTasks: DagTask[] = [];
         allStepTasks.forEach((stepTasks, stepIndex) => {
-          const previousStepTasks = stepIndex > 0 ? allStepTasks[stepIndex - 1] : [];
+          const previousStepTasks =
+            stepIndex > 0 ? allStepTasks[stepIndex - 1] : [];
 
-          stepTasks.forEach((taskName) => {
+          stepTasks.forEach(taskName => {
             flatTasks.push({
               name: taskName,
               template: taskName,
@@ -168,18 +195,23 @@ export function WorkflowDagViewer({ manifest }: WorkflowDagViewerProps) {
         return;
       }
 
-      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(tasks);
+      const { nodes: layoutedNodes, edges: layoutedEdges } =
+        getLayoutedElements(tasks);
       setNodes(layoutedNodes);
       setEdges(layoutedEdges);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse workflow manifest');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to parse workflow manifest',
+      );
     }
   }, [manifest]);
 
   if (error) {
     return (
-      <div className="bg-muted rounded-lg p-4 text-sm text-destructive">
+      <div className="bg-muted text-destructive rounded-lg p-4 text-sm">
         {error}
       </div>
     );
@@ -187,7 +219,7 @@ export function WorkflowDagViewer({ manifest }: WorkflowDagViewerProps) {
 
   if (nodes.length === 0) {
     return (
-      <div className="bg-muted rounded-lg p-4 text-sm text-muted-foreground">
+      <div className="bg-muted text-muted-foreground rounded-lg p-4 text-sm">
         No tasks found in DAG
       </div>
     );
@@ -200,8 +232,7 @@ export function WorkflowDagViewer({ manifest }: WorkflowDagViewerProps) {
         edges={edges}
         nodeTypes={nodeTypes}
         fitView
-        attributionPosition="bottom-left"
-      >
+        attributionPosition="bottom-left">
         <Background />
         <Controls />
       </ReactFlow>

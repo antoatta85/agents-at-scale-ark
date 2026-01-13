@@ -1,6 +1,13 @@
 'use client';
 
-import { Copy, Download, FileCode, Network, Sparkle, Workflow } from 'lucide-react';
+import {
+  Copy,
+  Download,
+  FileCode,
+  Network,
+  Sparkle,
+  Workflow,
+} from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -8,16 +15,11 @@ import { toast } from 'sonner';
 import type { BreadcrumbElement } from '@/components/common/page-header';
 import { PageHeader } from '@/components/common/page-header';
 import type { Flow } from '@/components/rows/flow-row';
-import { workflowTemplatesService } from '@/lib/services/workflow-templates';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkflowDagViewer } from '@/components/workflow-dag-viewer';
+import { workflowTemplatesService } from '@/lib/services/workflow-templates';
 
 export default function FlowDetailPage() {
   const params = useParams();
@@ -92,7 +94,7 @@ export default function FlowDetailPage() {
       toast.success('Copied', {
         description: 'Flow ID copied to clipboard',
       });
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy', {
         description: 'Could not copy flow ID to clipboard',
       });
@@ -106,7 +108,7 @@ export default function FlowDetailPage() {
       toast.success('Copied', {
         description: 'Manifest copied to clipboard',
       });
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy', {
         description: 'Could not copy manifest to clipboard',
       });
@@ -140,13 +142,15 @@ export default function FlowDetailPage() {
             <div className="relative p-2">
               <Workflow className="text-muted-foreground h-8 w-8 flex-shrink-0" />
               {isComposerFlow && (
-                <Sparkle className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 fill-primary text-primary opacity-60" />
+                <Sparkle className="fill-primary text-primary absolute -top-0.5 -right-0.5 h-3.5 w-3.5 opacity-60" />
               )}
             </div>
 
             <div className="flex min-w-0 flex-col gap-1">
               <div className="flex items-center gap-2">
-                <p className="truncate text-base font-medium font-mono" title={flow.id}>
+                <p
+                  className="truncate font-mono text-base font-medium"
+                  title={flow.id}>
                   {flow.id}
                 </p>
                 <Button
@@ -158,7 +162,9 @@ export default function FlowDetailPage() {
                 </Button>
               </div>
               {flow.title && (
-                <p className="text-muted-foreground truncate text-sm font-medium" title={flow.title}>
+                <p
+                  className="text-muted-foreground truncate text-sm font-medium"
+                  title={flow.title}>
                   {flow.title}
                 </p>
               )}
@@ -216,7 +222,7 @@ export default function FlowDetailPage() {
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="yaml">
-                  <pre className="bg-muted rounded-lg p-4 overflow-x-auto text-xs font-mono">
+                  <pre className="bg-muted overflow-x-auto rounded-lg p-4 font-mono text-xs">
                     <code>{flow.manifest}</code>
                   </pre>
                 </TabsContent>

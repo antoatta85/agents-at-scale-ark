@@ -69,8 +69,8 @@ export function WorkflowTemplatesSection() {
           </EmptyMedia>
           <EmptyTitle>No Workflow Templates Yet</EmptyTitle>
           <EmptyDescription>
-            You haven&apos;t created any workflow templates yet. Get started by creating your
-            first workflow template.
+            You haven&apos;t created any workflow templates yet. Get started by
+            creating your first workflow template.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent></EmptyContent>
