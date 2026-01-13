@@ -157,11 +157,11 @@ func main() {
 	fmt.Println(string(result))
 }`;
 
-  const bashCode = `curl -X POST "${fullEndpoint}" \\
-  # Uncomment to use auth with key pair
-  # -u PUBLIC_KEY:SECRET_KEY \\
-  # Uncomment to use auth with bearer token
-  # -H "Authorization: Bearer YOUR_TOKEN_HERE" \\
+  const bashCode = `# Optional: Uncomment and move to the line after curl to use auth with key pair:
+#   -u PUBLIC_KEY:SECRET_KEY \\
+# Optional: Uncomment and move to the line after curl to use auth with bearer token:
+#   -H "Authorization: Bearer YOUR_TOKEN_HERE" \\
+curl -X POST "${fullEndpoint}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "model": "agent/${selectedAgent}",
