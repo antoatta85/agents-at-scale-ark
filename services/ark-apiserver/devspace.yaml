@@ -15,6 +15,14 @@ pipelines:
     create_deployments --all
     start_dev --all
 
+commands:
+  copy-db:
+    description: Copy SQLite database from pod to ./ark.db
+    command: |
+      POD=$(kubectl get pod -n ark-system -l app.kubernetes.io/name=ark-apiserver -o jsonpath='{.items[0].metadata.name}')
+      kubectl cp ark-system/$POD:/data/ark.db ./ark.db
+      echo "Copied to ./ark.db"
+
 deployments:
   ark-apiserver:
     namespace: ark-system
@@ -29,22 +37,26 @@ deployments:
           driver: sqlite
           sqlite:
             persistence:
-              enabled: true
+              enabled: false
+        # Higher limits for Go compilation during development
         resources:
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "2048Mi"
+            cpu: "2000m"
           requests:
             memory: "256Mi"
-            cpu: "100m"
+            cpu: "200m"
+        podSecurityContext:
+          fsGroup: 0
         securityContext:
           runAsNonRoot: false
+          runAsUser: 0
 
 dev:
   ark-apiserver:
     imageSelector: ark-apiserver
     devImage: golang:1.24.11-bookworm
-    command: ["sh", "-c", "cd /app && GOTOOLCHAIN=auto go run cmd/apiserver/main.go --storage-driver=sqlite --sqlite-path=/data/ark.db"]
+    command: ["sh", "-c", "cd /app && GOTOOLCHAIN=auto go run cmd/apiserver/main.go --secure-port=8443 --storage-driver=sqlite --sqlite-path=/data/ark.db"]
     namespace: ark-system
     logs:
       lastLines: 50
