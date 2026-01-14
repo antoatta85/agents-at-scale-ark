@@ -370,13 +370,12 @@ spec:
 ### Backoff Policies
 
 - **exponential**: Delay doubles each retry (1s → 2s → 4s → 8s...), capped at `maxDelay`
-- **linear**: Delay increases by `initialDelay` each retry (1s → 2s → 3s → 4s...)
-- **fixed**: Constant delay of `initialDelay` between all retries
+- **linear**: Delay increases by `initialDelay` each retry (1s → 2s → 3s → 4s...), capped at `maxDelay`
+- **fixed**: Constant delay of `initialDelay` between all retries (1s → 1s → 1s...)
 
 ### Retry Behavior
 
-- Retries occur on transient errors (rate limits, network timeouts, 5xx errors)
-- Non-retryable errors (validation failures, 4xx errors) fail immediately
+- Retries occur on any error until `maxRetries` is exhausted
 - `status.retryCount` tracks the number of retry attempts made
 - Query phase becomes `error` if all retries are exhausted
 

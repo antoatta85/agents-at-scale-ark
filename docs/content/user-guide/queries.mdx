@@ -265,7 +265,7 @@ Response:
 
 ### Query Retry Policies
 
-Configure automatic retries for transient failures like rate limits or network timeouts. Add a `retryPolicy` to your Query spec:
+Configure automatic retries for failed queries:
 
 ```yaml
 apiVersion: ark.mckinsey.com/v1alpha1
@@ -277,29 +277,19 @@ spec:
   target:
     type: agent
     name: data-analyst
+  # Retry up to 3 times with exponential backoff
   retryPolicy:
-    maxRetries: 3           # Retry up to 3 times (0-10)
-    backoffPolicy: exponential  # exponential, linear, or fixed
-    initialDelay: 1s        # Wait 1s before first retry
-    maxDelay: 30s           # Cap delay at 30s
+    maxRetries: 3
+    backoffPolicy: exponential
 ```
 
-**Backoff policies:**
-- `exponential` (default): Delay doubles each retry (1s → 2s → 4s...), capped at `maxDelay`
-- `linear`: Delay increases by `initialDelay` each retry (1s → 2s → 3s...)
-- `fixed`: Constant delay of `initialDelay` between all retries
-
-Monitor retry attempts:
+After completion, check the retry count in the status:
 
 ```bash
-# Check retry count for a query
-kubectl get query my-query -o jsonpath='{.status.retryCount}'
-
-# List queries with retry column
-kubectl get queries
+kubectl get query resilient-query -o jsonpath='{.status.retryCount}'
 ```
 
-See the [Query Reference](/reference/resources/query#retry-policy) for complete retry policy documentation.
+See the [Query Reference](/reference/resources/query#retry-policy) for all retry policy options.
 
 ## Next Steps
 

@@ -2,6 +2,8 @@ apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: query-retry-success
+  labels:
+    standard: "true"
 spec:
   description: Test query retry policy succeeds after initial failure
   steps:
@@ -37,24 +39,15 @@ spec:
 
   - name: wait-for-query-completion
     try:
-    - script:
+    - wait:
+        apiVersion: ark.mckinsey.com/v1alpha1
+        kind: Query
+        name: retry-success-query
         timeout: 120s
-        content: |
-          # Wait for query to complete
-          for i in {1..60}; do
-            phase=$(kubectl get query/retry-success-query -n $NAMESPACE -o jsonpath='{.status.phase}' 2>/dev/null)
-            echo "Attempt $i: phase=$phase"
-            if [ "$phase" = "error" ] || [ "$phase" = "done" ]; then
-              echo "Query completed with phase: $phase"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Timeout waiting for query completion"
-          exit 1
-        env:
-        - name: NAMESPACE
-          value: ($namespace)
+        for:
+          condition:
+            name: Completed
+            value: 'True'
 
   - name: validate-retry-success
     try:
@@ -67,6 +60,7 @@ spec:
             name: retry-success-query
           status:
             phase: done
+            (retryCount >= `1`): true
             (response != null): true
             (contains(response.content, 'Success after retry')): true
     catch:
