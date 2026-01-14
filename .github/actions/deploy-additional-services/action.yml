@@ -109,28 +109,28 @@ runs:
           # Build extra helm args for ark-dashboard OIDC configuration
           EXTRA_ARGS=()
           if [ "${NAME}" = "ark-dashboard" ]; then
-            EXTRA_ARGS+=(--set "app.env[11].value=${{ inputs.auth_mode }}")
+            EXTRA_ARGS+=(--set "app.env[11].name=AUTH_MODE" --set "app.env[11].value=${{ inputs.auth_mode }}")
             if [ -n "${{ inputs.dashboard_base_url }}" ]; then
-              EXTRA_ARGS+=(--set "app.env[0].value=${{ inputs.dashboard_base_url }}")
-              EXTRA_ARGS+=(--set "app.env[1].value=${{ inputs.dashboard_base_url }}/api/auth")
+              EXTRA_ARGS+=(--set "app.env[0].name=BASE_URL" --set "app.env[0].value=${{ inputs.dashboard_base_url }}")
+              EXTRA_ARGS+=(--set "app.env[1].name=AUTH_URL" --set "app.env[1].value=${{ inputs.dashboard_base_url }}/api/auth")
             fi
             if [ -n "${{ inputs.auth_secret }}" ]; then
-              EXTRA_ARGS+=(--set "app.env[2].value=${{ inputs.auth_secret }}")
+              EXTRA_ARGS+=(--set "app.env[2].name=AUTH_SECRET" --set "app.env[2].value=${{ inputs.auth_secret }}")
             fi
             if [ -n "${{ inputs.oidc_issuer_url }}" ]; then
-              EXTRA_ARGS+=(--set "app.env[3].value=${{ inputs.oidc_issuer_url }}")
+              EXTRA_ARGS+=(--set "app.env[3].name=OIDC_ISSUER_URL" --set "app.env[3].value=${{ inputs.oidc_issuer_url }}")
             fi
             if [ -n "${{ inputs.oidc_client_id }}" ]; then
-              EXTRA_ARGS+=(--set "app.env[4].value=${{ inputs.oidc_client_id }}")
+              EXTRA_ARGS+=(--set "app.env[4].name=OIDC_CLIENT_ID" --set "app.env[4].value=${{ inputs.oidc_client_id }}")
             fi
             if [ -n "${{ inputs.oidc_client_secret }}" ]; then
-              EXTRA_ARGS+=(--set "app.env[5].value=${{ inputs.oidc_client_secret }}")
+              EXTRA_ARGS+=(--set "app.env[5].name=OIDC_CLIENT_SECRET" --set "app.env[5].value=${{ inputs.oidc_client_secret }}")
             fi
             if [ -n "${{ inputs.oidc_provider_name }}" ]; then
-              EXTRA_ARGS+=(--set "app.env[6].value=${{ inputs.oidc_provider_name }}")
+              EXTRA_ARGS+=(--set "app.env[6].name=OIDC_PROVIDER_NAME" --set "app.env[6].value=${{ inputs.oidc_provider_name }}")
             fi
             if [ -n "${{ inputs.oidc_provider_id }}" ]; then
-              EXTRA_ARGS+=(--set "app.env[7].value=${{ inputs.oidc_provider_id }}")
+              EXTRA_ARGS+=(--set "app.env[7].name=OIDC_PROVIDER_ID" --set "app.env[7].value=${{ inputs.oidc_provider_id }}")
             fi
           fi
 
